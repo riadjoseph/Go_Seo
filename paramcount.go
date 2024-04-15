@@ -43,7 +43,9 @@ func main() {
 
 	// Get the filename from the command-line arguments
 	if len(os.Args) < 2 {
-		fmt.Println("Please provide the filename as an argument.")
+		clearScreen()
+		fmt.Println("paramcount")
+		fmt.Println("Error: Please provide the filename as an argument.")
 		return
 	}
 	filename := os.Args[1]
