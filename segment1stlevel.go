@@ -48,7 +48,7 @@ func main() {
 	// Open the input file
 	file, err := os.Open(inputFilename)
 	if err != nil {
-		fmt.Printf("foldercount: Error opening input file: %v\n", err)
+		fmt.Printf("segment1stlevel: Error opening input file: %v\n", err)
 		return
 	}
 	defer file.Close()
@@ -113,7 +113,7 @@ func main() {
 	clearScreen()
 
 	// Display welcome message
-	fmt.Println(purple + "foldercount: Count the number First Level Folders found." + reset)
+	fmt.Println(purple + "segment1stlevel: Count the number First Level Folders found." + reset)
 
 	// Display the total number of records processed
 	fmt.Printf("\n\nTotal URLs processed: %d\n", totalRecords)
