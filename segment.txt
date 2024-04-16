@@ -1,0 +1,634 @@
+# Regex made with Go_SEO/segmentfirstlevel for domain: www.farfetch.com
+
+[segment:level1Folders]
+@Home
+path /
+
+@bh
+url *www.farfetch.com/bh/*
+
+@qa
+url *www.farfetch.com/qa/*
+
+@om
+url *www.farfetch.com/om/*
+
+@lb
+url *www.farfetch.com/lb/*
+
+@sa
+url *www.farfetch.com/sa/*
+
+@ae
+url *www.farfetch.com/ae/*
+
+@kw
+url *www.farfetch.com/kw/*
+
+@jo
+url *www.farfetch.com/jo/*
+
+@eg
+url *www.farfetch.com/eg/*
+
+@shopping
+url *www.farfetch.com/shopping/*
+
+@li
+url *www.farfetch.com/li/*
+
+@hu
+url *www.farfetch.com/hu/*
+
+@hk
+url *www.farfetch.com/hk/*
+
+@my
+url *www.farfetch.com/my/*
+
+@be
+url *www.farfetch.com/be/*
+
+@za
+url *www.farfetch.com/za/*
+
+@cz
+url *www.farfetch.com/cz/*
+
+@it
+url *www.farfetch.com/it/*
+
+@ca
+url *www.farfetch.com/ca/*
+
+@br
+url *www.farfetch.com/br/*
+
+@pe
+url *www.farfetch.com/pe/*
+
+@ke
+url *www.farfetch.com/ke/*
+
+@kh
+url *www.farfetch.com/kh/*
+
+@nz
+url *www.farfetch.com/nz/*
+
+@ie
+url *www.farfetch.com/ie/*
+
+@no
+url *www.farfetch.com/no/*
+
+@cr
+url *www.farfetch.com/cr/*
+
+@tn
+url *www.farfetch.com/tn/*
+
+@fi
+url *www.farfetch.com/fi/*
+
+@nl
+url *www.farfetch.com/nl/*
+
+@ma
+url *www.farfetch.com/ma/*
+
+@au
+url *www.farfetch.com/au/*
+
+@pl
+url *www.farfetch.com/pl/*
+
+@cn
+url *www.farfetch.com/cn/*
+
+@cm
+url *www.farfetch.com/cm/*
+
+@mc
+url *www.farfetch.com/mc/*
+
+@pr
+url *www.farfetch.com/pr/*
+
+@jp
+url *www.farfetch.com/jp/*
+
+@pt
+url *www.farfetch.com/pt/*
+
+@tz
+url *www.farfetch.com/tz/*
+
+@zw
+url *www.farfetch.com/zw/*
+
+@ge
+url *www.farfetch.com/ge/*
+
+@sn
+url *www.farfetch.com/sn/*
+
+@am
+url *www.farfetch.com/am/*
+
+@ro
+url *www.farfetch.com/ro/*
+
+@ng
+url *www.farfetch.com/ng/*
+
+@gr
+url *www.farfetch.com/gr/*
+
+@uy
+url *www.farfetch.com/uy/*
+
+@sk
+url *www.farfetch.com/sk/*
+
+@zm
+url *www.farfetch.com/zm/*
+
+@md
+url *www.farfetch.com/md/*
+
+@de
+url *www.farfetch.com/de/*
+
+@in
+url *www.farfetch.com/in/*
+
+@tr
+url *www.farfetch.com/tr/*
+
+@cl
+url *www.farfetch.com/cl/*
+
+@do
+url *www.farfetch.com/do/*
+
+@co
+url *www.farfetch.com/co/*
+
+@ci
+url *www.farfetch.com/ci/*
+
+@uk
+url *www.farfetch.com/uk/*
+
+@mx
+url *www.farfetch.com/mx/*
+
+@uz
+url *www.farfetch.com/uz/*
+
+@ni
+url *www.farfetch.com/ni/*
+
+@ve
+url *www.farfetch.com/ve/*
+
+@es
+url *www.farfetch.com/es/*
+
+@az
+url *www.farfetch.com/az/*
+
+@th
+url *www.farfetch.com/th/*
+
+@dk
+url *www.farfetch.com/dk/*
+
+@ch
+url *www.farfetch.com/ch/*
+
+@rs
+url *www.farfetch.com/rs/*
+
+@py
+url *www.farfetch.com/py/*
+
+@pa
+url *www.farfetch.com/pa/*
+
+@vn
+url *www.farfetch.com/vn/*
+
+@me
+url *www.farfetch.com/me/*
+
+@gt
+url *www.farfetch.com/gt/*
+
+@kr
+url *www.farfetch.com/kr/*
+
+@tw
+url *www.farfetch.com/tw/*
+
+@at
+url *www.farfetch.com/at/*
+
+@ao
+url *www.farfetch.com/ao/*
+
+@sv
+url *www.farfetch.com/sv/*
+
+@ar
+url *www.farfetch.com/ar/*
+
+@mz
+url *www.farfetch.com/mz/*
+
+@il
+url *www.farfetch.com/il/*
+
+@gh
+url *www.farfetch.com/gh/*
+
+@se
+url *www.farfetch.com/se/*
+
+@ph
+url *www.farfetch.com/ph/*
+
+@dz
+url *www.farfetch.com/dz/*
+
+@mn
+url *www.farfetch.com/mn/*
+
+@kz
+url *www.farfetch.com/kz/*
+
+@ec
+url *www.farfetch.com/ec/*
+
+@kg
+url *www.farfetch.com/kg/*
+
+@sg
+url *www.farfetch.com/sg/*
+
+@id
+url *www.farfetch.com/id/*
+
+@mu
+url *www.farfetch.com/mu/*
+
+@fr
+url *www.farfetch.com/fr/*
+
+@bg
+url *www.farfetch.com/bg/*
+
+@mt
+url *www.farfetch.com/mt/*
+
+@lu
+url *www.farfetch.com/lu/*
+
+@hr
+url *www.farfetch.com/hr/*
+
+@cy
+url *www.farfetch.com/cy/*
+
+@si
+url *www.farfetch.com/si/*
+
+@bn
+url *www.farfetch.com/bn/*
+
+@mo
+url *www.farfetch.com/mo/*
+
+@ee
+url *www.farfetch.com/ee/*
+
+@lv
+url *www.farfetch.com/lv/*
+
+@lt
+url *www.farfetch.com/lt/*
+
+@sitemap
+url *www.farfetch.com/sitemap/*
+
+@style-guide
+url *www.farfetch.com/style-guide/*
+
+@sets
+url *www.farfetch.com/sets/*
+
+@ar-qa
+url *www.farfetch.com/ar-qa/*
+
+@stories
+url *www.farfetch.com/stories/*
+
+@positively-farfetch
+url *www.farfetch.com/positively-farfetch/*
+
+@contact-us
+url *www.farfetch.com/contact-us/*
+
+@designers
+url *www.farfetch.com/designers/*
+
+@privacy-policy
+url *www.farfetch.com/privacy-policy/*
+
+@student-discount
+url *www.farfetch.com/student-discount/*
+
+@farfetch-accessibility
+url *www.farfetch.com/farfetch-accessibility/*
+
+@boutiques
+url *www.farfetch.com/boutiques/*
+
+@farfetch-access
+url *www.farfetch.com/farfetch-access/*
+
+@mcshopping
+url *www.farfetch.com/mcshopping/*
+
+@checkorder
+url *www.farfetch.com/checkorder/*
+
+@imprint
+url *www.farfetch.com/imprint/*
+
+@roshopping
+url *www.farfetch.com/roshopping/*
+
+@faqs
+url *www.farfetch.com/faqs/*
+
+@how-to-shop
+url *www.farfetch.com/how-to-shop/*
+
+@fashionfootprinttool
+url *www.farfetch.com/fashionfootprinttool/*
+
+@deshopping
+url *www.farfetch.com/deshopping/*
+
+@lishopping
+url *www.farfetch.com/lishopping/*
+
+@plshopping
+url *www.farfetch.com/plshopping/*
+
+@promotion-terms-and-conditions
+url *www.farfetch.com/promotion-terms-and-conditions/*
+
+@fishopping
+url *www.farfetch.com/fishopping/*
+
+@chshopping
+url *www.farfetch.com/chshopping/*
+
+@czshopping
+url *www.farfetch.com/czshopping/*
+
+@hushopping
+url *www.farfetch.com/hushopping/*
+
+@ptshopping
+url *www.farfetch.com/ptshopping/*
+
+@click-and-collect
+url *www.farfetch.com/click-and-collect/*
+
+@orders-and-shipping
+url *www.farfetch.com/orders-and-shipping/*
+
+@ieshopping
+url *www.farfetch.com/ieshopping/*
+
+@protection-of-intellectual-property
+url *www.farfetch.com/protection-of-intellectual-property/*
+
+@skshopping
+url *www.farfetch.com/skshopping/*
+
+@atshopping
+url *www.farfetch.com/atshopping/*
+
+@ukshopping
+url *www.farfetch.com/ukshopping/*
+
+@ccpa
+url *www.farfetch.com/ccpa/*
+
+@grshopping
+url *www.farfetch.com/grshopping/*
+
+@beshopping
+url *www.farfetch.com/beshopping/*
+
+@designers-nacionais
+url *www.farfetch.com/designers-nacionais/*
+
+@tag
+url *www.farfetch.com/tag/*
+
+@cryptocurrency-payment
+url *www.farfetch.com/cryptocurrency-payment/*
+
+@returns-and-refunds
+url *www.farfetch.com/returns-and-refunds/*
+
+@holiday-sos
+url *www.farfetch.com/holiday-sos/*
+
+@item-18189552.aspx
+url *www.farfetch.com/item-18189552.aspx/*
+
+@reviews
+url *www.farfetch.com/reviews/*
+
+@LATAM-Import-restrictions
+url *www.farfetch.com/LATAM-Import-restrictions/*
+
+@customer-promise
+url *www.farfetch.com/customer-promise/*
+
+@terms-and-conditions
+url *www.farfetch.com/terms-and-conditions/*
+
+@cookie-preferences
+url *www.farfetch.com/cookie-preferences/*
+
+@accessibility@farfetch.com
+url *www.farfetch.com/accessibility@farfetch.com/*
+
+@inappropriate-customer-behavior
+url *www.farfetch.com/inappropriate-customer-behavior/*
+
+@www.youronlinechoices.eu
+url *www.farfetch.com/www.youronlinechoices.eu/*
+
+@useraccount
+url *www.farfetch.com/useraccount/*
+
+@positively-farfetch.aspx
+url *www.farfetch.com/positively-farfetch.aspx/*
+
+@key-worker-discount
+url *www.farfetch.com/key-worker-discount/*
+
+@shopping%20
+url *www.farfetch.com/shopping%20/*
+
+@payment-and-pricing
+url *www.farfetch.com/payment-and-pricing/*
+
+@personal-sensitive-information-policy
+url *www.farfetch.com/personal-sensitive-information-policy/*
+
+@pag1987.aspx
+url *www.farfetch.com/pag1987.aspx/*
+
+@modern-slavery-statement
+url *www.farfetch.com/modern-slavery-statement/*
+
+@e
+url *www.farfetch.com/e/*
+
+@discover-app
+url *www.farfetch.com/discover-app/*
+
+@refer-a-friend?situation=homepage_footer
+url *www.farfetch.com/refer-a-friend?situation=homepage_footer/*
+
+@virtual-sessions
+url *www.farfetch.com/virtual-sessions/*
+
+@sneaker-drop-zone
+url *www.farfetch.com/sneaker-drop-zone/*
+
+@commercial-transaction-act
+url *www.farfetch.com/commercial-transaction-act/*
+
+@f6
+url *www.farfetch.com/f6/*
+
+@women
+url *www.farfetch.com/women/*
+
+@holiday-need-to-know
+url *www.farfetch.com/holiday-need-to-know/*
+
+@item-17909449.aspx
+url *www.farfetch.com/item-17909449.aspx/*
+
+@authenticity
+url *www.farfetch.com/authenticity/*
+
+@refer-a-friend
+url *www.farfetch.com/refer-a-friend/*
+
+@item-18310360.aspx
+url *www.farfetch.com/item-18310360.aspx/*
+
+@ar-ae
+url *www.farfetch.com/ar-ae/*
+
+@?rnd=638472096894768868&ffref=vp_int
+url *www.farfetch.com/?rnd=638472096894768868&ffref=vp_int/*
+
+@h
+url *www.farfetch.com/h/*
+
+@hopping
+url *www.farfetch.com/hopping/*
+
+@pag1985.aspx
+url *www.farfetch.com/pag1985.aspx/*
+
+@nlshopping
+url *www.farfetch.com/nlshopping/*
+
+@discount-for-communities
+url *www.farfetch.com/discount-for-communities/*
+
+@about_us
+url *www.farfetch.com/about_us/*
+
+@donation-for-a-discount
+url *www.farfetch.com/donation-for-a-discount/*
+
+@item-17758060.aspx
+url *www.farfetch.com/item-17758060.aspx/*
+
+@crep-check.aspx
+url *www.farfetch.com/crep-check.aspx/*
+
+@ccn
+url *www.farfetch.com/ccn/*
+
+@youth-discount
+url *www.farfetch.com/youth-discount/*
+
+@men
+url *www.farfetch.com/men/*
+
+@boutiques-all.aspx
+url *www.farfetch.com/boutiques-all.aspx/*
+
+@item-17107332.aspx
+url *www.farfetch.com/item-17107332.aspx/*
+
+@student-youth-discount
+url *www.farfetch.com/student-youth-discount/*
+
+@farfetch-access-programme
+url *www.farfetch.com/farfetch-access-programme/*
+
+@item-16697277.aspx
+url *www.farfetch.com/item-16697277.aspx/*
+
+@mx%20
+url *www.farfetch.com/mx%20/*
+
+@cnshopping
+url *www.farfetch.com/cnshopping/*
+
+@fta-duties-and-taxes
+url *www.farfetch.com/fta-duties-and-taxes/*
+
+@www.ico.org.uk
+url *www.farfetch.com/www.ico.org.uk/*
+
+@farfetch-app
+url *www.farfetch.com/farfetch-app/*
+
+@pag1988.aspx
+url *www.farfetch.com/pag1988.aspx/*
+
+@member-discount
+url *www.farfetch.com/member-discount/*
+
+@latam-import-restrictions
+url *www.farfetch.com/latam-import-restrictions/*
+
+@item-17731525.aspx
+url *www.farfetch.com/item-17731525.aspx/*
+
+@privacy@farfetch.com
+url *www.farfetch.com/privacy@farfetch.com/*
+
+
+@~Other
+path /*
+# ----End of level1Folders Segment----
