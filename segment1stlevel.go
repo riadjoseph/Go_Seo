@@ -1,3 +1,11 @@
+// segment1stlevel: Generate the regex for all first level folders found in the URL extract
+// Written by Jason Vicinanza
+// First Github commit: 15/4/24
+
+// To run this:
+// go run segment1stlevel.go url_extract regex_output
+// Example: go run segment1stlevel.go siteurls.csv myregex.txt
+
 package main
 
 import (
@@ -23,6 +31,9 @@ func (a ByCount) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
+
+	// Version
+	version := "v0.1"
 
 	// ANSI escape code for purple color
 	purple := "\033[0;35m"
@@ -67,6 +78,7 @@ func main() {
 
 	// Display welcome message
 	fmt.Println(purple + "segment1stlevel: Generate the regex for all first level folders." + reset)
+	fmt.Println(purple+"Version: %s", version+reset)
 
 	// Iterate through each line in the file
 	for scanner.Scan() {
@@ -79,14 +91,8 @@ func main() {
 			fmt.Print("#")
 		}
 
-		// Call extractDomain when reading the third record
-		//if recordCounter == 3 {
+		// Get the domain. Do this for each record in order to catch subdomains
 		domain = extractDomain(line)
-		//if domain != "" {
-		//fmt.Println("Domain extracted:", domain)
-		// You can save the domain in a variable for later use if needed
-		//}
-		//}
 
 		// Split the line into substrings using a forward slash as delimiter
 		parts := strings.Split(line, "/")
@@ -113,7 +119,8 @@ func main() {
 	clearScreen()
 
 	// Display welcome message
-	fmt.Println(purple + "segment1stlevel: Count the number First Level Folders found." + reset)
+	fmt.Println(purple + "segment1stlevel: Generate the regex for all first level folders." + reset)
+	fmt.Println(purple+"Version:", version+reset)
 
 	// Display the total number of records processed
 	fmt.Printf("\n\nTotal URLs processed: %d\n", totalRecords)
@@ -174,7 +181,8 @@ func main() {
 		return
 	}
 
-	fmt.Println(purple + "\nsegment1stlevel: Done\n")
+	fmt.Println(purple + "\nsegment1stlevel: Done")
+	fmt.Println(purple+"Regex can be found in the file:", outputFilename)
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {

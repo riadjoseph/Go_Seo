@@ -33,6 +33,9 @@ func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
 
+	// Version
+	version := "v0.1"
+
 	// ANSI escape code for purple color
 	purple := "\033[0;35m"
 	// ANSI escape code to reset color
@@ -75,6 +78,7 @@ func main() {
 
 	// Display welcome message
 	fmt.Println(purple + "paramcount: Count the number Parameters found." + reset)
+	fmt.Println(purple+"Version:", version+reset)
 
 	// Iterate through each line in the file
 	for scanner.Scan() {
@@ -123,6 +127,7 @@ func main() {
 
 	// Display welcome message
 	fmt.Println(purple + "paramcount: Count the number Parameters found." + reset)
+	fmt.Println(purple+"Version:", version+reset)
 
 	// Display the total number of records processed
 	fmt.Printf("\n\nTotal URLs processed: %d\n", totalRecords)
