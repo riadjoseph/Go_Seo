@@ -1,6 +1,5 @@
 # Go_Seo
 A series of command line utilities to support SEO actions.
-#
 # foldercount
 foldercount is used to identify the first level folder in the URL and to count the number of instances found in the URL file.
 Usage: go run foldercount.go URL_Extract_file Ex: go run foldercount.go siteurls.csv
