@@ -47,7 +47,7 @@ func main() {
 	if len(os.Args) < 2 {
 		clearScreen()
 		fmt.Println("foldercount")
-		fmt.Println("Error: Please provide the filename as an argument.")
+		fmt.Println("foldercount. Error. Please provide the filename as an argument.")
 		return
 	}
 	filename := os.Args[1]
@@ -137,7 +137,7 @@ func main() {
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("foldercount: Error scanning extract file: %v\n", err)
+		fmt.Printf("foldercount. Error scanning extract file: %v\n", err)
 		return
 	}
 }

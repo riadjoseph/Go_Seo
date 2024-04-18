@@ -48,7 +48,7 @@ func main() {
 	if len(os.Args) < 2 {
 		clearScreen()
 		fmt.Println("paramcount")
-		fmt.Println("Error: Please provide the filename as an argument.")
+		fmt.Println("paramcount. Error. Please provide the filename as an argument.")
 		return
 	}
 	filename := os.Args[1]
@@ -56,7 +56,7 @@ func main() {
 	// Open the file
 	file, err := os.Open(filename)
 	if err != nil {
-		fmt.Printf("paramcount: Error opening file: %v\n", err)
+		fmt.Printf("paramcount. Error opening file: %v\n", err)
 		return
 	}
 	defer file.Close()
@@ -163,7 +163,7 @@ func main() {
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("paramcount: Error scanning extract file: %v\n", err)
+		fmt.Printf("paramcount. Error scanning extract file: %v\n", err)
 		return
 	}
 }
