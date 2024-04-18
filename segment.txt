@@ -1,122 +1,143 @@
-# Regex made with Go_SEO/segmentfirstlevel for domain: www.rolex.com
+# Regex made with Go_SEO/segmentfirstlevel for domain: newsroom.rolex.com
 
 [segment:level1Folders]
 @Home
 path /
 
-@hi
-url *www.rolex.com/hi/*
-
-@de
-url *www.rolex.com/de/*
-
-@ar
-url *www.rolex.com/ar/*
-
-@th
-url *www.rolex.com/th/*
-
-@it
-url *www.rolex.com/it/*
-
-@tr
-url *www.rolex.com/tr/*
-
-@en-us
-url *www.rolex.com/en-us/*
-
-@ko
-url *www.rolex.com/ko/*
-
-@pt-br
-url *www.rolex.com/pt-br/*
-
-@nl
-url *www.rolex.com/nl/*
-
-@id
-url *www.rolex.com/id/*
-
-@vi
-url *www.rolex.com/vi/*
-
-@ms
-url *www.rolex.com/ms/*
-
-@fa
-url *www.rolex.com/fa/*
-
-@es
-url *www.rolex.com/es/*
-
-@ru
-url *www.rolex.com/ru/*
+@fr
+url *newsroom.rolex.com/fr/*
 
 @zh-hant
-url *www.rolex.com/zh-hant/*
+url *newsroom.rolex.com/zh-hant/*
 
 @zh-hans
-url *www.rolex.com/zh-hans/*
+url *newsroom.rolex.com/zh-hans/*
+
+@en-us
+url *newsroom.rolex.com/en-us/*
+
+@es
+url *newsroom.rolex.com/es/*
 
 @pl
-url *www.rolex.com/pl/*
+url *newsroom.rolex.com/pl/*
 
-@ja
-url *www.rolex.com/ja/*
+@ar
+url *newsroom.rolex.com/ar/*
 
-@fr
-url *www.rolex.com/fr/*
+@nl
+url *newsroom.rolex.com/nl/*
+
+@vi
+url *newsroom.rolex.com/vi/*
 
 @he
-url *www.rolex.com/he/*
+url *newsroom.rolex.com/he/*
+
+@pt-br
+url *newsroom.rolex.com/pt-br/*
+
+@ms
+url *newsroom.rolex.com/ms/*
+
+@it
+url *newsroom.rolex.com/it/*
+
+@ru
+url *newsroom.rolex.com/ru/*
+
+@ko
+url *newsroom.rolex.com/ko/*
+
+@fa
+url *newsroom.rolex.com/fa/*
+
+@ja
+url *newsroom.rolex.com/ja/*
+
+@tr
+url *newsroom.rolex.com/tr/*
+
+@de
+url *newsroom.rolex.com/de/*
+
+@th
+url *newsroom.rolex.com/th/*
+
+@hi
+url *newsroom.rolex.com/hi/*
+
+@id
+url *newsroom.rolex.com/id/*
 
 @rolex-dealers
-url *www.rolex.com/rolex-dealers/*
+url *newsroom.rolex.com/rolex-dealers/*
 
 @watches
-url *www.rolex.com/watches/*
+url *newsroom.rolex.com/watches/*
+
+@rolexcom
+url *newsroom.rolex.com/rolexcom/*
+
+@world-of-rolex
+url *newsroom.rolex.com/world-of-rolex/*
 
 @rolex-and-sports
-url *www.rolex.com/rolex-and-sports/*
-
-@perpetual-initiatives
-url *www.rolex.com/perpetual-initiatives/*
+url *newsroom.rolex.com/rolex-and-sports/*
 
 @watchmaking
-url *www.rolex.com/watchmaking/*
+url *newsroom.rolex.com/watchmaking/*
 
 @about-rolex
-url *www.rolex.com/about-rolex/*
+url *newsroom.rolex.com/about-rolex/*
+
+@perpetual-initiatives
+url *newsroom.rolex.com/perpetual-initiatives/*
 
 @watch-care-and-service
-url *www.rolex.com/watch-care-and-service/*
+url *newsroom.rolex.com/watch-care-and-service/*
 
 @buying-a-rolex
-url *www.rolex.com/buying-a-rolex/*
+url *newsroom.rolex.com/buying-a-rolex/*
 
 @media
-url *www.rolex.com/media/*
+url *newsroom.rolex.com/media/*
 
 @store-locator
-url *www.rolex.com/store-locator/*
-
-@?cmpid=newsroom_rolexcom
-url *www.rolex.com/?cmpid=newsroom_rolexcom/*
-
-@zh_tw?cmpid=newsroom_rolexcom
-url *www.rolex.com/zh_tw?cmpid=newsroom_rolexcom/*
-
-@fr?cmpid=newsroom_rolexcom
-url *www.rolex.com/fr?cmpid=newsroom_rolexcom/*
+url *newsroom.rolex.com/store-locator/*
 
 @zh_cn?cmpid=newsroom_rolexcom
-url *www.rolex.com/zh_cn?cmpid=newsroom_rolexcom/*
+url *newsroom.rolex.com/zh_cn?cmpid=newsroom_rolexcom/*
+
+@search
+url *newsroom.rolex.com/search/*
+
+@legal
+url *newsroom.rolex.com/legal/*
+
+@zh_tw?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/zh_tw?cmpid=newsroom_rolexcom/*
 
 @404
-url *www.rolex.com/404/*
+url *newsroom.rolex.com/404/*
+
+@?cmpid=rolexcom_newsroom
+url *newsroom.rolex.com/?cmpid=rolexcom_newsroom/*
+
+@fr?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/fr?cmpid=newsroom_rolexcom/*
 
 @locate-me
-url *www.rolex.com/locate-me/*
+url *newsroom.rolex.com/locate-me/*
+
+@?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/?cmpid=newsroom_rolexcom/*
+
+@cookie-policy
+url *newsroom.rolex.com/cookie-policy/*
+
+@bookmarks
+url *newsroom.rolex.com/bookmarks/*
 
 
 @~Other
