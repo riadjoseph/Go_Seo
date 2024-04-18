@@ -1,3 +1,10 @@
+// listAnalysis: Get key crawl attributes for the latest crawl of a specific project.
+// Written by Jason Vicinanza
+
+// To run this:
+// go run listAnalysis username project_slug
+// Example: go run listAnalysis botify-project botify-project-name
+
 package main
 
 import (

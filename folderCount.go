@@ -1,6 +1,5 @@
 // folderCount: A utility that counts the number of instances of the first level folder
 // Written by Jason Vicinanza
-// First Github commit: 15/4/24
 
 // To run this:
 // go run folderCount.go file_name

@@ -1,6 +1,5 @@
 // segment1stLevel: Generate the regex for all first level folders found in the URL extract
 // Written by Jason Vicinanza
-// First Github commit: 15/4/24
 
 // To run this:
 // go run segment1stLevel.go url_extract regex_output

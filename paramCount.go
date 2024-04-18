@@ -1,7 +1,6 @@
 // ParamCount: a small utility that identifies which Parameters have been found in the crawl and counts the number of instances
 // of each Parameter key
 // Written by Jason Vicinanza
-// First Github commit: 15/4/24
 
 // To run this:
 // go run ParamCount.go file_name
