@@ -3,7 +3,6 @@ A series of command line utilities to support SEO actions.
 #
 # foldercount
 foldercount is used to identify the first level folder in the URL and to count the number of instances found in the URL file.
-This is useful if the site is based on a folder structure (i.e. regional folders vs. the use of sub-domains)
 Usage: go run foldercount.go URL_Extract_file Ex: go run foldercount.go siteurls.csv
 # paramcount
 paramcount is used to identify and count all Parameter Keys used.
