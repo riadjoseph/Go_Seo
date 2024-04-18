@@ -7,68 +7,68 @@ path /
 @fr
 url *newsroom.rolex.com/fr/*
 
-@zh-hant
-url *newsroom.rolex.com/zh-hant/*
-
 @zh-hans
 url *newsroom.rolex.com/zh-hans/*
 
-@en-us
-url *newsroom.rolex.com/en-us/*
-
-@es
-url *newsroom.rolex.com/es/*
-
-@pl
-url *newsroom.rolex.com/pl/*
-
-@ar
-url *newsroom.rolex.com/ar/*
-
-@nl
-url *newsroom.rolex.com/nl/*
-
-@vi
-url *newsroom.rolex.com/vi/*
-
-@he
-url *newsroom.rolex.com/he/*
-
-@pt-br
-url *newsroom.rolex.com/pt-br/*
-
-@ms
-url *newsroom.rolex.com/ms/*
-
-@it
-url *newsroom.rolex.com/it/*
+@zh-hant
+url *newsroom.rolex.com/zh-hant/*
 
 @ru
 url *newsroom.rolex.com/ru/*
 
-@ko
-url *newsroom.rolex.com/ko/*
+@id
+url *newsroom.rolex.com/id/*
 
-@fa
-url *newsroom.rolex.com/fa/*
-
-@ja
-url *newsroom.rolex.com/ja/*
-
-@tr
-url *newsroom.rolex.com/tr/*
-
-@de
-url *newsroom.rolex.com/de/*
-
-@th
-url *newsroom.rolex.com/th/*
+@vi
+url *newsroom.rolex.com/vi/*
 
 @hi
 url *newsroom.rolex.com/hi/*
 
-@id
-url *newsroom.rolex.com/id/*
+@ko
+url *newsroom.rolex.com/ko/*
+
+@ja
+url *newsroom.rolex.com/ja/*
+
+@es
+url *newsroom.rolex.com/es/*
+
+@en-us
+url *newsroom.rolex.com/en-us/*
+
+@th
+url *newsroom.rolex.com/th/*
+
+@nl
+url *newsroom.rolex.com/nl/*
+
+@ar
+url *newsroom.rolex.com/ar/*
+
+@de
+url *newsroom.rolex.com/de/*
+
+@he
+url *newsroom.rolex.com/he/*
+
+@fa
+url *newsroom.rolex.com/fa/*
+
+@pt-br
+url *newsroom.rolex.com/pt-br/*
+
+@pl
+url *newsroom.rolex.com/pl/*
+
+@it
+url *newsroom.rolex.com/it/*
+
+@ms
+url *newsroom.rolex.com/ms/*
+
+@tr
+url *newsroom.rolex.com/tr/*
 
 @rolex-dealers
 url *newsroom.rolex.com/rolex-dealers/*
@@ -106,38 +106,38 @@ url *newsroom.rolex.com/media/*
 @store-locator
 url *newsroom.rolex.com/store-locator/*
 
-@zh_cn?cmpid=newsroom_rolexcom
-url *newsroom.rolex.com/zh_cn?cmpid=newsroom_rolexcom/*
-
-@search
-url *newsroom.rolex.com/search/*
-
 @legal
 url *newsroom.rolex.com/legal/*
-
-@zh_tw?cmpid=newsroom_rolexcom
-url *newsroom.rolex.com/zh_tw?cmpid=newsroom_rolexcom/*
-
-@404
-url *newsroom.rolex.com/404/*
 
 @?cmpid=rolexcom_newsroom
 url *newsroom.rolex.com/?cmpid=rolexcom_newsroom/*
 
-@fr?cmpid=newsroom_rolexcom
-url *newsroom.rolex.com/fr?cmpid=newsroom_rolexcom/*
-
-@locate-me
-url *newsroom.rolex.com/locate-me/*
-
-@?cmpid=newsroom_rolexcom
-url *newsroom.rolex.com/?cmpid=newsroom_rolexcom/*
+@bookmarks
+url *newsroom.rolex.com/bookmarks/*
 
 @cookie-policy
 url *newsroom.rolex.com/cookie-policy/*
 
-@bookmarks
-url *newsroom.rolex.com/bookmarks/*
+@locate-me
+url *newsroom.rolex.com/locate-me/*
+
+@fr?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/fr?cmpid=newsroom_rolexcom/*
+
+@search
+url *newsroom.rolex.com/search/*
+
+@404
+url *newsroom.rolex.com/404/*
+
+@zh_tw?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/zh_tw?cmpid=newsroom_rolexcom/*
+
+@?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/?cmpid=newsroom_rolexcom/*
+
+@zh_cn?cmpid=newsroom_rolexcom
+url *newsroom.rolex.com/zh_cn?cmpid=newsroom_rolexcom/*
 
 
 @~Other

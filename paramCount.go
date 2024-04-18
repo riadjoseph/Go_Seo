@@ -1,10 +1,11 @@
-// foldercount: A small utility that counts the number of instances of the first level folder
+// ParamCount: a small utility that identifies which Parameters have been found in the crawl and counts the number of instances
+// of each Parameter key
 // Written by Jason Vicinanza
 // First Github commit: 15/4/24
 
 // To run this:
-// go run foldercount.go file_name
-// Example: go run foldercount.go siteurls.csv
+// go run ParamCount.go file_name
+// Example: go run ParamCount.go siteurls.csv
 
 package main
 
@@ -46,8 +47,8 @@ func main() {
 	// Get the filename from the command-line arguments
 	if len(os.Args) < 2 {
 		clearScreen()
-		fmt.Println("foldercount")
-		fmt.Println("foldercount. Error. Please provide the filename as an argument.")
+		fmt.Println("ParamCount")
+		fmt.Println("ParamCount. Error. Please provide the filename as an argument.")
 		return
 	}
 	filename := os.Args[1]
@@ -55,7 +56,7 @@ func main() {
 	// Open the file
 	file, err := os.Open(filename)
 	if err != nil {
-		fmt.Printf("foldercount: Error opening file: %v\n", err)
+		fmt.Printf("ParamCount. Error opening file: %v\n", err)
 		return
 	}
 	defer file.Close()
@@ -69,11 +70,14 @@ func main() {
 	// Variable to keep track of the total number of records processed
 	totalRecords := 0
 
+	// Variable to keep track of the number of records with at least one question mark
+	questionMarkRecords := 0
+
 	// Counter to track the number of records scanned
 	recordCounter := 0
 
 	// Display welcome message
-	fmt.Println(purple + "foldercount: Count the number of first level folders found." + reset)
+	fmt.Println(purple + "ParamCount: Count the number Parameters found." + reset)
 	fmt.Println(purple+"Version:", version+reset)
 
 	// Iterate through each line in the file
@@ -82,26 +86,38 @@ func main() {
 		totalRecords++
 		recordCounter++
 
-		// Display a block for each 10000 records scanned
+		// Display a block for each 1000 records scanned
 		if recordCounter%10000 == 0 {
 			fmt.Print("#")
 		}
 
-		// Split the line into substrings using a forward slash as delimiter
-		parts := strings.Split(line, "/")
+		// Check if the URL contains at least one question mark
+		if strings.Contains(line, "?") {
+			questionMarkRecords++
+		}
 
-		// Check if there are at least 4 parts in the line
-		if len(parts) >= 4 {
-			// Extract the text between the third and fourth forward slashes
-			text := parts[3]
+		// Split the line into substrings using question mark as delimiter
+		parts := strings.Split(line, "?")
 
-			// Trim any leading or trailing whitespace
-			text = strings.TrimSpace(text)
+		// Iterate over the parts after each question mark
+		for _, part := range parts[1:] {
+			// Find the index of the equals sign
+			equalsIndex := strings.Index(part, "=")
+			if equalsIndex != -1 {
+				// Extract the text between the question mark and the equals sign
+				text := part[:equalsIndex]
 
-			// Update the count for this value
-			valueCounts[text]++
+				// Trim any leading or trailing whitespace
+				text = strings.TrimSpace(text)
+
+				// Update the count for this value
+				valueCounts[text]++
+			}
 		}
 	}
+
+	// Calculate the percentage of records with at least one question mark
+	percentage := float64(questionMarkRecords) / float64(totalRecords) * 100
 
 	// Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
 	totalRecords -= 2
@@ -110,12 +126,22 @@ func main() {
 	clearScreen()
 
 	// Display welcome message
-	fmt.Println(purple + "foldercount: Count the number First Level Folders found." + reset)
+	fmt.Println(purple + "ParamCount: Count the number Parameters found." + reset)
 	fmt.Println(purple+"Version:", version+reset)
 
 	// Display the total number of records processed
 	fmt.Printf("\n\nTotal URLs processed: %d\n", totalRecords)
-	fmt.Printf("\n")
+
+	// Display the number of records with at least one question mark
+	fmt.Printf("URLs containing Parameters: %d\n", questionMarkRecords)
+
+	// Display the number of records scanned which do not contain a question mark
+	noQuestionMarkRecords := totalRecords - questionMarkRecords
+	fmt.Printf("URLs not containing Parameters: %d\n", noQuestionMarkRecords)
+
+	// Display the percentage of records with at least one question mark
+	fmt.Printf("Percentage of URLs that contain Parameters: %.2f%%\n", percentage)
+	fmt.Println("\n")
 
 	// Create a slice to hold ValueCount structs
 	var sortedCounts []ValueCount
@@ -133,11 +159,11 @@ func main() {
 		fmt.Printf("%s (count: %d)\n", vc.Text, vc.Count)
 	}
 
-	fmt.Println(purple + "\nfoldercount: Done\n")
+	fmt.Println(purple + "\nParamCount: Done\n")
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("foldercount. Error scanning extract file: %v\n", err)
+		fmt.Printf("ParamCount. Error scanning extract file: %v\n", err)
 		return
 	}
 }

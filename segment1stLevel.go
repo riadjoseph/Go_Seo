@@ -1,10 +1,10 @@
-// segment1stlevel: Generate the regex for all first level folders found in the URL extract
+// segment1stLevel: Generate the regex for all first level folders found in the URL extract
 // Written by Jason Vicinanza
 // First Github commit: 15/4/24
 
 // To run this:
-// go run segment1stlevel.go url_extract regex_output
-// Example: go run segment1stlevel.go siteurls.csv myregex.txt
+// go run segment1stLevel.go url_extract regex_output
+// Example: go run segment1stLevel.go siteurls.csv myregex.txt
 
 package main
 
@@ -46,8 +46,8 @@ func main() {
 	// Get the filename from the command-line arguments
 	if len(os.Args) < 3 {
 		clearScreen()
-		fmt.Println("segment1stlevel")
-		fmt.Println("segment1stlevel. Error. Please provide the input filename and output filename as arguments.")
+		fmt.Println("segment1stLevel")
+		fmt.Println("segment1stLevel. Error. Please provide the input filename and output filename as arguments.")
 		return
 	}
 	inputFilename := os.Args[1]
@@ -59,7 +59,7 @@ func main() {
 	// Open the input file
 	file, err := os.Open(inputFilename)
 	if err != nil {
-		fmt.Printf("segment1stlevel. Error opening input file: %v\n", err)
+		fmt.Printf("segment1stLevel. Error opening input file: %v\n", err)
 		return
 	}
 	defer file.Close()
@@ -77,7 +77,7 @@ func main() {
 	recordCounter := 0
 
 	// Display welcome message
-	fmt.Println(purple + "segment1stlevel: Generate the regex for all first level folders." + reset)
+	fmt.Println(purple + "segment1stLevel: Generate the regex for all first level folders." + reset)
 	fmt.Println(purple+"Version: %s", version+reset)
 
 	// Iterate through each line in the file
@@ -119,7 +119,7 @@ func main() {
 	clearScreen()
 
 	// Display welcome message
-	fmt.Println(purple + "segment1stlevel: Generate the regex for all first level folders." + reset)
+	fmt.Println(purple + "segment1stLevel: Generate the regex for all first level folders." + reset)
 	fmt.Println(purple+"Version:", version+reset)
 
 	// Display the total number of records processed
@@ -140,7 +140,7 @@ func main() {
 	// Open the output file for writing
 	outputFile, err := os.Create(outputFilename)
 	if err != nil {
-		fmt.Printf("segment1stlevel. Error creating output file: %v\n", err)
+		fmt.Printf("segment1stLevel. Error creating output file: %v\n", err)
 		return
 	}
 	defer outputFile.Close()
@@ -151,7 +151,7 @@ func main() {
 	// Write the header lines
 	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentfirstlevel for domain: %s\n\n[segment:level1Folders]\n@Home\npath /\n\n", domain))
 	if err != nil {
-		fmt.Printf("segment1stlevel. Error writing header to output file: %v\n", err)
+		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
 		return
 	}
 
@@ -161,7 +161,7 @@ func main() {
 			var folderLabel = vc.Text
 			_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/%s/*\n\n", folderLabel, domain, vc.Text))
 			if err != nil {
-				fmt.Printf("segment1stlevel. Error writing to output file: %v\n", err)
+				fmt.Printf("segment1stLevel. Error writing to output file: %v\n", err)
 				return
 			}
 		}
@@ -170,23 +170,23 @@ func main() {
 	// Write the footer lines
 	_, err = writer.WriteString("\n@~Other\npath /*\n# ----End of level1Folders Segment----\n")
 	if err != nil {
-		fmt.Printf("segment1stlevel. Error writing header to output file: %v\n", err)
+		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
 		return
 	}
 
 	// Flush the writer to ensure all data is written to the file
 	err = writer.Flush()
 	if err != nil {
-		fmt.Printf("segment1stlevel. Error flushing writer: %v\n", err)
+		fmt.Printf("segment1stLevel. Error flushing writer: %v\n", err)
 		return
 	}
 
-	fmt.Println(purple + "\nsegment1stlevel: Done")
+	fmt.Println(purple + "\nsegment1stLevel: Done")
 	fmt.Println(purple+"Regex can be found in the file:", outputFilename)
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("segment1stlevel. Error scanning input file: %v\n", err)
+		fmt.Printf("segment1stLevel. Error scanning input file: %v\n", err)
 		return
 	}
 }
