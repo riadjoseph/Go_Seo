@@ -220,6 +220,7 @@ func main() {
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205")
+	//req.Header.Add("Authorization", "token your_Botify_API_Token_Here")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

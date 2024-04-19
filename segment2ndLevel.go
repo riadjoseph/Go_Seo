@@ -1,9 +1,9 @@
-// segment1stLevel: Generate the regex for all first level folders found in the URL extract
+// segment2ndLevel: Generate the regex for all second level folders found in the URL extract
 // Written by Jason Vicinanza
 
 // To run this:
-// go run segment1stLevel.go url_extract regex_output
-// Example: go run segment1stLevel.go siteurls.csv myregex.txt
+// go run segment2ndLevel.go url_extract regex_output
+// Example: go run segment2ndLevel.go siteurls.csv myregex.txt
 
 package main
 
@@ -45,8 +45,8 @@ func main() {
 	// Get the filename from the command-line arguments
 	if len(os.Args) < 3 {
 		clearScreen()
-		fmt.Println("segment1stLevel")
-		fmt.Println("segment1stLevel. Error. Please provide the input filename and output filename as arguments.")
+		fmt.Println("segment2ndLevel")
+		fmt.Println("segment2ndLevel. Error. Please provide the input filename and output filename as arguments.")
 		return
 	}
 	inputFilename := os.Args[1]
@@ -55,7 +55,7 @@ func main() {
 	// Open the input file
 	file, err := os.Open(inputFilename)
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error opening input file: %v\n", err)
+		fmt.Printf("segment2ndLevel. Error opening input file: %v\n", err)
 		return
 	}
 	defer file.Close()
@@ -73,7 +73,7 @@ func main() {
 	recordCounter := 0
 
 	// Display welcome message
-	fmt.Println(purple + "segment1stLevel: Generate the regex for all first level folders." + reset)
+	fmt.Println(purple + "segment2ndLevel: Generate the regex for all second level folders." + reset)
 	fmt.Println(purple+"Version: %s", version+reset)
 
 	// Iterate through each line in the file
@@ -92,9 +92,9 @@ func main() {
 		parts := strings.Split(line, "/")
 
 		// Check if there are at least 4 parts in the line
-		if len(parts) >= 4 {
+		if len(parts) >= 5 {
 			// Extract the text between the third and fourth forward slashes
-			text := strings.Join(parts[:4], "/")
+			text := strings.Join(parts[:5], "/")
 
 			// Trim any leading or trailing whitespace
 			text = strings.TrimSpace(text)
@@ -113,7 +113,7 @@ func main() {
 	clearScreen()
 
 	// Display welcome message
-	fmt.Println(purple + "\nsegment1stLevel: Generate the regex for all first level folders." + reset)
+	fmt.Println(purple + "\nsegment2ndLevel: Generate the regex for all second level folders." + reset)
 	fmt.Println(purple+"Version:", version+reset)
 
 	// Display the total number of records processed
@@ -134,7 +134,7 @@ func main() {
 	// Open the output file for writing
 	outputFile, err := os.Create(outputFilename)
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error creating output file: %v\n", err)
+		fmt.Printf("segment2ndLevel. Error creating output file: %v\n", err)
 		return
 	}
 	defer outputFile.Close()
@@ -143,10 +143,10 @@ func main() {
 	writer := bufio.NewWriter(outputFile)
 
 	// Write the header lines
-	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentfirstlevel for domain: %s\n\n[segment:level1Folders]\n@Home\npath /\n\n"))
+	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentfirstlevel for domain: %s\n\n[segment:level2Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
+		fmt.Printf("segment2ndLevel. Error writing header to output file: %v\n", err)
 		return
 	}
 
@@ -159,7 +159,7 @@ func main() {
 				folderLabel := parts[3] // Extract the text between the third and fourth forward slashes
 				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, vc.Text))
 				if err != nil {
-					fmt.Printf("segment1stLevel. Error writing to output file: %v\n", err)
+					fmt.Printf("segment2ndLevel. Error writing to output file: %v\n", err)
 					return
 				}
 			}
@@ -167,25 +167,25 @@ func main() {
 	}
 
 	// Write the footer lines
-	_, err = writer.WriteString("\n@~Other\npath /*\n# ----End of level1Folders Segment----\n")
+	_, err = writer.WriteString("\n@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
+		fmt.Printf("segment2ndLevel. Error writing header to output file: %v\n", err)
 		return
 	}
 
 	// Flush the writer to ensure all data is written to the file
 	err = writer.Flush()
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error flushing writer: %v\n", err)
+		fmt.Printf("segment2ndLevel. Error flushing writer: %v\n", err)
 		return
 	}
 
-	fmt.Println(purple + "\nsegment1stLevel: Done")
+	fmt.Println(purple + "\nsegment2ndLevel: Done")
 	fmt.Println(purple+"Regex can be found in the file:", outputFilename)
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("segment1stLevel. Error scanning input file: %v\n", err)
+		fmt.Printf("segment2ndLevel. Error scanning input file: %v\n", err)
 		return
 	}
 }
