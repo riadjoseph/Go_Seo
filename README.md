@@ -12,5 +12,5 @@ segment1stLevel is used to generate the Botify segmentation regex for all first 
 **Usage:** segment1stLevel URL_Extract_file Ex: segment1stLevel siteurls.csv
 # listAnalysis
 listAnalysis uses the Botify API and returns key details for the most recent crawl in a specified project.   
-**Note** Update the code to include your own Botify API key.
+**Note** Update the code to include your own Botify API key.   
 **Usage:** listAnalysis Username Project_Slug. Ex: listAnalysis botify-org botify-project
