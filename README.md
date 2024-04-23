@@ -14,7 +14,7 @@ segment1stLevel is used to generate the Botify segmentation regex for all first 
 segment2ndLevel is used to generate the Botify segmentation regex for all second level folders found in the URL extract.   
 **Usage:** segment2ndLevel URL_Extract_file Regex_Output_File **Ex: segment2ndLevel siteurls.csv segment.txt**
 # segmentifyLite
-segmentifyLite combines segment1stLevel and segment2ndLevel as two functions in a single module.
+segmentifyLite combines segment1stLevel and segment2ndLevel as two functions in a single module.  
 **Usage:** segmentifyLite URL_Extract_file **Ex: segmentifyLite siteurls.csv**
 # listAnalysis
 listAnalysis uses the Botify API and returns key details for the most recent crawl in a specified project.   
