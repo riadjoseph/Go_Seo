@@ -77,7 +77,6 @@ func main() {
 	fmt.Println(purple+"Version: %s", version+reset)
 
 	// Iterate through each line in the file
-	// Iterate through each line in the file
 	for scanner.Scan() {
 		line := scanner.Text()
 		totalRecords++

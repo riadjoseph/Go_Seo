@@ -45,7 +45,6 @@ func main() {
 	// Get the filename from the command-line arguments
 	if len(os.Args) < 3 {
 		clearScreen()
-		fmt.Println("segment2ndLevel")
 		fmt.Println("segment2ndLevel. Error. Please provide the input filename and output filename as arguments.")
 		return
 	}
@@ -76,7 +75,6 @@ func main() {
 	fmt.Println(purple + "segment2ndLevel: Generate the regex for all second level folders." + reset)
 	fmt.Println(purple+"Version: %s", version+reset)
 
-	// Iterate through each line in the file
 	// Iterate through each line in the file
 	for scanner.Scan() {
 		line := scanner.Text()
