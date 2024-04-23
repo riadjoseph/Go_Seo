@@ -83,7 +83,6 @@ func segmentLevel1() {
 	fmt.Println(purple + "segment1stLevel: Generate the regex for all first level folders." + reset)
 
 	// Iterate through each line in the file
-	// Iterate through each line in the file
 	for scanner.Scan() {
 		line := scanner.Text()
 		totalRecords++
@@ -130,23 +129,23 @@ func segmentLevel1() {
 	// Sort the slice based on counts
 	sort.Sort(ByCount(sortedCounts))
 
-	/*
-			// Open the output file for writing
-		    // Alawys create the file.
-			outputFile, err := os.Create(outputFilename)
-			if err != nil {
-				fmt.Printf("segment1stLevel. Error creating output file: %v\n", err)
-				return
-			}
-			defer outputFile.Close()
-	*/
-
-	// Open the file in append mode, create if it doesn't exist
-	outputFile, err := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	// Open the output file for writing
+	// Always create the file.
+	outputFile, err := os.Create(outputFilename)
 	if err != nil {
-		panic(err)
+		fmt.Printf("segment1stLevel. Error creating output file: %v\n", err)
+		return
 	}
 	defer outputFile.Close()
+
+	// Open the file in append mode, create if it doesn't exist
+	/*
+		outputFile, err := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		if err != nil {
+			panic(err)
+		}
+		defer outputFile.Close()
+	*/
 
 	// Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
@@ -297,7 +296,7 @@ func segmentLevel2() {
 	writer := bufio.NewWriter(outputFile)
 
 	// Write the header lines
-	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite (level2)\n\n[segment:level2Folders]\n@Home\npath /\n\n"))
+	_, err = writer.WriteString(fmt.Sprintf("\n\n# Regex made with Go_SEO/segmentifyLite (level2)\n\n[segment:level2Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
 		fmt.Printf("segment2ndLevel. Error writing header to output file: %v\n", err)
