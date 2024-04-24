@@ -47,16 +47,19 @@ func main() {
 	//Level2 folders
 	segmentLevel2()
 
+	//Subdomains
+	subDomains()
+
 	//Pages containing parameters
 	paramaterUsageRegex := `
 
-[segment:sl_parameterUsage]
+[segment:sl_parameter_Usage]
 @Parameters
 query *=*
 
 @Clean
 path /*
-# ----End of sl_parameterUsage----`
+# ----End of sl_parameter_Usage----`
 
 	//Parameter usage message
 	fmt.Println(purple + "paramaterUsage: Regex for pages with/without parameters." + reset)
@@ -69,7 +72,7 @@ path /*
 	paramaterNoRegex := `
 
 
-[segment:sl_noOfParameters]
+[segment:sl_no_Of_Parameters]
 @Home
 path /
 
@@ -90,7 +93,7 @@ query rx:=(.)+
 
 @~Other
 path /*
-# ----End of sl_noOfParameters----`
+# ----End of sl_no_Of_Parameters----`
 
 	//No. of parameters message
 	fmt.Println(purple + "noOfParameters: Regex for number of parameters on the URL." + reset)
@@ -103,7 +106,7 @@ path /*
 	folderNoRegex := `
 
 
-[segment:sl_noOfFolders]
+[segment:sl_no_Of_Folders]
 @Home
 path /
 
@@ -124,7 +127,7 @@ path rx:^/[^/]+
 
 @~Other
 path /*
-# ----End of sl_noOfFolders----`
+# ----End of sl_no_Of_Folders----`
 
 	//No. of folders message
 	fmt.Println(purple + "noOfParameters: Regex for number of folders on the URL." + reset)
@@ -200,6 +203,11 @@ func segmentLevel1() {
 			fmt.Print("#")
 		}
 
+		// Check if the line contains a quotation mark, if yes, skip to the next line
+		if strings.Contains(line, "\"") {
+			continue
+		}
+
 		//Split the line into substrings using a forward slash as delimiter
 		parts := strings.Split(line, "/")
 
@@ -256,7 +264,7 @@ func segmentLevel1() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite (level1)\n\n[segment:sl_level1Folders]\n@Home\npath /\n\n"))
+	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite (level1)\n\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
 		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
@@ -357,6 +365,11 @@ func segmentLevel2() {
 			fmt.Print("#")
 		}
 
+		// Check if the line contains a quotation mark, if yes, skip to the next line
+		if strings.Contains(line, "\"") {
+			continue
+		}
+
 		//Split the line into substrings using a forward slash as delimiter
 		parts := strings.Split(line, "/")
 
@@ -404,7 +417,7 @@ func segmentLevel2() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2Folders]\n@Home\npath /\n\n"))
+	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
 		fmt.Printf("segment2ndLevel. Error writing header to output file: %v\n", err)
@@ -455,6 +468,157 @@ func segmentLevel2() {
 	//Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
 		fmt.Printf("segment2ndLevel. Error scanning input file: %v\n", err)
+		return
+	}
+}
+
+// Subdomains
+// Regex for subdomains
+func subDomains() {
+
+	//ANSI escape code for purple color
+	purple := "\033[0;35m"
+	//ANSI escape code to reset color
+	reset := "\033[0m"
+
+	inputFilename := os.Args[1]
+	outputFilename := "segment.txt"
+
+	//Open the input file
+	file, err := os.Open(inputFilename)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	//Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	//Map to keep track of counts of unique values
+	valueCounts := make(map[string]int)
+
+	//Variable to keep track of the total number of records processed
+	totalRecords := 0
+
+	//Counter to track the number of records scanned
+	recordCounter := 0
+
+	//Display welcome message
+	fmt.Println(purple + "\nsubDomains: Regex for subdomains." + reset)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		totalRecords++
+		recordCounter++
+
+		// Display a block for each 10000 records scanned
+		if recordCounter%10000 == 0 {
+			fmt.Print("#")
+		}
+
+		// Check if the line contains a quotation mark, if yes, skip to the next line
+		if strings.Contains(line, "\"") {
+			continue
+		}
+
+		// Split the line into substrings using a forward slash as delimiter
+		parts := strings.Split(line, "/")
+		// Check if there are at least 4 parts in the line
+		if len(parts) >= 4 {
+			// Extract the text between the third and fourth forward slashes
+			text := strings.Join(parts[:3], "/")
+
+			// Trim any leading or trailing whitespace
+			text = strings.TrimSpace(text)
+
+			// Update the count for this value if it's not empty
+			if text != "" {
+				// Update the count for this value if it's not empty
+				valueCounts[text]++
+			}
+		}
+	}
+
+	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
+	totalRecords -= 2
+
+	//Display the total number of records processed
+	fmt.Printf("\nTotal URLs processed: %d\n", totalRecords)
+	fmt.Printf("\n")
+
+	//Create a slice to hold ValueCount structs
+	var sortedCounts []ValueCount
+
+	//Populate the slice with data from the map
+	for value, count := range valueCounts {
+		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	}
+
+	//Sort the slice based on counts
+	sort.Sort(ByCount(sortedCounts))
+
+	//Open the file in append mode, create if it doesn't exist
+	outputFile, err := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer outputFile.Close()
+
+	//Create a writer to write to the output file
+	writer := bufio.NewWriter(outputFile)
+
+	//Write the header lines
+	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
+
+	if err != nil {
+		fmt.Printf("subDomains. Error writing header to output file: %v\n", err)
+		return
+	}
+
+	//Write the regex
+	for _, vc := range sortedCounts {
+		if vc.Text != "" {
+			//Extract the text between the third and fourth forward slashes
+			parts := strings.SplitN(vc.Text, "/", 4)
+			if len(parts) >= 3 && parts[2] != "" {
+				folderLabel := parts[2] //Extract the text between the third and fourth forward slashes
+				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, vc.Text))
+				if err != nil {
+					fmt.Printf("subDomains. Error writing to output file: %v\n", err)
+					return
+				}
+			}
+		}
+	}
+
+	//Write the footer lines
+	_, err = writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
+	if err != nil {
+		fmt.Printf("subDomains. Error writing header to output file: %v\n", err)
+		return
+	}
+
+	// Insert the number of URLs found in each folder as comments
+	_, err = writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
+	for _, vc := range sortedCounts {
+		//fmt.Printf("%s (URLs found: %d)\n", vc.Text, vc.Count)
+		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
+		if err != nil {
+			fmt.Printf("subDomains. Error writing to output file: %v\n", err)
+			return
+		}
+	}
+
+	//Flush the writer to ensure all data is written to the file
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf("subDomains. Error flushing writer: %v\n", err)
+		return
+	}
+
+	//Check for any errors during scanning
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("subDomains. Error scanning input file: %v\n", err)
 		return
 	}
 }
