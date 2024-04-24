@@ -17,6 +17,9 @@ segment2ndLevel is used to generate the Botify segmentation regex for all second
 listAnalysis uses the Botify API and returns key details for the most recent crawl in a specified project.   
 **Note** Update the code to include your own Botify API key.   
 **Usage:** listAnalysis Username Project_Slug. **Ex: listAnalysis botify-org botify-project**
+# listURLs
+Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).  
+**Usage:** listURLs **Ex: listURLs**     
 # segmentifyLite
 segmentifyLite genertates the regex for the following segments: first level folders, second level folders, parameter usage, no. of parameters and number of folders.  
 **Usage:** segmentifyLite URL_Extract_file **Ex: segmentifyLite siteurls.csv**  
