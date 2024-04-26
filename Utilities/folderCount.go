@@ -73,7 +73,7 @@ func main() {
 
 	// Display welcome message
 	fmt.Println(purple + "folderCount: Count the number of first level folders found." + reset)
-	fmt.Println(purple+"Version:", version+reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	// Iterate through each line in the file
 	for scanner.Scan() {

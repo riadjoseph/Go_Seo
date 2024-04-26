@@ -87,6 +87,11 @@ func main() {
 			fmt.Print("#")
 		}
 
+		// Check if the line contains a quotation mark, if yes, skip to the next line
+		if strings.Contains(line, "\"") {
+			continue
+		}
+
 		// Split the line into substrings using a forward slash as delimiter
 		parts := strings.Split(line, "/")
 
@@ -113,7 +118,7 @@ func main() {
 
 	// Display welcome message
 	fmt.Println(purple + "\nsegment1stLevel: Generate the regex for all first level folders." + reset)
-	fmt.Println(purple+"Version:", version+reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	// Display the total number of records processed
 	fmt.Printf("\n\nTotal URLs processed: %d\n", totalRecords)

@@ -77,7 +77,7 @@ func main() {
 
 	// Display welcome message
 	fmt.Println(purple + "ParamCount: Count the number Parameters found." + reset)
-	fmt.Println(purple+"Version:", version+reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	// Iterate through each line in the file
 	for scanner.Scan() {

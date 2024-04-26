@@ -12,7 +12,9 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"sort"
@@ -34,12 +36,26 @@ func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
 
+	//Version
+	version := "v0.1"
+
 	//ANSI escape code for purple color
 	purple := "\033[0;35m"
 	//ANSI escape code to reset color
 	reset := "\033[0m"
 
+	clearScreen()
+
+	displayBanner()
+
+	//Display welcome message
+	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
+
 	//Functions to create the various regex statements
+
+	//Generate the list of URLs
+	urlExport()
 
 	//Level1 folders
 	segmentLevel1()
@@ -62,7 +78,7 @@ path /*
 # ----End of sl_parameter_Usage----`
 
 	//Parameter usage message
-	fmt.Println(purple + "paramaterUsage: Regex for pages with/without parameters." + reset)
+	fmt.Println(purple + "\nParameter usage\n" + reset)
 	errParamaterUsage := insertStaticRegex(paramaterUsageRegex)
 	if errParamaterUsage != nil {
 		panic(errParamaterUsage)
@@ -96,7 +112,7 @@ path /*
 # ----End of sl_no_Of_Parameters----`
 
 	//No. of parameters message
-	fmt.Println(purple + "noOfParameters: Regex for number of parameters on the URL." + reset)
+	fmt.Println(purple + "Number of parameters\n" + reset)
 	errParamaterNoRegex := insertStaticRegex(paramaterNoRegex)
 	if errParamaterNoRegex != nil {
 		panic(errParamaterNoRegex)
@@ -130,13 +146,112 @@ path /*
 # ----End of sl_no_Of_Folders----`
 
 	//No. of folders message
-	fmt.Println(purple + "noOfParameters: Regex for number of folders on the URL." + reset)
+	fmt.Println(purple + "Number of folders\n" + reset)
 	errFolderNoRegex := insertStaticRegex(folderNoRegex)
 	if errFolderNoRegex != nil {
 		panic(errFolderNoRegex)
 	}
 
-	fmt.Println("\nsegmentiftyLite. Regex generation complete.")
+	fmt.Println(purple + "segmentiftyLite. Regex generation complete" + reset)
+}
+
+func urlExport() {
+
+	//ANSI escape code for purple color
+	purple := "\033[0;35m"
+	//ANSI escape code to reset color
+	reset := "\033[0m"
+	//ANSI escape code for red color
+	red := "\033[0;31m"
+
+	//Get the command-line arguments for the org and project name
+	if len(os.Args) < 3 {
+		fmt.Println(red + "Error. Please provide the organisation and project name as command line arguments")
+		os.Exit(1)
+	}
+
+	//Display the welcome message
+	fmt.Println(purple + "Exporting URLs" + reset)
+
+	// Create a file for writing
+	file, err := os.Create("siteurlsExport.csv")
+	if err != nil {
+		fmt.Println(red+"Error creating file:", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	// Initialize total count
+	totalCount := 0
+
+	//Get the org and project name from the command line arguments
+	orgName := os.Args[1]
+	projectName := os.Args[2]
+	fmt.Println("Organisation Name:", orgName)
+	fmt.Println("Project Name:", projectName, "\n")
+
+	// Iterate through pages 1 through 10
+	for page := 1; page <= 100; page++ {
+
+		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/20240421/urls?area=current&page=%d&size=1000", orgName, projectName, page)
+
+		payload := strings.NewReader("{\"fields\":[\"url\"]}")
+
+		req, _ := http.NewRequest("POST", url, payload)
+
+		req.Header.Add("accept", "application/json")
+		req.Header.Add("content-type", "application/json")
+		req.Header.Add("Authorization", "Token c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205")
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Println(red+"Error. Cannot connect to the API:", err)
+			os.Exit(1)
+		}
+		defer res.Body.Close()
+
+		// Decode JSON response
+		var response map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+			fmt.Println(red+"Error. Cannot decode JSON:", err)
+			os.Exit(1)
+		}
+
+		// Extract URLs from the "results" key
+		results, ok := response["results"].([]interface{})
+		if !ok {
+			fmt.Println(red + "Error. Results not found in response.")
+			os.Exit(1)
+		}
+
+		// Write URLs to the file
+		count := 0
+		for _, result := range results {
+			if resultMap, ok := result.(map[string]interface{}); ok {
+				if url, ok := resultMap["url"].(string); ok {
+					if _, err := file.WriteString(url + "\n"); err != nil {
+						fmt.Println(red+"Error writing to file:", err)
+						os.Exit(1)
+					}
+					count++
+					totalCount++
+					if count%10 == 0 {
+						fmt.Print("#") // Print "#" every 10 URLs
+					}
+				}
+			}
+		}
+
+		// If no URLs were saved for the page, exit the loop
+		if count == 0 {
+			// Print total number of URLs saved
+			fmt.Printf("\nTotal URLs exported: %d\n", totalCount)
+			fmt.Println(purple + "\nURL Extract complete. Generating regex...\n" + reset)
+			break
+		}
+
+		fmt.Printf("\nPage %d: %d URLs exported\n", page, count)
+	}
 
 }
 
@@ -145,28 +260,19 @@ func segmentLevel1() {
 
 	//ANSI escape code for purple color
 	purple := "\033[0;35m"
+	//ANSI escape code for red color
+	red := "\033[0;31m"
 	//ANSI escape code to reset color
 	reset := "\033[0m"
 
-	//Clear the screen
-	clearScreen()
-
-	//Get the filename from the command-line arguments
-	if len(os.Args) < 2 {
-		clearScreen()
-		fmt.Println("segmentifyLite (level1). Error. Please provide the input filename (URL Extract file) as an argument.")
-		return
-	}
-	inputFilename := os.Args[1]
+	inputFilename := "siteurlsExport.csv"
 	outputFilename := "segment.txt"
-
-	fmt.Println("segmentiftyLite. Generating segmentation regex for all Level 1 and 2 folders.\n")
 
 	//Open the input file
 	file, err := os.Open(inputFilename)
 	if err != nil {
-		fmt.Printf("segmentiftyLite. Error opening input file: %v\n", err)
-		return
+		fmt.Printf(red+"segmentiftyLite. Error opening input file: %v\n", err)
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -183,7 +289,7 @@ func segmentLevel1() {
 	recordCounter := 0
 
 	//Display welcome message
-	fmt.Println(purple + "segment1stLevel: Regex for all first level folders." + reset)
+	fmt.Println(purple + "First level folders" + reset)
 
 	//Iterate through each line in the file
 	for scanner.Scan() {
@@ -191,15 +297,8 @@ func segmentLevel1() {
 		totalRecords++
 		recordCounter++
 
-		//Check the first record of the specified URL Extract file
-		//If the file does not start with "sep=", consider the file invalid
-		if recordCounter == 1 && !strings.HasPrefix(line, "sep=") {
-			fmt.Printf("segmentifyLite. Error. Invalid URL extract file specified.\n")
-			os.Exit(1)
-		}
-
-		//Display a block for each 10000 records scanned
-		if recordCounter%10000 == 0 {
+		//Display a block for each 1000 records scanned
+		if recordCounter%1000 == 0 {
 			fmt.Print("#")
 		}
 
@@ -229,8 +328,6 @@ func segmentLevel1() {
 	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
 	totalRecords -= 2
 
-	//Display the total number of records processed
-	fmt.Printf("\nTotal URLs processed: %d\n", totalRecords)
 	fmt.Printf("\n")
 
 	//Create a slice to hold ValueCount structs
@@ -255,8 +352,8 @@ func segmentLevel1() {
 	//Always create the file.
 	outputFile, err := os.Create(outputFilename)
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error creating output file: %v\n", err)
-		return
+		fmt.Printf(red+"segment1stLevel. Error creating output file: %v\n", err)
+		os.Exit(1)
 	}
 	defer outputFile.Close()
 
@@ -267,8 +364,8 @@ func segmentLevel1() {
 	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite (level1)\n\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
-		return
+		fmt.Printf(red+"segment1stLevel. Error writing header to output file: %v\n", err)
+		os.Exit(1)
 	}
 
 	//Write the regex
@@ -281,9 +378,8 @@ func segmentLevel1() {
 				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, vc.Text))
 
 				if err != nil {
-					fmt.Printf("segment1stLevel. Error writing to output file: %v\n", err)
-					return
-
+					fmt.Printf(red+"segment1stLevel. Error writing to output file: %v\n", err)
+					os.Exit(1)
 				}
 			}
 		}
@@ -292,8 +388,8 @@ func segmentLevel1() {
 	//Write the footer lines\
 	_, err = writer.WriteString("@~Other\npath /*\n# ----End of level1Folders Segment----\n")
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error writing header to output file: %v\n", err)
-		return
+		fmt.Printf(red+"segment1stLevel. Error writing header to output file: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Insert the number of URLs found in each folder as comments
@@ -302,22 +398,22 @@ func segmentLevel1() {
 		//fmt.Printf("%s (URLs found: %d)\n", vc.Text, vc.Count)
 		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
 		if err != nil {
-			fmt.Printf("segment1stLevel. Error writing to output file: %v\n", err)
-			return
+			fmt.Printf(red+"segment1stLevel. Error writing to output file: %v\n", err)
+			os.Exit(1)
 		}
 	}
 
 	//Flush the writer to ensure all data is written to the file
 	err = writer.Flush()
 	if err != nil {
-		fmt.Printf("segment1stLevel. Error flushing writer: %v\n", err)
-		return
+		fmt.Printf(red+"segment1stLevel. Error flushing writer: %v\n", err)
+		os.Exit(1)
 	}
 
 	//Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("segment1stLevel. Error scanning input file: %v\n", err)
-		return
+		fmt.Printf(red+"segment1stLevel. Error scanning input file: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -328,14 +424,16 @@ func segmentLevel2() {
 	purple := "\033[0;35m"
 	//ANSI escape code to reset color
 	reset := "\033[0m"
+	//ANSI escape code for red color
+	red := "\033[0;31m"
 
-	inputFilename := os.Args[1]
+	inputFilename := "siteurlsExport.csv"
 	outputFilename := "segment.txt"
 
 	//Open the input file
 	file, err := os.Open(inputFilename)
 	if err != nil {
-		return
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -352,7 +450,7 @@ func segmentLevel2() {
 	recordCounter := 0
 
 	//Display welcome message
-	fmt.Println(purple + "\nsegment2ndLevel: Regex for all second level folders." + reset)
+	fmt.Println(purple + "\nSecond level folders" + reset)
 
 	//Iterate through each line in the file
 	for scanner.Scan() {
@@ -360,8 +458,8 @@ func segmentLevel2() {
 		totalRecords++
 		recordCounter++
 
-		//Display a block for each 10000 records scanned
-		if recordCounter%10000 == 0 {
+		//Display a block for each 1000 records scanned
+		if recordCounter%1000 == 0 {
 			fmt.Print("#")
 		}
 
@@ -391,8 +489,6 @@ func segmentLevel2() {
 	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
 	totalRecords -= 2
 
-	//Display the total number of records processed
-	fmt.Printf("\nTotal URLs processed: %d\n", totalRecords)
 	fmt.Printf("\n")
 
 	//Create a slice to hold ValueCount structs
@@ -420,8 +516,8 @@ func segmentLevel2() {
 	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
-		fmt.Printf("segment2ndLevel. Error writing header to output file: %v\n", err)
-		return
+		fmt.Printf(red+"segment2ndLevel. Error writing header to output file: %v\n", err)
+		os.Exit(1)
 	}
 
 	//Write the regex
@@ -433,8 +529,8 @@ func segmentLevel2() {
 				folderLabel := parts[3] //Extract the text between the third and fourth forward slashes
 				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, vc.Text))
 				if err != nil {
-					fmt.Printf("segment2ndLevel. Error writing to output file: %v\n", err)
-					return
+					fmt.Printf(red+"segment2ndLevel. Error writing to output file: %v\n", err)
+					os.Exit(1)
 				}
 			}
 		}
@@ -443,8 +539,8 @@ func segmentLevel2() {
 	//Write the footer lines
 	_, err = writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 	if err != nil {
-		fmt.Printf("segment2ndLevel. Error writing header to output file: %v\n", err)
-		return
+		fmt.Printf(red+"segment2ndLevel. Error writing header to output file: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Insert the number of URLs found in each folder as comments
@@ -453,22 +549,22 @@ func segmentLevel2() {
 		//fmt.Printf("%s (URLs found: %d)\n", vc.Text, vc.Count)
 		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
 		if err != nil {
-			fmt.Printf("segment1stLevel. Error writing to output file: %v\n", err)
-			return
+			fmt.Printf(red+"segment1stLevel. Error writing to output file: %v\n", err)
+			os.Exit(1)
 		}
 	}
 
 	//Flush the writer to ensure all data is written to the file
 	err = writer.Flush()
 	if err != nil {
-		fmt.Printf("segment2ndLevel. Error flushing writer: %v\n", err)
-		return
+		fmt.Printf(red+"segment2ndLevel. Error flushing writer: %v\n", err)
+		os.Exit(1)
 	}
 
 	//Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("segment2ndLevel. Error scanning input file: %v\n", err)
-		return
+		fmt.Printf(red+"segment2ndLevel. Error scanning input file: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -480,14 +576,16 @@ func subDomains() {
 	purple := "\033[0;35m"
 	//ANSI escape code to reset color
 	reset := "\033[0m"
+	//ANSI escape code for red color
+	red := "\033[0;31m"
 
-	inputFilename := os.Args[1]
+	inputFilename := "siteurlsExport.csv"
 	outputFilename := "segment.txt"
 
 	//Open the input file
 	file, err := os.Open(inputFilename)
 	if err != nil {
-		return
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -504,15 +602,15 @@ func subDomains() {
 	recordCounter := 0
 
 	//Display welcome message
-	fmt.Println(purple + "\nsubDomains: Regex for subdomains." + reset)
+	fmt.Println(purple + "\nSubdomains" + reset)
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		totalRecords++
 		recordCounter++
 
-		// Display a block for each 10000 records scanned
-		if recordCounter%10000 == 0 {
+		// Display a block for each 1000 records scanned
+		if recordCounter%1000 == 0 {
 			fmt.Print("#")
 		}
 
@@ -542,8 +640,6 @@ func subDomains() {
 	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
 	totalRecords -= 2
 
-	//Display the total number of records processed
-	fmt.Printf("\nTotal URLs processed: %d\n", totalRecords)
 	fmt.Printf("\n")
 
 	//Create a slice to hold ValueCount structs
@@ -571,8 +667,8 @@ func subDomains() {
 	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
 
 	if err != nil {
-		fmt.Printf("subDomains. Error writing header to output file: %v\n", err)
-		return
+		fmt.Printf(red+"subDomains. Error writing header to output file: %v\n", err)
+		os.Exit(1)
 	}
 
 	//Write the regex
@@ -584,8 +680,8 @@ func subDomains() {
 				folderLabel := parts[2] //Extract the text between the third and fourth forward slashes
 				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, vc.Text))
 				if err != nil {
-					fmt.Printf("subDomains. Error writing to output file: %v\n", err)
-					return
+					fmt.Printf(red+"subDomains. Error writing to output file: %v\n", err)
+					os.Exit(1)
 				}
 			}
 		}
@@ -594,8 +690,8 @@ func subDomains() {
 	//Write the footer lines
 	_, err = writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
 	if err != nil {
-		fmt.Printf("subDomains. Error writing header to output file: %v\n", err)
-		return
+		fmt.Printf(red+"subDomains. Error writing header to output file: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Insert the number of URLs found in each folder as comments
@@ -604,27 +700,30 @@ func subDomains() {
 		//fmt.Printf("%s (URLs found: %d)\n", vc.Text, vc.Count)
 		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
 		if err != nil {
-			fmt.Printf("subDomains. Error writing to output file: %v\n", err)
-			return
+			fmt.Printf(red+"subDomains. Error writing to output file: %v\n", err)
+			os.Exit(1)
 		}
 	}
 
 	//Flush the writer to ensure all data is written to the file
 	err = writer.Flush()
 	if err != nil {
-		fmt.Printf("subDomains. Error flushing writer: %v\n", err)
-		return
+		fmt.Printf(red+"subDomains. Error flushing writer: %v\n", err)
+		os.Exit(1)
 	}
 
 	//Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("subDomains. Error scanning input file: %v\n", err)
-		return
+		fmt.Printf(red+"subDomains. Error scanning input file: %v\n", err)
+		os.Exit(1)
 	}
 }
 
 // Regex hard coded regex entries
 func insertStaticRegex(regexText string) error {
+
+	//ANSI escape code for red color
+	red := "\033[0;31m"
 
 	outputFilename := "segment.txt"
 
@@ -646,11 +745,29 @@ func insertStaticRegex(regexText string) error {
 	//Flush the writer to ensure all data is written to the file
 	err = writer.Flush()
 	if err != nil {
-		fmt.Printf("parameterUsage. Error flushing writer: %v\n", err)
+		fmt.Printf(red+"parameterUsage. Error flushing writer: %v\n", err)
 		return (err)
 	}
 
 	return (err)
+}
+
+// Function to display the banner
+func displayBanner() {
+
+	//ANSI escape code for Green
+	green := "\033[0;32m"
+
+	//Banner
+	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+	fmt.Println(green + `
+███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
+██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
+███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██║█████╗   ╚████╔╝ ██║     ██║   ██║   █████╗
+╚════██║██╔══╝  ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   ██║██╔══╝    ╚██╔╝  ██║     ██║   ██║   ██╔══╝
+███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║██║        ██║   ███████╗██║   ██║   ███████╗
+╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
+`)
 }
 
 // Function to clear the screen

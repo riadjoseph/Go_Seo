@@ -241,9 +241,8 @@ func main() {
 	}
 
 	// Display welcome message
-	fmt.Println(purple + "listAnalysis: Details the last 10 crawls for a project." + reset)
-	fmt.Println(purple+"Version:", version+reset)
-	fmt.Println("\n")
+	fmt.Println(purple + "listAnalysis: Report the project metadata for the last crawl." + reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	fmt.Println(purple+"Username:", argUserName)
 	fmt.Println("Project Slug:", argProjectSlug+reset)

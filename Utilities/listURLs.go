@@ -19,6 +19,9 @@ import (
 
 func main() {
 
+	// Version
+	version := "v0.1"
+
 	//ANSI escape code for purple color
 	purple := "\033[0;35m"
 	//ANSI escape code to reset color
@@ -28,6 +31,7 @@ func main() {
 
 	//Display the welcome message
 	fmt.Println(purple + "listURLs: Exporting URLs." + reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	// Create a file for writing
 	file, err := os.Create("siteurlsExport.csv")
@@ -92,8 +96,7 @@ func main() {
 
 		// If no URLs were saved for the page, exit the loop
 		if count == 0 {
-			fmt.Printf(purple+"\nTotal No. of URLs exported is %d.\n", page)
-
+			fmt.Println(purple + "\nlistURLs: Done\n")
 			break
 		}
 
@@ -101,7 +104,7 @@ func main() {
 	}
 
 	// Print total number of URLs saved
-	fmt.Printf("\nTotal URLs exported: %d\n", totalCount)
+	fmt.Printf("\nTotal no. of URLs exported: %d\n", totalCount)
 }
 
 // Function to clear the screen
