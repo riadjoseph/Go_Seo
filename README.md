@@ -16,5 +16,6 @@ Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).
 **Usage:** listURLs      
 # segmentifyLite (work in progress)
 segmentifyLite generates the regex for the following segments: first level folders, second level folders, parameter usage, no. of parameters, parameter keys and number of folders.  
+**Note** Update the code to include your own Botify API key.   
 **Usage:** segmentifyLite org_name project_name 
-**note** The number of URLs found in each level 1 and 2 folder are included as comments after the generated regex. Use these insights to decide which segments to keep and which to remove.   
+**note** The number of URLs found in level 1 folders, level 2 folders and parameter key segments are included as comments after the generated regex. Use these insights to decide which segments slices to keep and which to remove.   
