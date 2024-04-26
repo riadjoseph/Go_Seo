@@ -305,6 +305,12 @@ func urlExport() {
 			break
 		}
 
+		// Max. number of URLs (200k) has been reached
+		if totalCount > 190000 {
+			fmt.Printf("\n\nExport limit of %d URLs reached. Generating regex...\n\n", totalCount)
+			break
+		}
+
 		fmt.Printf("\nPage %d: %d URLs exported\n", page, count)
 	}
 
@@ -879,7 +885,7 @@ func parameterKeys() {
 
 	//Write the regex
 	for _, vc := range sortedCounts {
-		_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s*\n\n", vc.Text, vc.Text))
+		_, err := writer.WriteString(fmt.Sprintf("@%s\nquery *%s*\n\n", vc.Text, vc.Text))
 		if err != nil {
 			fmt.Printf(red+"parameterKeys. Error writing to output file: %v\n", err)
 			os.Exit(1)
