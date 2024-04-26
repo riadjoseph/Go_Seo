@@ -20,7 +20,7 @@ listAnalysis uses the Botify API and returns key details for the most recent cra
 # listURLs
 Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).  
 **Usage:** listURLs **Ex: listURLs**     
-# segmentifyLite
+# segmentifyLite (work in progress)
 segmentifyLite generates the regex for the following segments: first level folders, second level folders, parameter usage, no. of parameters and number of folders.  
 **Usage:** segmentifyLite URL_Extract_file **Ex: segmentifyLite siteurls.csv**  
 **note** The number of URLs found in each level 1 and 2 folder are included as comments after the generated regex. Use these insights to decide which segments to keep and which to remove.   
