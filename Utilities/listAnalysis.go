@@ -201,7 +201,7 @@ func main() {
 	// Clear the screen
 	clearScreen()
 
-	// Get the username anf project slug from the command-line arguments
+	// Get the username and project slug from the command-line arguments
 	if len(os.Args) < 3 {
 		clearScreen()
 		fmt.Println("listAnalysis")

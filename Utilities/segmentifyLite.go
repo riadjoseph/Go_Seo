@@ -14,12 +14,25 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"sort"
 	"strings"
 )
+
+type botifyResponse struct {
+	Next     string      `json:"next"`
+	Previous interface{} `json:"previous"`
+	Count    int         `json:"count"`
+	Results  []struct {
+		Slug string `json:"slug"`
+	} `json:"results"`
+	Page int `json:"page"`
+	Size int `json:"size"`
+}
 
 // Define a struct to hold text value and its associated count
 type ValueCount struct {
@@ -167,9 +180,47 @@ func urlExport() {
 	//ANSI escape code for red color
 	red := "\033[0;31m"
 
-	//Get the command-line arguments for the org and project name
-	if len(os.Args) < 4 {
-		fmt.Println(red + "Error. Please provide the organisation, project name & analysis slug as command line arguments")
+	//Get the command line arguments for the org and project name
+	if len(os.Args) < 3 {
+		fmt.Println(red + "Error. Please provide the organisation, project name as line arguments")
+		os.Exit(1)
+	}
+	orgName := os.Args[1]
+	projectName := os.Args[2]
+
+	//Get the last analysis slug
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal("Error creating request:", err)
+	}
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal("Error sending request:", err)
+	}
+	defer res.Body.Close()
+
+	responseData, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal("Error reading response body:", err)
+		os.Exit(1)
+	}
+
+	var responseObject botifyResponse
+	err = json.Unmarshal(responseData, &responseObject)
+
+	if err != nil {
+		log.Fatal("Error unmarshalling JSON:", err)
+		os.Exit(1)
+	}
+
+	// Display an error if no crawls found
+	if responseObject.Count == 0 {
+		fmt.Println(red + "Error. Invalid crawl or no crawls found in the project")
 		os.Exit(1)
 	}
 
@@ -187,13 +238,12 @@ func urlExport() {
 	// Initialize total count
 	totalCount := 0
 
-	//Get the org and project name from the command line arguments
-	orgName := os.Args[1]
-	projectName := os.Args[2]
-	analysisSlug := os.Args[3]
 	fmt.Println("Organisation Name:", orgName)
 	fmt.Println("Project Name:", projectName)
-	fmt.Println("Analysis Slug:", analysisSlug, "\n")
+	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
+	analysisSlug := responseObject.Results[0].Slug
+	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, analysisSlug)
+	fmt.Println("End point:", urlEndpoint, "\n")
 
 	// Iterate through pages 1 through 10
 	for page := 1; page <= 100; page++ {
@@ -894,10 +944,10 @@ func insertStaticRegex(regexText string) error {
 	err = writer.Flush()
 	if err != nil {
 		fmt.Printf(red+"parameterUsage. Error flushing writer: %v\n", err)
-		return (err)
+		return err
 	}
 
-	return (err)
+	return err
 }
 
 // Function to display the banner
