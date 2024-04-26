@@ -211,7 +211,6 @@ func main() {
 	argUserName := os.Args[1]
 	argProjectSlug := os.Args[2]
 
-	//url := "https://api.botify.com/v1/analyses/jason-org/rolex-project-name?page=1&only_success=true"
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", argUserName, argProjectSlug)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -280,7 +279,7 @@ func main() {
 		fmt.Println("Company Name:", owner.CompanyName)
 
 		fmt.Println(purple + "\nCrawl Details" + reset)
-		fmt.Println("SLUG:", responseObject.Results[0].Slug)
+		fmt.Println("Analysis Slug:", responseObject.Results[0].Slug)
 		fmt.Println("Friendly Name:", responseObject.Results[0].FriendlyName)
 		fmt.Println("URL:", responseObject.Results[0].URL)
 		fmt.Println("Status:", responseObject.Results[0].Status)

@@ -1,9 +1,9 @@
-//segment1stLevel: Generate the regex for all first level folders found in the URL extract
+//segmentifyLite
 //Written by Jason Vicinanza
 
 //To run this:
-//go run segmentifyLite.go url_extract regex_output
-//Example: go run segmentifyLite.go siteurls.csv myregex.txt
+//go run segmentifyLite.go org_name project_name
+//Example: go run segmentifyLite.go jason-org jason-project-name
 
 //Version
 //version := "v0.1"
@@ -65,6 +65,9 @@ func main() {
 
 	//Subdomains
 	subDomains()
+
+	//Parameter keys
+	parameterKeys()
 
 	//Pages containing parameters
 	paramaterUsageRegex := `
@@ -165,8 +168,8 @@ func urlExport() {
 	red := "\033[0;31m"
 
 	//Get the command-line arguments for the org and project name
-	if len(os.Args) < 3 {
-		fmt.Println(red + "Error. Please provide the organisation and project name as command line arguments")
+	if len(os.Args) < 4 {
+		fmt.Println(red + "Error. Please provide the organisation, project name & analysis slug as command line arguments")
 		os.Exit(1)
 	}
 
@@ -187,13 +190,15 @@ func urlExport() {
 	//Get the org and project name from the command line arguments
 	orgName := os.Args[1]
 	projectName := os.Args[2]
+	analysisSlug := os.Args[3]
 	fmt.Println("Organisation Name:", orgName)
-	fmt.Println("Project Name:", projectName, "\n")
+	fmt.Println("Project Name:", projectName)
+	fmt.Println("Analysis Slug:", analysisSlug, "\n")
 
 	// Iterate through pages 1 through 10
 	for page := 1; page <= 100; page++ {
 
-		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/20240421/urls?area=current&page=%d&size=1000", orgName, projectName, page)
+		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/urls?area=current&page=%d&size=1000", orgName, projectName, analysisSlug, page)
 
 		payload := strings.NewReader("{\"fields\":[\"url\"]}")
 
@@ -220,7 +225,7 @@ func urlExport() {
 		// Extract URLs from the "results" key
 		results, ok := response["results"].([]interface{})
 		if !ok {
-			fmt.Println(red + "Error. Results not found in response.")
+			fmt.Println(red + "Error. Results not found in response. Check the specified organisation and project names")
 			os.Exit(1)
 		}
 
@@ -715,6 +720,149 @@ func subDomains() {
 	//Check for any errors during scanning
 	if err := scanner.Err(); err != nil {
 		fmt.Printf(red+"subDomains. Error scanning input file: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func parameterKeys() {
+
+	//ANSI escape code for purple color
+	purple := "\033[0;35m"
+	//ANSI escape code to reset color
+	reset := "\033[0m"
+	//ANSI escape code for red color
+	red := "\033[0;31m"
+
+	inputFilename := "siteurlsExport.csv"
+	outputFilename := "segment.txt"
+
+	//Open the input file
+	file, err := os.Open(inputFilename)
+	if err != nil {
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	//Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	//Map to keep track of counts of unique values
+	valueCounts := make(map[string]int)
+
+	//Variable to keep track of the total number of records processed
+	totalRecords := 0
+
+	//Counter to track the number of records scanned
+	recordCounter := 0
+
+	//Display welcome message
+	fmt.Println(purple + "\nParameter keys" + reset)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		totalRecords++
+		recordCounter++
+
+		// Display a block for each 1000 records scanned
+		if recordCounter%1000 == 0 {
+			fmt.Print("#")
+		}
+
+		// Check if the line contains a quotation mark, if yes, skip to the next line
+		if strings.Contains(line, "\"") {
+			continue
+		}
+
+		// Split the line into substrings using question mark as delimiter
+		parts := strings.Split(line, "?")
+
+		// Iterate over the parts after each question mark
+		for _, part := range parts[1:] {
+			// Find the index of the equals sign
+			equalsIndex := strings.Index(part, "=")
+			if equalsIndex != -1 {
+				// Extract the text between the question mark and the equals sign
+				text := part[:equalsIndex]
+
+				// Trim any leading or trailing whitespace
+				text = strings.TrimSpace(text)
+
+				// Update the count for this value
+				valueCounts[text]++
+			}
+		}
+	}
+
+	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
+	totalRecords -= 2
+
+	fmt.Printf("\n")
+
+	//Create a slice to hold ValueCount structs
+	var sortedCounts []ValueCount
+
+	//Populate the slice with data from the map
+	for value, count := range valueCounts {
+		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	}
+
+	//Sort the slice based on counts
+	sort.Sort(ByCount(sortedCounts))
+
+	//Open the file in append mode, create if it doesn't exist
+	outputFile, err := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer outputFile.Close()
+
+	//Create a writer to write to the output file
+	writer := bufio.NewWriter(outputFile)
+
+	//Write the header lines
+	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameterKeys]\n@Home\npath /\n\n"))
+
+	if err != nil {
+		fmt.Printf(red+"parameterKeys. Error writing header to output file: %v\n", err)
+		os.Exit(1)
+	}
+
+	//Write the regex
+	for _, vc := range sortedCounts {
+		_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s*\n\n", vc.Text, vc.Text))
+		if err != nil {
+			fmt.Printf(red+"parameterKeys. Error writing to output file: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	//Write the footer lines
+	_, err = writer.WriteString("@~Other\npath /*\n# ----End of parameterKeys Segment----\n")
+	if err != nil {
+		fmt.Printf(red+"parameterKeys. Error writing header to output file: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Insert the number of URLs found in each folder as comments
+	_, err = writer.WriteString("\n# ----parameterKeys URL analysis----\n")
+	for _, vc := range sortedCounts {
+		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
+		if err != nil {
+			fmt.Printf(red+"parameterKeys. Error writing to output file: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	//Flush the writer to ensure all data is written to the file
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf(red+"parameterKeys. Error flushing writer: %v\n", err)
+		os.Exit(1)
+	}
+
+	//Check for any errors during scanning
+	if err := scanner.Err(); err != nil {
+		fmt.Printf(red+"parameterKeys. Error scanning input file: %v\n", err)
 		os.Exit(1)
 	}
 }
