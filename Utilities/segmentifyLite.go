@@ -41,6 +41,9 @@ var checkmark = "\u2713"
 // Maximum No. of pages to export. 300 = 300k etc.
 var maxURLsToExport = 300
 
+// Percentage threshold
+var thresholdPercent = 0.05
+
 type botifyResponse struct {
 	Next     string      `json:"next"`
 	Previous interface{} `json:"previous"`
@@ -82,7 +85,14 @@ func main() {
 	urlExport()
 
 	//Level1 folders
-	segmentLevel1()
+	//Get the threshold
+	largestFolderSize, thresholdValueL1 := level1Threshold(inputFilename)
+	fmt.Printf(purple + "Calculating folder threshold\n" + reset)
+	fmt.Printf("Largest folder size found is %d URLs\n", largestFolderSize)
+	fmt.Printf("Threshold folder size: %d\n", thresholdValueL1)
+
+	//generate the regex
+	segmentLevel1(thresholdValueL1)
 
 	//Level2 folders
 	segmentLevel2()
@@ -246,8 +256,84 @@ func urlExport() {
 
 }
 
+// Get the folder size threshold for level 1 folders
+func level1Threshold(inputFilename string) (largestValueSize, fivePercentValue int) {
+	// Open the input file
+	file, err := os.Open(inputFilename)
+	if err != nil {
+		fmt.Printf("Error: Cannot open input file: %v\n", err)
+		return 0, 0
+	}
+	defer file.Close()
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	// Map to keep track of counts of unique values
+	valueCounts := make(map[string]int)
+
+	// Variable to keep track of the total number of records processed
+	totalRecords := 0
+
+	// Counter to track the number of records scanned
+	recordCounter := 0
+
+	// Iterate through each line in the file
+	for scanner.Scan() {
+		line := scanner.Text()
+		totalRecords++
+		recordCounter++
+
+		// Check if the line contains a quotation mark, if yes, skip to the next line
+		if strings.Contains(line, "\"") {
+			continue
+		}
+
+		// Split the line into substrings using a forward slash as delimiter
+		parts := strings.Split(line, "/")
+
+		// Check if there are at least 4 parts in the line
+		if len(parts) >= 4 {
+			// Extract the text between the third and fourth forward slashes
+			text := strings.Join(parts[:4], "/")
+
+			// Trim any leading or trailing whitespace
+			text = strings.TrimSpace(text)
+
+			// Update the count for this value if it's not empty
+			if text != "" {
+				valueCounts[text]++
+			}
+		}
+	}
+
+	// Subtract 2 in order to account for the two header records which are defaults in URL extract
+	totalRecords -= 2
+
+	// Create a slice to hold ValueCount structs
+	var sortedCounts []ValueCount
+
+	// Populate the slice with data from the map
+	for value, count := range valueCounts {
+		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	}
+
+	// Sort the slice based on counts
+	sort.Sort(ByCount(sortedCounts))
+
+	// Get the largest value size
+	if len(sortedCounts) > 0 {
+		largestValueSize = sortedCounts[0].Count
+	}
+
+	// Calculate 5% of the largest value
+	fivePercentValue = int(float64(largestValueSize) * thresholdPercent)
+
+	return largestValueSize, fivePercentValue
+}
+
 // Regex for level 1 folders
-func segmentLevel1() {
+func segmentLevel1(thresholdValueL1 int) {
 
 	//Open the input file
 	file, err := os.Open(inputFilename)
@@ -269,8 +355,12 @@ func segmentLevel1() {
 	//Counter to track the number of records scanned
 	recordCounter := 0
 
+	//Counter to track the number of folders excluded from teh regex
+	noFoldersExcludedL1 := 0
+
 	//Display welcome message
-	fmt.Println(purple + "First level folders" + reset)
+	fmt.Println(purple + "\nFirst level folders" + reset)
+	fmt.Printf("Folders with less than %d URLs will be excluded\n", thresholdValueL1)
 
 	//Iterate through each line in the file
 	for scanner.Scan() {
@@ -316,7 +406,12 @@ func segmentLevel1() {
 
 	//Populate the slice with data from the map
 	for value, count := range valueCounts {
-		sortedCounts = append(sortedCounts, ValueCount{value, count})
+		if count > thresholdValueL1 {
+			sortedCounts = append(sortedCounts, ValueCount{value, count})
+		} else {
+			// Count the number of folders excluded
+			noFoldersExcludedL1++
+		}
 	}
 
 	//Sort the slice based on counts
@@ -326,6 +421,8 @@ func segmentLevel1() {
 	for _, vc := range sortedCounts {
 		fmt.Printf("%s (URLs: %d)\n", vc.Text, vc.Count)
 	}
+
+	fmt.Printf("\nNo. of level 1 folders excluded %d\n", noFoldersExcludedL1)
 
 	//Open the output file for writing
 	//Always create the file.
@@ -374,7 +471,6 @@ func segmentLevel1() {
 	//Insert the number of URLs found in each folder as comments
 	_, err = writer.WriteString("\n# ----Level 1 Folder URL analysis----\n")
 	for _, vc := range sortedCounts {
-		//fmt.Printf("%s (URLs found: %d)\n", vc.Text, vc.Count)
 		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
 		if err != nil {
 			fmt.Printf(red+"segment1stLevel. Error. Cannot write to output file: %v\n"+reset, err)
@@ -520,7 +616,6 @@ func segmentLevel2() {
 	//Insert the number of URLs found in each folder as comments
 	_, err = writer.WriteString("\n# ----Level 2 Folder URL analysis----\n")
 	for _, vc := range sortedCounts {
-		//fmt.Printf("%s (URLs found: %d)\n", vc.Text, vc.Count)
 		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", vc.Text, vc.Count))
 		if err != nil {
 			fmt.Printf(red+"segment1stLevel. Error. Cannot write to output file: %v\n"+reset, err)
