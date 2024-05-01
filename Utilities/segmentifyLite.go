@@ -111,7 +111,8 @@ func main() {
 	noOfFolders()
 
 	//It's done! segmentifyList has left the building
-	fmt.Println(purple + "segmentiftyLite. Regex generation complete" + reset)
+	fmt.Println(purple+"Your regex can be found in:", outputFilename+reset)
+	fmt.Println(purple + "Regex generation complete" + reset)
 }
 
 // Use the API to get the first 300k URLs and export them to a file
@@ -312,8 +313,8 @@ func level1Threshold(inputFilename string) (largestValueSize, fivePercentValue i
 	var sortedCounts []FolderCount
 
 	// Populate the slice with data from the map
-	for value, count := range FolderCounts {
-		sortedCounts = append(sortedCounts, FolderCount{value, count})
+	for folderName, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{folderName, count})
 	}
 
 	// Sort the slice based on counts
@@ -403,9 +404,9 @@ func segmentLevel1(thresholdValueL1 int) {
 	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range FolderCounts {
+	for folderName, count := range FolderCounts {
 		if count > thresholdValueL1 {
-			sortedCounts = append(sortedCounts, FolderCount{value, count})
+			sortedCounts = append(sortedCounts, FolderCount{folderName, count})
 		} else {
 			// Count the number of folders excluded
 			noFoldersExcludedL1++
@@ -571,8 +572,8 @@ func segmentLevel2() {
 	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range FolderCounts {
-		sortedCounts = append(sortedCounts, FolderCount{value, count})
+	for folderName, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{folderName, count})
 	}
 
 	//Sort the slice based on counts
@@ -715,8 +716,8 @@ func subDomains() {
 	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range FolderCounts {
-		sortedCounts = append(sortedCounts, FolderCount{value, count})
+	for folderName, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{folderName, count})
 	}
 
 	//Sort the slice based on counts
@@ -861,8 +862,8 @@ func parameterKeys() {
 	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range FolderCounts {
-		sortedCounts = append(sortedCounts, FolderCount{value, count})
+	for folderName, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{folderName, count})
 	}
 
 	//Sort the slice based on counts
