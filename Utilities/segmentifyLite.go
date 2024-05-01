@@ -7,9 +7,6 @@
 //Example: segmentifyLite.go jason-org jason-project-name (with executable)
 //Remember to use your own api_token
 
-//Version
-//version := "v0.1"
-
 package main
 
 import (
@@ -24,7 +21,11 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 )
+
+// Version
+var version = "v0.1"
 
 // Colours
 var purple = "\033[0;35m"
@@ -56,22 +57,19 @@ type botifyResponse struct {
 }
 
 // Define a struct to hold text value and its associated count
-type ValueCount struct {
+type FolderCount struct {
 	Text  string
 	Count int
 }
 
-// Implement sorting interface for ValueCount slice
-type ByCount []ValueCount
+// Implement sorting interface for FolderCount slice
+type ByCount []FolderCount
 
 func (a ByCount) Len() int           { return len(a) }
 func (a ByCount) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
-
-	//Version
-	version := "v0.1"
 
 	clearScreen()
 
@@ -270,7 +268,7 @@ func level1Threshold(inputFilename string) (largestValueSize, fivePercentValue i
 	scanner := bufio.NewScanner(file)
 
 	// Map to keep track of counts of unique values
-	valueCounts := make(map[string]int)
+	FolderCounts := make(map[string]int)
 
 	// Variable to keep track of the total number of records processed
 	totalRecords := 0
@@ -302,7 +300,7 @@ func level1Threshold(inputFilename string) (largestValueSize, fivePercentValue i
 
 			// Update the count for this value if it's not empty
 			if text != "" {
-				valueCounts[text]++
+				FolderCounts[text]++
 			}
 		}
 	}
@@ -310,12 +308,12 @@ func level1Threshold(inputFilename string) (largestValueSize, fivePercentValue i
 	// Subtract 2 in order to account for the two header records which are defaults in URL extract
 	totalRecords -= 2
 
-	// Create a slice to hold ValueCount structs
-	var sortedCounts []ValueCount
+	// Create a slice to hold FolderCount structs
+	var sortedCounts []FolderCount
 
 	// Populate the slice with data from the map
-	for value, count := range valueCounts {
-		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	for value, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{value, count})
 	}
 
 	// Sort the slice based on counts
@@ -347,7 +345,7 @@ func segmentLevel1(thresholdValueL1 int) {
 	scanner := bufio.NewScanner(file)
 
 	//Map to keep track of counts of unique values
-	valueCounts := make(map[string]int)
+	FolderCounts := make(map[string]int)
 
 	//Variable to keep track of the total number of records processed
 	totalRecords := 0
@@ -391,7 +389,7 @@ func segmentLevel1(thresholdValueL1 int) {
 
 			//Update the count for this value if it's not empty
 			if text != "" {
-				valueCounts[text]++
+				FolderCounts[text]++
 			}
 		}
 	}
@@ -401,13 +399,13 @@ func segmentLevel1(thresholdValueL1 int) {
 
 	fmt.Printf("\n")
 
-	//Create a slice to hold ValueCount structs
-	var sortedCounts []ValueCount
+	//Create a slice to hold FolderCount structs
+	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range valueCounts {
+	for value, count := range FolderCounts {
 		if count > thresholdValueL1 {
-			sortedCounts = append(sortedCounts, ValueCount{value, count})
+			sortedCounts = append(sortedCounts, FolderCount{value, count})
 		} else {
 			// Count the number of folders excluded
 			noFoldersExcludedL1++
@@ -437,7 +435,20 @@ func segmentLevel1(thresholdValueL1 int) {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite (level1)\n\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
+	// Get the user's local time zone for the header
+	userLocation, err := time.LoadLocation("") // Load the default local time zone
+	if err != nil {
+		fmt.Println("Error loading user's location:", err)
+		return
+	}
+	// Get the current date and time in the user's local time zone
+	currentTime := time.Now().In(userLocation)
+
+	_, err = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite %s\n", version))
+	_, err = writer.WriteString(fmt.Sprintf("# Generated on %s\n", currentTime.Format(time.RFC1123)))
+
+	// Start of regex
+	_, err = writer.WriteString(fmt.Sprintf("\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
 
 	if err != nil {
 		fmt.Printf(red+"segment1stLevel. Error. Cannot write header to output file: %v\n"+reset, err)
@@ -506,7 +517,7 @@ func segmentLevel2() {
 	scanner := bufio.NewScanner(file)
 
 	//Map to keep track of counts of unique values
-	valueCounts := make(map[string]int)
+	FolderCounts := make(map[string]int)
 
 	//Variable to keep track of the total number of records processed
 	totalRecords := 0
@@ -546,7 +557,7 @@ func segmentLevel2() {
 
 			//Update the count for this value if it's not empty
 			if text != "" {
-				valueCounts[text]++
+				FolderCounts[text]++
 			}
 		}
 	}
@@ -556,12 +567,12 @@ func segmentLevel2() {
 
 	fmt.Printf("\n")
 
-	//Create a slice to hold ValueCount structs
-	var sortedCounts []ValueCount
+	//Create a slice to hold FolderCount structs
+	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range valueCounts {
-		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	for value, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{value, count})
 	}
 
 	//Sort the slice based on counts
@@ -651,7 +662,7 @@ func subDomains() {
 	scanner := bufio.NewScanner(file)
 
 	//Map to keep track of counts of unique values
-	valueCounts := make(map[string]int)
+	FolderCounts := make(map[string]int)
 
 	//Variable to keep track of the total number of records processed
 	totalRecords := 0
@@ -690,7 +701,7 @@ func subDomains() {
 			//Update the count for this value if it's not empty
 			if text != "" {
 				//Update the count for this value if it's not empty
-				valueCounts[text]++
+				FolderCounts[text]++
 			}
 		}
 	}
@@ -700,12 +711,12 @@ func subDomains() {
 
 	fmt.Printf("\n")
 
-	//Create a slice to hold ValueCount structs
-	var sortedCounts []ValueCount
+	//Create a slice to hold FolderCount structs
+	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range valueCounts {
-		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	for value, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{value, count})
 	}
 
 	//Sort the slice based on counts
@@ -795,7 +806,7 @@ func parameterKeys() {
 	scanner := bufio.NewScanner(file)
 
 	//Map to keep track of counts of unique values
-	valueCounts := make(map[string]int)
+	FolderCounts := make(map[string]int)
 
 	//Variable to keep track of the total number of records processed
 	totalRecords := 0
@@ -836,7 +847,7 @@ func parameterKeys() {
 				text = strings.TrimSpace(text)
 
 				//Update the count for this value
-				valueCounts[text]++
+				FolderCounts[text]++
 			}
 		}
 	}
@@ -846,12 +857,12 @@ func parameterKeys() {
 
 	fmt.Printf("\n")
 
-	//Create a slice to hold ValueCount structs
-	var sortedCounts []ValueCount
+	//Create a slice to hold FolderCount structs
+	var sortedCounts []FolderCount
 
 	//Populate the slice with data from the map
-	for value, count := range valueCounts {
-		sortedCounts = append(sortedCounts, ValueCount{value, count})
+	for value, count := range FolderCounts {
+		sortedCounts = append(sortedCounts, FolderCount{value, count})
 	}
 
 	//Sort the slice based on counts
