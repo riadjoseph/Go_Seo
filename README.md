@@ -2,13 +2,13 @@
 A series of command line utilities to support SEO actions.   
 
 # folderCount
-folderCount is used to identify all first level folders and count the number of URLs in each folder.   
+folderCount is used to identify and count all first level folders.   
 **Usage:** folderCount URL_Extract_file
 # paramCount
-paramCount is used to identify and count all Parameter Keys used.   
+paramCount is used to identify and count all Parameter Keys.   
 **Usage:** paramCount URL_Extract_file
 # listAnalysis
-listAnalysis uses the Botify API and returns key details for the most recent crawl in a specified project.   
+listAnalysis uses the Botify API and returns crawl meta data for the most recent crawl in a specified project.   
 **Note** Update the code to include your own Botify API key.   
 **Usage:** listAnalysis Username Project_Slug.
 # listURLs
