@@ -16,9 +16,9 @@ Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).
 **Usage:** listURLs      
 # segmentifyLite (work in progress)
 segmentifyLite generates the regex for the following segments: 
-- first level folders
-- second level folders
-- parameter usage
+- First level folders
+- Second level folders
+- Parameter usage
 - No. of parameters
 - Parameter keys
 - No. of folders
