@@ -12,7 +12,7 @@ listAnalysis uses the Botify API and returns crawl meta data for the most recent
 **Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your token
 **Usage:** *listAnalysis username Project_Slug*
 # listURLs
-Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).  
+Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv)   
 **Usage:** *listURLs*      
 # segmentifyLite   
 Generates the segmentation regex for the following segments: 
