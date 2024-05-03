@@ -33,6 +33,7 @@ var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 // Colours & text formatting
 var purple = "\033[0;35m"
 var red = "\033[0;31m"
+var green = "\033[0;32m"
 var bold = "\033[1m"
 var reset = "\033[0m"
 
@@ -154,9 +155,13 @@ func main() {
 		shopifyURLs()
 	}
 
+	// Copy the regex to the clipboard
+	copyRegexToClipboard()
+
 	//It's done! segmentifyList has left the building
-	fmt.Println(purple+"Your regex can be found in:", regexOutputFile+reset)
-	fmt.Println(purple + "Regex generation complete" + reset)
+	fmt.Println(bold+green+"Your regex can be found in:", regexOutputFile+reset)
+	fmt.Println(bold + green + "The regex is also in your clipboard ready to paste directly into Botify's segment editor" + reset)
+	fmt.Println(purple + "\nRegex generation complete" + reset)
 }
 
 // Use the API to get the first 300k URLs and export them to a file
@@ -791,7 +796,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", checkmark, "\n")
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -833,7 +838,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", checkmark, "\n")
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -875,7 +880,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", checkmark, "\n")
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -906,7 +911,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", checkmark, "\n")
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -946,7 +951,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", checkmark, "\n")
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -1056,11 +1061,23 @@ func insertStaticRegex(regexText string) error {
 	return errorCheck
 }
 
+// Copy Regex to the clipboard
+func copyRegexToClipboard() {
+	content, err := ioutil.ReadFile(regexOutputFile)
+	if err != nil {
+		panic(err)
+	}
+
+	// Copy the content to the clipboard using pbcopy command
+	cmd := exec.Command("pbcopy")
+	cmd.Stdin = strings.NewReader(string(content))
+	if err := cmd.Run(); err != nil {
+		panic(err)
+	}
+}
+
 // Display the welcome banner
 func displayBanner() {
-
-	//ANSI escape code for Green
-	green := "\033[0;32m"
 
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
