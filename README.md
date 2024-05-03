@@ -9,7 +9,7 @@ paramCount is used to identify and count all Parameter Keys.
 **Usage:** paramCount URL_Extract_file
 # listAnalysis
 listAnalysis uses the Botify API and returns crawl meta data for the most recent crawl in a specified project.   
-**Note** Update the code to include your own Botify API key.   
+**Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your token
 **Usage:** listAnalysis Username Project_Slug.
 # listURLs
 Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).  
