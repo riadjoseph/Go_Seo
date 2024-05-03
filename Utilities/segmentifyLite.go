@@ -30,36 +30,40 @@ var version = "v0.1"
 // Specify your Botify API token here
 var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
-// Colours
+// Command line arguments for organisation and project name
+var orgName = os.Args[1]
+var projectName = os.Args[2]
+
+// Colours & text formatting
 var purple = "\033[0;35m"
 var red = "\033[0;31m"
 var bold = "\033[1m"
 var reset = "\033[0m"
 
-// Default input and output files
-var inputFilename = "siteurlsExport.csv"
-var outputFilename = "segment.txt"
-
 // Unicode escape sequence for the checkmark symbol
 var checkmark = "\u2713"
 
-// Maximum No. of pages to export. 300 = 300k etc.
+// Default input and output files
+var urlExtractFile = "siteurlsExport.csv"
+var regexOutputFile = "segment.txt"
+
+// Maximum No. of URLs to export. (300 = 300k).
 var maxURLsToExport = 300
 
-// Percentage threshold for level 1 folders
+// Percentage threshold for level 1 & level 2 folders
 var thresholdPercent = 0.05
 
 // Boolean to signal if SFCC has been detected
-var sfccDetected bool = false
+var sfccDetected = false
 
 // Boolean to signal if Shopify has been detected
-var shopifyDetected bool = false
+var shopifyDetected = false
 
 // Number of forward-slashes in the URL to count in order to identify the folder level
 // 4 = level 1
 // 5 = level 2
-var slashCountL1 = 4
-var slashCountL2 = 5
+var slashCountLevel1 = 4
+var slashCountLevel2 = 5
 
 type botifyResponse struct {
 	Next     string      `json:"next"`
@@ -96,27 +100,32 @@ func main() {
 	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	//Generate the list of URLs
-	urlExport()
+	exportURLsFromProject()
+
+	// Generate the output file to store the regex
+	generateRegexFile()
 
 	//Level1 folders
 	//Get the threshold. Use the level 1 slashCount
-	largestFolderSize, thresholdValueL1 := levelThreshold(inputFilename, slashCountL1)
+	largestFolderSize, thresholdValueL1 := levelThreshold(urlExtractFile, slashCountLevel1)
 	fmt.Printf(purple + "Calculating level 1 folder threshold\n" + reset)
 	fmt.Printf("Largest level 1 folder size found is %d URLs\n", largestFolderSize)
 	fmt.Printf("Threshold folder size: %d\n", thresholdValueL1)
 
 	//generate the regex
-	segmentLevel1(thresholdValueL1)
+	fmt.Println(purple + "\nFirst level folders" + reset)
+	segmentFolders(thresholdValueL1, slashCountLevel1)
 
 	//Level2 folders
 	//Get the threshold. Use the level 2 slashCount
-	largestFolderSize, thresholdValueL2 := levelThreshold(inputFilename, slashCountL2)
+	largestFolderSize, thresholdValueL2 := levelThreshold(urlExtractFile, slashCountLevel2)
 	fmt.Printf(purple + "\nCalculating level 2 folder threshold\n" + reset)
 	fmt.Printf("Largest level 2 folder size found is %d URLs\n", largestFolderSize)
 	fmt.Printf("Threshold folder size: %d\n", thresholdValueL2)
 
 	//Level2 folders
-	segmentLevel2(thresholdValueL2)
+	fmt.Println(purple + "\nSecond level folders" + reset)
+	segmentFolders(thresholdValueL2, slashCountLevel2)
 
 	//Subdomains
 	subDomains()
@@ -134,28 +143,28 @@ func main() {
 	noOfFolders()
 
 	// Salesforce Commerce Cloud if detected
-	if !sfccDetected {
+	if sfccDetected {
 		sfccURLs()
 	}
 
 	// Shopify if detected
-	shopifyURLs()
+	if shopifyDetected {
+		shopifyURLs()
+	}
 
 	//It's done! segmentifyList has left the building
-	fmt.Println(purple+"Your regex can be found in:", outputFilename+reset)
+	fmt.Println(purple+"Your regex can be found in:", regexOutputFile+reset)
 	fmt.Println(purple + "Regex generation complete" + reset)
 }
 
 // Use the API to get the first 300k URLs and export them to a file
-func urlExport() {
+func exportURLsFromProject() {
 
 	//Get the command line arguments for the org and project name
 	if len(os.Args) < 3 {
 		fmt.Println(red + "Error. Please provide the organisation, project name as line arguments")
 		os.Exit(1)
 	}
-	orgName := os.Args[1]
-	projectName := os.Args[2]
 
 	//Get the last analysis slug
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
@@ -197,7 +206,7 @@ func urlExport() {
 	fmt.Println(purple + "Exporting URLs" + reset)
 
 	//Create a file for writing
-	file, errorCheck := os.Create(inputFilename)
+	file, errorCheck := os.Create(urlExtractFile)
 	if errorCheck != nil {
 		fmt.Println(red+"Error creating file: "+reset, errorCheck)
 		os.Exit(1)
@@ -256,7 +265,7 @@ func urlExport() {
 				if url, ok := resultMap["url"].(string); ok {
 					// Check if SFCC is used. This bool us used to deterline if the SFCC regex is generated
 					if strings.Contains(url, "/demandware/") {
-						sfccDetected = true // Set sfccDetected to true if the condition is met
+						sfccDetected = true
 					}
 					// Check if Shopify is used. This bool us used to deterline if the Shopify regex is generated
 					if strings.Contains(url, "/collections/") && strings.Contains(url, "/products/") {
@@ -301,101 +310,10 @@ func urlExport() {
 
 }
 
-// Regex for level 1 folders
-func segmentLevel1(thresholdValueL1 int) {
+func generateRegexFile() {
 
-	//Open the input file
-	file, errorCheck := os.Open(inputFilename)
-	if errorCheck != nil {
-		fmt.Printf(red+"segmentiftyLite. Error. Cannot open input file: %v\n "+reset, errorCheck)
-		os.Exit(1)
-	}
-	defer file.Close()
-
-	//Create a scanner to read the file line by line
-	scanner := bufio.NewScanner(file)
-
-	//Map to keep track of counts of unique values
-	FolderCounts := make(map[string]int)
-
-	//Variable to keep track of the total number of records processed
-	totalRecords := 0
-
-	//Counter to track the number of records scanned
-	recordCounter := 0
-
-	//Counter to track the number of folders excluded from the regex
-	noFoldersExcludedL1 := 0
-
-	//Display welcome message
-	fmt.Println(purple + "\nFirst level folders" + reset)
-	fmt.Printf("Folders with less than %d URLs will be excluded\n", thresholdValueL1)
-
-	//Iterate through each line in the file
-	for scanner.Scan() {
-		line := scanner.Text()
-		totalRecords++
-		recordCounter++
-
-		//Display a block for each 1000 records scanned
-		if recordCounter%1000 == 0 {
-			fmt.Print("#")
-		}
-
-		//Check if the line contains a quotation mark, if yes, skip to the next line
-		if strings.Contains(line, "\"") {
-			continue
-		}
-
-		//Split the line into substrings using a forward-slash as delimiter
-		parts := strings.Split(line, "/")
-
-		//Check if there are at least 4 parts in the line
-		if len(parts) >= 4 {
-			//Extract the text between the third and fourth forward-slashes
-			text := strings.Join(parts[:4], "/")
-
-			//Trim any leading or trailing whitespace
-			text = strings.TrimSpace(text)
-
-			//Update the count for this value if it's not empty
-			if text != "" {
-				FolderCounts[text]++
-			}
-		}
-	}
-
-	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
-	totalRecords -= 2
-
-	fmt.Printf("\n")
-
-	//Create a slice to hold FolderCount structs
-	var sortedCounts []FolderCount
-
-	//Populate the slice with data from the map
-	for folderName, count := range FolderCounts {
-		if count > thresholdValueL1 {
-			sortedCounts = append(sortedCounts, FolderCount{folderName, count})
-		} else {
-			// Count the number of folders excluded
-			noFoldersExcludedL1++
-		}
-	}
-
-	//Sort the slice based on counts
-	sort.Sort(ByCount(sortedCounts))
-
-	//Display the counts for each unique value
-	for _, folderValueCount := range sortedCounts {
-		fmt.Printf("%s (URLs: %d)\n", folderValueCount.Text, folderValueCount.Count)
-	}
-
-	fmt.Printf("\nNo. of level 1 folders excluded %d\n", noFoldersExcludedL1)
-
-	//Open the output file for writing
 	//Always create the file.
-	outputFile, errorCheck := os.Create(outputFilename)
+	outputFile, errorCheck := os.Create(regexOutputFile)
 	if errorCheck != nil {
 		fmt.Printf(red+"segment1stLevel. Error. Cannot create output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
@@ -405,7 +323,6 @@ func segmentLevel1(thresholdValueL1 int) {
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
 
-	//Write the header lines
 	// Get the user's local time zone for the header
 	userLocation, errorCheck := time.LoadLocation("") // Load the default local time zone
 	if errorCheck != nil {
@@ -415,70 +332,29 @@ func segmentLevel1(thresholdValueL1 int) {
 	// Get the current date and time in the user's local time zone
 	currentTime := time.Now().In(userLocation)
 
-	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with Go_SEO/segmentifyLite %s\n", version))
-	_, errorCheck = writer.WriteString(fmt.Sprintf("# Generated on %s\n", currentTime.Format(time.RFC1123)))
-
-	// Start of regex
-	_, errorCheck = writer.WriteString(fmt.Sprintf("\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
+	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with love using Go_SEO/segmentifyLite %s\n", version))
 
 	if errorCheck != nil {
 		fmt.Printf(red+"segment1stLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 
-	//Write the regex
-	for _, folderValueCount := range sortedCounts {
-		if folderValueCount.Text != "" {
-			//Extract the text between the third and fourth forward-slashes
-			parts := strings.SplitN(folderValueCount.Text, "/", 4)
-			if len(parts) >= 4 && parts[3] != "" {
-				folderLabel := parts[3] //Extract the text between the third and fourth forward-slashes
-				_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
-
-				if errorCheck != nil {
-					fmt.Printf(red+"segment1stLevel. Error. Cannot write to output file: %v\n"+reset, errorCheck)
-					os.Exit(1)
-				}
-			}
-		}
-	}
-
-	//Write the footer lines\
-	_, errorCheck = writer.WriteString("@~Other\npath /*\n# ----End of level1Folders Segment----\n")
-	if errorCheck != nil {
-		fmt.Printf(red+"segment1stLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
-
-	//Insert the number of URLs found in each folder as comments
-	_, errorCheck = writer.WriteString("\n# ----Level 1 Folder URL analysis----\n")
-	for _, folderValueCount := range sortedCounts {
-		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
-		if errorCheck != nil {
-			fmt.Printf(red+"segment1stLevel. Error. Cannot write to output file: %v\n"+reset, errorCheck)
-			os.Exit(1)
-		}
-	}
+	writer.WriteString(fmt.Sprintf("# Organisation Name: %s\n", orgName))
+	writer.WriteString(fmt.Sprintf("# Project Name: %s\n", projectName))
+	writer.WriteString(fmt.Sprintf("# Generated %s", currentTime.Format(time.RFC1123)))
 
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"segment1stLevel. Error. Cannot flush writer: %v\n", errorCheck)
-		os.Exit(1)
-	}
-
-	//Check for any errors during scanning
-	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"segment1stLevel. Error. Cannot scan input file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"generateRegexFile. Error. Cannot flush writer: %v\n", errorCheck)
 		os.Exit(1)
 	}
 }
 
-// Regex for level 2 folders
-func segmentLevel2(thresholdValueL2 int) {
+func segmentFolders(thresholdValue int, slashCount int) {
 
 	//Open the input file
-	file, errorCheck := os.Open(inputFilename)
+	file, errorCheck := os.Open(urlExtractFile)
 	if errorCheck != nil {
 		os.Exit(1)
 	}
@@ -497,11 +373,10 @@ func segmentLevel2(thresholdValueL2 int) {
 	recordCounter := 0
 
 	//Counter to track the number of folders excluded from the regex
-	noFoldersExcludedL2 := 0
+	noFoldersExcluded := 0
 
 	//Display welcome message
-	fmt.Println(purple + "\nSecond level folders" + reset)
-	fmt.Printf("Folders with less than %d URLs will be excluded\n", thresholdValueL2)
+	fmt.Printf("Folders with less than %d URLs will be excluded\n", thresholdValue)
 
 	//Iterate through each line in the file
 	for scanner.Scan() {
@@ -520,12 +395,13 @@ func segmentLevel2(thresholdValueL2 int) {
 		}
 
 		//Split the line into substrings using a forward-slash as delimiter
+		// slashCount = 4 for Level 1 folders
+		// slashCount = 5 for Level 2 folders
 		parts := strings.Split(line, "/")
 
-		//Check if there are at least 4 parts in the line
-		if len(parts) >= 5 {
-			//Extract the text between the third and fourth forward-slashes
-			text := strings.Join(parts[:5], "/")
+		if len(parts) >= slashCount {
+			//Extract the text
+			text := strings.Join(parts[:slashCount], "/")
 
 			//Trim any leading or trailing whitespace
 			text = strings.TrimSpace(text)
@@ -547,11 +423,11 @@ func segmentLevel2(thresholdValueL2 int) {
 
 	//Populate the slice with data from the map
 	for folderName, count := range FolderCounts {
-		if count > thresholdValueL2 {
+		if count > thresholdValue {
 			sortedCounts = append(sortedCounts, FolderCount{folderName, count})
 		} else {
 			// Count the number of folders excluded
-			noFoldersExcludedL2++
+			noFoldersExcluded++
 		}
 	}
 
@@ -563,10 +439,10 @@ func segmentLevel2(thresholdValueL2 int) {
 		fmt.Printf("%s (URLs: %d)\n", folderValueCount.Text, folderValueCount.Count)
 	}
 
-	fmt.Printf("\nNo. of level 2 folders excluded %d\n", noFoldersExcludedL2)
+	fmt.Printf("\nNo. of folders excluded %d\n", noFoldersExcluded)
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
@@ -575,12 +451,15 @@ func segmentLevel2(thresholdValueL2 int) {
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
 
-	//Write the header lines
-	_, errorCheck = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_Folders]\n@Home\npath /\n\n"))
+	//Write the segment name
+	// SlashCount = 4 signals level 1 folders
+	// SlashCount = 5 signals level 2 folders
+	if slashCount == 4 {
+		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
+	}
 
-	if errorCheck != nil {
-		fmt.Printf(red+"segment2ndLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
+	if slashCount == 5 {
+		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_Folders]\n@Home\npath /\n\n"))
 	}
 
 	//Write the regex
@@ -600,20 +479,12 @@ func segmentLevel2(thresholdValueL2 int) {
 	}
 
 	//Write the footer lines
-	_, errorCheck = writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
-	if errorCheck != nil {
-		fmt.Printf(red+"segment2ndLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 
 	//Insert the number of URLs found in each folder as comments
-	_, errorCheck = writer.WriteString("\n# ----Level 2 Folder URL analysis----\n")
+	writer.WriteString("\n# ----Level 2 Folder URL analysis----\n")
 	for _, folderValueCount := range sortedCounts {
-		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
-		if errorCheck != nil {
-			fmt.Printf(red+"segment1stLevel. Error. Cannot write to output file: %v\n"+reset, errorCheck)
-			os.Exit(1)
-		}
+		writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 	}
 
 	//Flush the writer to ensure all data is written to the file
@@ -634,7 +505,7 @@ func segmentLevel2(thresholdValueL2 int) {
 func subDomains() {
 
 	//Open the input file
-	file, errorCheck := os.Open(inputFilename)
+	file, errorCheck := os.Open(urlExtractFile)
 	if errorCheck != nil {
 		os.Exit(1)
 	}
@@ -710,7 +581,7 @@ func subDomains() {
 	}
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
@@ -720,12 +591,7 @@ func subDomains() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	_, errorCheck = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
-
-	if errorCheck != nil {
-		fmt.Printf(red+"subDomains. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
 
 	//Write the regex
 	for _, folderValueCount := range sortedCounts {
@@ -734,7 +600,7 @@ func subDomains() {
 			parts := strings.SplitN(folderValueCount.Text, "/", 4)
 			if len(parts) >= 3 && parts[2] != "" {
 				folderLabel := parts[2] //Extract the text between the third and fourth forward-slashes
-				_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
+				writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
 				if errorCheck != nil {
 					fmt.Printf(red+"subDomains. Error. Cannot write to output file: %v\n"+reset, errorCheck)
 					os.Exit(1)
@@ -744,14 +610,10 @@ func subDomains() {
 	}
 
 	//Write the footer lines
-	_, errorCheck = writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
-	if errorCheck != nil {
-		fmt.Printf(red+"subDomains. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
 
 	//Insert the number of URLs found in each folder as comments
-	_, errorCheck = writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
+	writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
@@ -778,7 +640,7 @@ func subDomains() {
 func parameterKeys() {
 
 	//Open the input file
-	file, errorCheck := os.Open(inputFilename)
+	file, errorCheck := os.Open(urlExtractFile)
 	if errorCheck != nil {
 		os.Exit(1)
 	}
@@ -856,7 +718,7 @@ func parameterKeys() {
 	}
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
@@ -866,13 +728,7 @@ func parameterKeys() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	//_, errorCheck = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameterKeys]\n@Home\npath /\n\n"))
-	_, errorCheck = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameterKeys]\n"))
-
-	if errorCheck != nil {
-		fmt.Printf(red+"parameterKeys. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameterKeys]\n"))
 
 	//Write the regex
 	for _, folderValueCount := range sortedCounts {
@@ -884,14 +740,10 @@ func parameterKeys() {
 	}
 
 	//Write the footer lines
-	_, errorCheck = writer.WriteString("@~Other\npath /*\n# ----End of parameterKeys Segment----\n")
-	if errorCheck != nil {
-		fmt.Printf(red+"parameterKeys. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	writer.WriteString("@~Other\npath /*\n# ----End of parameterKeys Segment----\n")
 
 	//Insert the number of URLs found in each folder as comments
-	_, errorCheck = writer.WriteString("\n# ----parameterKeys URL analysis----\n")
+	writer.WriteString("\n# ----parameterKeys URL analysis----\n")
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
@@ -917,7 +769,7 @@ func parameterKeys() {
 // Regex to identify of a parameter key is used in the URL
 func parameterUsage() {
 
-	//Pages containing parameters
+	//URLs containing parameters
 	paramaterUsageRegex := `
 
 [segment:sl_parameter_Usage]
@@ -1176,7 +1028,7 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 func insertStaticRegex(regexText string) error {
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(outputFilename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
@@ -1187,13 +1039,14 @@ func insertStaticRegex(regexText string) error {
 
 	_, errorCheck = writer.WriteString(regexText)
 	if errorCheck != nil {
+		fmt.Printf(red+"insertStaticRegex. Error. Cannot write to outputfile: %v\n"+reset, errorCheck)
 		panic(errorCheck)
 	}
 
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"parameterUsage. Error. Cannot flush writer: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"insertStaticRegex. Error. Cannot flush writer: %v\n"+reset, errorCheck)
 		return errorCheck
 	}
 

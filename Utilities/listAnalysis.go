@@ -17,6 +17,9 @@ import (
 	"os/exec"
 )
 
+// Specify your Botify API token here
+var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+
 type botifyResponse struct {
 	Next     string      `json:"next"`
 	Previous interface{} `json:"previous"`
@@ -218,8 +221,7 @@ func main() {
 		log.Fatal("listAnalysis. Error creating request:", err)
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205")
-	//req.Header.Add("Authorization", "token your_Botify_API_Token_Here")
+	req.Header.Add("Authorization", "token "+botify_api_token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
