@@ -56,6 +56,17 @@ var sfccDetected = false
 // Boolean to signal if Shopify has been detected
 var shopifyDetected = false
 
+// Strings used to store the project credentials for API access
+var orgName string
+var projectName string
+
+// Strings used to store the input project credentials
+var orgNameInput string
+var projectNameInput string
+
+// Boolean to signal if the project credentials have been entered by the user
+var credentialsInput = false
+
 // Number of forward-slashes in the URL to count in order to identify the folder level
 // 4 = level 1
 // 5 = level 2
@@ -93,14 +104,30 @@ func main() {
 	displayBanner()
 
 	// Check that the org and project names have been specified as command line arguments
+	// if not prompt for them
+	// Pressing Enter exits segmentifyLite
 	if len(os.Args) < 3 {
-		fmt.Println(red + "Error. Please provide the organisation, project name as line arguments")
-		os.Exit(1)
-	}
 
-	//Display welcome message
-	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
+		credentialsInput = true
+
+		fmt.Print("\nEnter your project credentials. Press Enter to exit Segmentify Lite\n")
+
+		fmt.Print(purple + "\nEnter Organization Name: " + reset)
+		fmt.Scanln(&orgNameInput)
+		// Check if input is empty if so exit
+		if strings.TrimSpace(orgNameInput) == "" {
+			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
+			os.Exit(0)
+		}
+
+		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Scanln(&projectNameInput)
+		// Check if input is empty if so exit
+		if strings.TrimSpace(projectNameInput) == "" {
+			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
+			os.Exit(0)
+		}
+	}
 
 	//Generate the list of URLs
 	exportURLsFromProject()
@@ -160,15 +187,35 @@ func main() {
 
 	//It's done! segmentifyList has left the building
 	fmt.Println(bold+green+"Your regex can be found in:", regexOutputFile+reset)
-	fmt.Println(bold + green + "The regex is also in your clipboard ready to paste directly into Botify's segment editor" + reset)
+	fmt.Println(bold + green + "The regex is also in your clipboard ready to paste directly into Botify's segment editor\n" + reset)
+
+	fmt.Println(green + checkmark + reset + " First level folders" + reset)
+	fmt.Println(green + checkmark + reset + " Second level folders" + reset)
+	fmt.Println(green + checkmark + reset + " Parameter usage" + reset)
+	fmt.Println(green + checkmark + reset + " No. of parameters" + reset)
+	fmt.Println(green + checkmark + reset + " Parameter keys" + reset)
+	fmt.Println(green + checkmark + reset + " No. of folders" + reset)
+	if sfccDetected {
+		fmt.Println(green + checkmark + reset + " Salesforce Commerce Cloud" + reset)
+	}
+	if shopifyDetected {
+		fmt.Println(green + checkmark + reset + " Shopify" + reset)
+	}
+
 	fmt.Println(purple + "\nRegex generation complete" + reset)
 }
 
 // Use the API to get the first 300k URLs and export them to a file
 func exportURLsFromProject() {
 
-	var orgName = os.Args[1]
-	var projectName = os.Args[2]
+	// If the credentials have been provided on the command line use them
+	if !credentialsInput {
+		orgName = os.Args[1]
+		projectName = os.Args[2]
+	} else {
+		orgName = orgNameInput
+		projectName = projectNameInput
+	}
 
 	//Get the last analysis slug
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
@@ -207,7 +254,7 @@ func exportURLsFromProject() {
 	}
 
 	//Display the welcome message
-	fmt.Println(purple + "Exporting URLs" + reset)
+	fmt.Println(purple + "\nExporting URLs" + reset)
 
 	//Create a file for writing
 	file, errorCheck := os.Create(urlExtractFile)
@@ -342,10 +389,6 @@ func generateRegexFile() {
 		fmt.Printf(red+"segment1stLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-
-	// Command line arguments for organisation and project name
-	var orgName = os.Args[1]
-	var projectName = os.Args[2]
 
 	writer.WriteString(fmt.Sprintf("# Organisation Name: %s\n", orgName))
 	writer.WriteString(fmt.Sprintf("# Project Name: %s\n", projectName))
@@ -1089,6 +1132,11 @@ func displayBanner() {
 ███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║██║        ██║   ███████╗██║   ██║   ███████╗
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
 `)
+
+	//Display welcome message
+	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
+
 }
 
 // Clear the screen
