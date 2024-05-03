@@ -14,8 +14,8 @@ listAnalysis uses the Botify API and returns crawl meta data for the most recent
 # listURLs
 Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv).  
 **Usage:** listURLs      
-# segmentifyLite (work in progress)
-segmentifyLite generates the regex for the following segments: 
+# segmentifyLite   
+Generates the segmentation regex for the following segments: 
 - First level folders
 - Second level folders
 - Parameter usage
