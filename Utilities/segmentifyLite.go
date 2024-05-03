@@ -30,10 +30,6 @@ var version = "v0.1"
 // Specify your Botify API token here
 var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
-// Command line arguments for organisation and project name
-var orgName = os.Args[1]
-var projectName = os.Args[2]
-
 // Colours & text formatting
 var purple = "\033[0;35m"
 var red = "\033[0;31m"
@@ -94,6 +90,12 @@ func main() {
 	clearScreen()
 
 	displayBanner()
+
+	// Check that the org and project names have been specified as command line arguments
+	if len(os.Args) < 3 {
+		fmt.Println(red + "Error. Please provide the organisation, project name as line arguments")
+		os.Exit(1)
+	}
 
 	//Display welcome message
 	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
@@ -160,11 +162,8 @@ func main() {
 // Use the API to get the first 300k URLs and export them to a file
 func exportURLsFromProject() {
 
-	//Get the command line arguments for the org and project name
-	if len(os.Args) < 3 {
-		fmt.Println(red + "Error. Please provide the organisation, project name as line arguments")
-		os.Exit(1)
-	}
+	var orgName = os.Args[1]
+	var projectName = os.Args[2]
 
 	//Get the last analysis slug
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
@@ -198,7 +197,7 @@ func exportURLsFromProject() {
 
 	//Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "Error. Invalid crawl or no crawls found in the project")
+		fmt.Println(red + "Error. Invalid credentials or no crawls found in the project")
 		os.Exit(1)
 	}
 
@@ -338,6 +337,10 @@ func generateRegexFile() {
 		fmt.Printf(red+"segment1stLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
+
+	// Command line arguments for organisation and project name
+	var orgName = os.Args[1]
+	var projectName = os.Args[2]
 
 	writer.WriteString(fmt.Sprintf("# Organisation Name: %s\n", orgName))
 	writer.WriteString(fmt.Sprintf("# Project Name: %s\n", projectName))

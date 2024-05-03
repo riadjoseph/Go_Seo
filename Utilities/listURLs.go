@@ -22,9 +22,8 @@ func main() {
 	// Version
 	version := "v0.1"
 
-	//ANSI escape code for purple color
+	// Colours
 	purple := "\033[0;35m"
-	//ANSI escape code to reset color
 	reset := "\033[0m"
 
 	clearScreen()
