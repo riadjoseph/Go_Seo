@@ -103,31 +103,7 @@ func main() {
 
 	displayBanner()
 
-	// Check that the org and project names have been specified as command line arguments
-	// if not prompt for them
-	// Pressing Enter exits segmentifyLite
-	if len(os.Args) < 3 {
-
-		credentialsInput = true
-
-		fmt.Print("\nEnter your project credentials. Press Enter to exit Segmentify Lite\n")
-
-		fmt.Print(purple + "\nEnter Organization Name: " + reset)
-		fmt.Scanln(&orgNameInput)
-		// Check if input is empty if so exit
-		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
-			os.Exit(0)
-		}
-
-		fmt.Print(purple + "Enter Project Name: " + reset)
-		fmt.Scanln(&projectNameInput)
-		// Check if input is empty if so exit
-		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
-			os.Exit(0)
-		}
-	}
+	checkCredentials()
 
 	//Generate the list of URLs
 	exportURLsFromProject()
@@ -203,6 +179,35 @@ func main() {
 	}
 
 	fmt.Println(purple + "\nRegex generation complete" + reset)
+}
+
+// Check that the org and project names have been specified as command line arguments
+// if not prompt for them
+// Pressing Enter exits segmentifyLite
+func checkCredentials() {
+
+	if len(os.Args) < 3 {
+
+		credentialsInput = true
+
+		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit Segmentify Lite\n")
+
+		fmt.Print(purple + "\nEnter Organization Name: " + reset)
+		fmt.Scanln(&orgNameInput)
+		// Check if input is empty if so exit
+		if strings.TrimSpace(orgNameInput) == "" {
+			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
+			os.Exit(0)
+		}
+
+		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Scanln(&projectNameInput)
+		// Check if input is empty if so exit
+		if strings.TrimSpace(projectNameInput) == "" {
+			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
+			os.Exit(0)
+		}
+	}
 }
 
 // Use the API to get the first 300k URLs and export them to a file
@@ -305,7 +310,7 @@ func exportURLsFromProject() {
 		//Extract URLs from the "results" key
 		results, ok := response["results"].([]interface{})
 		if !ok {
-			fmt.Println(red + "Error. Results not found in response. Check the specified organisation and project")
+			fmt.Println(red + "Error. Invalid credentials or no crawls found in the project")
 			os.Exit(1)
 		}
 
@@ -1111,8 +1116,17 @@ func copyRegexToClipboard() {
 		panic(err)
 	}
 
-	// Copy the content to the clipboard using pbcopy command
-	cmd := exec.Command("pbcopy")
+	// Copy the content to the clipboard using pbcopy (macOS) or type to clip (Windows)
+	var copyCmd string
+
+	switch runtime.GOOS {
+	case "windows":
+		copyCmd = "type segment.txt | clip"
+	default:
+		copyCmd = "pbcopy"
+	}
+
+	cmd := exec.Command(copyCmd)
 	cmd.Stdin = strings.NewReader(string(content))
 	if err := cmd.Run(); err != nil {
 		panic(err)
@@ -1142,7 +1156,6 @@ func displayBanner() {
 // Clear the screen
 func clearScreen() {
 
-	// Determine the appropriate command based on the operating system used
 	var clearCmd string
 
 	switch runtime.GOOS {

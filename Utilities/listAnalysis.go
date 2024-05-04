@@ -201,10 +201,9 @@ func main() {
 	// ANSI escape code to reset color
 	reset := "\033[0m"
 
-	// Clear the screen
 	clearScreen()
 
-	// Get the username and project slug from the command-line arguments
+	// Get the user and org from the command-line arguments
 	if len(os.Args) < 3 {
 		clearScreen()
 		fmt.Println("listAnalysis")
@@ -251,7 +250,6 @@ func main() {
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
 		fmt.Println("listAnalysis. Error. Invalid crawl or no crawls found in the project.")
-		// Handle error condition here
 	}
 
 	fmt.Println("\nNo. Crawls in project:", responseObject.Count)
