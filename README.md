@@ -1,5 +1,5 @@
 # Go_Seo
-A series of command line utilities to support SEO actions.   
+A series of command line utilities to support SEO actions. Developed in Golang.   
 
 ## folderCount
 folderCount is used to identify and count all first level folders.  
