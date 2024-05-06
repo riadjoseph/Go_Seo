@@ -1,11 +1,7 @@
-//segmentifyLite
-//Written by Jason Vicinanza
-
-//To run this:
-//go run segmentifyLite.go org_name project_name
-//Example: go run segmentifyLite.go jason-org jason-project-name (with complier)
-//Example: segmentifyLite.go jason-org jason-project-name (with executable)
-//Remember to use your own api_key
+// segmentifyLite. Generate the regex for a specified crawl
+// See the readme for details on segments generated
+// Segmentation based on the first 300k records
+// Written by Jason Vicinanza
 
 package main
 
@@ -41,7 +37,7 @@ var reset = "\033[0m"
 var checkmark = "\u2713"
 
 // Default input and output files
-var urlExtractFile = "siteurlsExport.csv"
+var urlExtractFile = "siteurlsExport.tmp"
 var regexOutputFile = "segment.txt"
 
 // Maximum No. of URLs to export. (300 = 300k).
@@ -227,20 +223,20 @@ func exportURLsFromProject() {
 
 	req, errorCheck := http.NewRequest("GET", url, nil)
 	if errorCheck != nil {
-		log.Fatal("Error creating request: "+reset, errorCheck)
+		log.Fatal("\nError creating request: "+reset, errorCheck)
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botify_api_token)
 
 	res, errorCheck := http.DefaultClient.Do(req)
 	if errorCheck != nil {
-		log.Fatal(red+"Error. Check your network connection: "+reset, errorCheck)
+		log.Fatal(red+"\nError: Check your network connection: "+reset, errorCheck)
 	}
 	defer res.Body.Close()
 
 	responseData, errorCheck := ioutil.ReadAll(res.Body)
 	if errorCheck != nil {
-		log.Fatal(red+"Error reading response body: "+reset, errorCheck)
+		log.Fatal(red+"\nError reading response body: "+reset, errorCheck)
 		os.Exit(1)
 	}
 
@@ -248,13 +244,13 @@ func exportURLsFromProject() {
 	errorCheck = json.Unmarshal(responseData, &responseObject)
 
 	if errorCheck != nil {
-		log.Fatal(red+"Error. Cnnot unmarshall JSON: "+reset, errorCheck)
+		log.Fatal(red+"\nError: Cannot unmarshall JSON: "+reset, errorCheck)
 		os.Exit(1)
 	}
 
 	//Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "Error. Invalid credentials or no crawls found in the project")
+		fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
 		os.Exit(1)
 	}
 
@@ -264,7 +260,7 @@ func exportURLsFromProject() {
 	//Create a file for writing
 	file, errorCheck := os.Create(urlExtractFile)
 	if errorCheck != nil {
-		fmt.Println(red+"Error creating file: "+reset, errorCheck)
+		fmt.Println(red+"\nError creating file: "+reset, errorCheck)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -295,7 +291,7 @@ func exportURLsFromProject() {
 
 		res, errorCheck := http.DefaultClient.Do(req)
 		if errorCheck != nil {
-			fmt.Println(red+"Error. Cannot connect to the API: "+reset, errorCheck)
+			fmt.Println(red+"\nError: Cannot connect to the API: "+reset, errorCheck)
 			os.Exit(1)
 		}
 		defer res.Body.Close()
@@ -303,14 +299,14 @@ func exportURLsFromProject() {
 		//Decode JSON response
 		var response map[string]interface{}
 		if errorCheck := json.NewDecoder(res.Body).Decode(&response); errorCheck != nil {
-			fmt.Println(red+"Error. Cannot decode JSON: "+reset, errorCheck)
+			fmt.Println(red+"\nError: Cannot decode JSON: "+reset, errorCheck)
 			os.Exit(1)
 		}
 
 		//Extract URLs from the "results" key
 		results, ok := response["results"].([]interface{})
 		if !ok {
-			fmt.Println(red + "Error. Invalid credentials or no crawls found in the project")
+			fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
 			os.Exit(1)
 		}
 
@@ -328,7 +324,7 @@ func exportURLsFromProject() {
 						shopifyDetected = true
 					}
 					if _, errorCheck := file.WriteString(url + "\n"); errorCheck != nil {
-						fmt.Println(red+"Error. Cannot write to file: "+reset, errorCheck)
+						fmt.Println(red+"\nError: Cannot write to file: "+reset, errorCheck)
 						os.Exit(1)
 					}
 					count++
@@ -371,7 +367,7 @@ func generateRegexFile() {
 	//Always create the file.
 	outputFile, errorCheck := os.Create(regexOutputFile)
 	if errorCheck != nil {
-		fmt.Printf(red+"segment1stLevel. Error. Cannot create output file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nsegment1stLevel. Error: Cannot create output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 	defer outputFile.Close()
@@ -382,7 +378,7 @@ func generateRegexFile() {
 	// Get the user's local time zone for the header
 	userLocation, errorCheck := time.LoadLocation("") // Load the default local time zone
 	if errorCheck != nil {
-		fmt.Println("Error loading user's location:", errorCheck)
+		fmt.Println("\nError loading user's location:", errorCheck)
 		return
 	}
 	// Get the current date and time in the user's local time zone
@@ -391,7 +387,7 @@ func generateRegexFile() {
 	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with love using Go_SEO/segmentifyLite %s\n", version))
 
 	if errorCheck != nil {
-		fmt.Printf(red+"segment1stLevel. Error. Cannot write header to output file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nsegment1stLevel. Error: Cannot write header to output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 
@@ -402,7 +398,7 @@ func generateRegexFile() {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"generateRegexFile. Error. Cannot flush writer: %v\n", errorCheck)
+		fmt.Printf(red+"\ngenerateRegexFile. Error: Cannot flush writer: %v\n", errorCheck)
 		os.Exit(1)
 	}
 }
@@ -469,9 +465,6 @@ func segmentFolders(thresholdValue int, slashCount int) {
 		}
 	}
 
-	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
-	totalRecords -= 2
-
 	fmt.Printf("\n")
 
 	//Create a slice to hold FolderCount structs
@@ -527,7 +520,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 				folderLabel := parts[3] //Extract the text between the third and fourth forward-slashes
 				_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
 				if errorCheck != nil {
-					fmt.Printf(red+"segment2ndLevel. Error. Cannot write to output file: %v\n"+reset, errorCheck)
+					fmt.Printf(red+"\nsegment2ndLevel. Error: Cannot write to output file: %v\n"+reset, errorCheck)
 					os.Exit(1)
 				}
 			}
@@ -546,13 +539,13 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"segment2ndLevel. Error. Cannot flush writer: %v\n", errorCheck)
+		fmt.Printf(red+"\nsegment2ndLevel. Error: Cannot flush writer: %v\n", errorCheck)
 		os.Exit(1)
 	}
 
 	//Check for any errors during scanning
 	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"segment2ndLevel. Error. Cannot scan input file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nsegment2ndLevel. Error: Cannot scan input file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -658,7 +651,7 @@ func subDomains() {
 				folderLabel := parts[2] //Extract the text between the third and fourth forward-slashes
 				writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
 				if errorCheck != nil {
-					fmt.Printf(red+"subDomains. Error. Cannot write to output file: %v\n"+reset, errorCheck)
+					fmt.Printf(red+"\nsubDomains. Error: Cannot write to output file: %v\n"+reset, errorCheck)
 					os.Exit(1)
 				}
 			}
@@ -673,7 +666,7 @@ func subDomains() {
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
-			fmt.Printf(red+"subDomains. Error. Cannot write to output file: %v\n"+reset, errorCheck)
+			fmt.Printf(red+"\nsubDomains. Error: Cannot write to output file: %v\n"+reset, errorCheck)
 			os.Exit(1)
 		}
 	}
@@ -681,13 +674,13 @@ func subDomains() {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"subDomains. Error. Cannot flush writer: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nsubDomains. Error: Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 
 	//Check for any errors during scanning
 	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"subDomains. Error. Cannot scan input file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nsubDomains. Error: Cannot scan input file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -790,7 +783,7 @@ func parameterKeys() {
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nquery *%s=*\n\n", folderValueCount.Text, folderValueCount.Text))
 		if errorCheck != nil {
-			fmt.Printf(red+"parameterKeys. Error. Cannot write to output file: %v\n"+reset, errorCheck)
+			fmt.Printf(red+"\nparameterKeys. Error: Cannot write to output file: %v\n"+reset, errorCheck)
 			os.Exit(1)
 		}
 	}
@@ -803,7 +796,7 @@ func parameterKeys() {
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
-			fmt.Printf(red+"parameterKeys. Error. Cannot write to output file: %v\n"+reset, errorCheck)
+			fmt.Printf(red+"\nparameterKeys. Error: Cannot write to output file: %v\n"+reset, errorCheck)
 			os.Exit(1)
 		}
 	}
@@ -811,13 +804,13 @@ func parameterKeys() {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"parameterKeys. Error. Cannot flush writer: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nparameterKeys. Error: Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 
 	//Check for any errors during scanning
 	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"parameterKeys. Error. Canot scan input file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nparameterKeys. Error: Canot scan input file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -844,8 +837,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
-
+	fmt.Println(purple + "\nsegmentifyLite: Done!\n")
 }
 
 // Regex to count the number of parameters in the URL
@@ -1008,8 +1000,8 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 	// Open the input file
 	file, errorCheck := os.Open(inputFilename)
 	if errorCheck != nil {
-		fmt.Printf("Error: Cannot open input file: %v\n", errorCheck)
-		return 0, 0
+		fmt.Printf("\nError: Cannot open input file: %v\n", errorCheck)
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -1095,15 +1087,16 @@ func insertStaticRegex(regexText string) error {
 
 	_, errorCheck = writer.WriteString(regexText)
 	if errorCheck != nil {
-		fmt.Printf(red+"insertStaticRegex. Error. Cannot write to outputfile: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\ninsertStaticRegex. Error: Cannot write to outputfile: %v\n"+reset, errorCheck)
 		panic(errorCheck)
+		os.Exit(1)
 	}
 
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"insertStaticRegex. Error. Cannot flush writer: %v\n"+reset, errorCheck)
-		return errorCheck
+		fmt.Printf(red+"\ninsertStaticRegex. Error: Cannot flush writer: %v\n"+reset, errorCheck)
+		os.Exit(1)
 	}
 
 	return errorCheck
@@ -1153,19 +1146,15 @@ func displayBanner() {
 
 }
 
-// Clear the screen
+// Function to clear the screen
 func clearScreen() {
-
-	var clearCmd string
-
+	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
-		clearCmd = "cls"
+		cmd = exec.Command("cmd", "/c", "cls")
 	default:
-		clearCmd = "clear"
+		cmd = exec.Command("clear")
 	}
-
-	cmd := exec.Command(clearCmd)
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }

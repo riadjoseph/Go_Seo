@@ -1,10 +1,6 @@
-// listURLs: Export all URLs to a textfile called siteurlsExport.
-// Maximum 1MM URLs will be exported
+// listURLs: Export URLs to a text file called siteurlsExport.txt
+// Analysis based on 1MM URL maximum
 // Written by Jason Vicinanza
-
-// To run this:
-// go run listURLs
-// Example: go run listURLs
 
 package main
 
@@ -16,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -197,8 +194,9 @@ type botifyResponse struct {
 // Colours
 var purple = "\033[0;35m"
 var green = "\033[0;32m"
-var reset = "\033[0m"
 var red = "\033[0;31m"
+var bold = "\033[1m"
+var reset = "\033[0m"
 
 // Strings used to store the project credentials for API access
 var orgName string
@@ -234,27 +232,34 @@ func main() {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal("listURLs. Error creating request:", err)
+		log.Fatal(red+"\nError: Cannot create request:"+reset, err)
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botify_api_token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal("listURLs. Error sending request:", err)
+		log.Fatal(red+"\nError: Cannot send request:"+reset, err)
 	}
 	defer res.Body.Close()
 
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal("listURLs. Error reading response body:", err)
+		log.Fatal(red+"\nError: Cannot read request bodY:"+reset, err)
 	}
 
 	var responseObject botifyResponse
 	err = json.Unmarshal(responseData, &responseObject)
 
+	//Display an error if no crawls found
+	if responseObject.Count == 0 {
+		fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
+		os.Exit(1)
+	}
+
 	if err != nil {
-		log.Fatal("Error unmarshalling JSON:", err)
+		log.Fatal(red+"\nError: Cannot unmarshall JSON:"+reset, err)
+		os.Exit(1)
 	}
 
 	fmt.Println(purple + "\nExporting URLs" + reset)
@@ -265,10 +270,10 @@ func main() {
 	fmt.Println("End point:", urlEndpoint, "\n")
 
 	// Create a file for writing
-	file, err := os.Create("siteurlsExport.csv")
+	file, err := os.Create("siteurlsExport.txt")
 	if err != nil {
-		fmt.Println("Error creating file:", err)
-		return
+		fmt.Println(red+"\nError: Cannot create output file:"+reset, err)
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -276,8 +281,7 @@ func main() {
 	totalCount := 0
 
 	// Iterate through pages 1 through 10
-	for page := 1; page <= 100; page++ {
-		//url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+	for page := 1; page <= 1000; page++ {
 		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/urls?area=current&page=%d&size=1000", orgName, projectName, responseObject.Results[0].Slug, page)
 
 		payload := strings.NewReader("{\"fields\":[\"url\"]}")
@@ -290,23 +294,23 @@ func main() {
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
-			fmt.Println("Error:", err)
-			return
+			fmt.Println(red+"\nError: Cannot connect to the API:"+red, err)
+			os.Exit(1)
 		}
 		defer res.Body.Close()
 
 		// Decode JSON response
 		var response map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-			fmt.Println(red+"Error: Cannot decode JSON:"+reset, err)
-			return
+			fmt.Println(red+"\nError: Cannot decode JSON:"+reset, err)
+			os.Exit(1)
 		}
 
 		// Extract URLs from the "results" key
 		results, ok := response["results"].([]interface{})
 		if !ok {
-			fmt.Println(red + "Error: Invalid credentials or no crawls found in the project")
-			return
+			fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project" + reset)
+			os.Exit(1)
 		}
 
 		// Write URLs to the file
@@ -315,8 +319,8 @@ func main() {
 			if resultMap, ok := result.(map[string]interface{}); ok {
 				if url, ok := resultMap["url"].(string); ok {
 					if _, err := file.WriteString(url + "\n"); err != nil {
-						fmt.Println("Error: Cannot write to output file:"+reset, err)
-						return
+						fmt.Println(red+"\nError: Cannot write to the output file:"+reset, err)
+						os.Exit(1)
 					}
 					count++
 					totalCount++
@@ -329,7 +333,6 @@ func main() {
 
 		// If no URLs were saved for the page, exit the loop
 		if count == 0 {
-			fmt.Println(purple + "\nlistURLs: Done\n")
 			break
 		}
 
@@ -337,12 +340,17 @@ func main() {
 	}
 
 	// Print total number of URLs saved
-	fmt.Printf("\nTotal no. of URLs exported: %d\n", totalCount)
+	fmt.Printf(purple+"\nTotal no. of URLs exported: %d\n"+reset, totalCount)
+
+	// Prompt to save generated list in the clipboard
+	copyURLsToClipboard()
+
+	fmt.Println(purple + "\nlistURLs: Done\n")
 }
 
 // Check that the org and project names have been specified as command line arguments
 // if not prompt for them
-// Pressing Enter exits segmentifyLite
+// Pressing Enter exits listURLs
 func checkCredentials() {
 
 	if len(os.Args) < 3 {
@@ -370,6 +378,52 @@ func checkCredentials() {
 	}
 }
 
+func copyURLsToClipboard() {
+
+	var response string
+
+	validInputs := map[string]bool{"Y": true, "N": true}
+
+	for {
+		fmt.Print("\nCopy exported URLs to the clipboard? (Y/N): ")
+		fmt.Scanln(&response)
+		response = strings.ToUpper(strings.TrimSpace(response))
+
+		if _, valid := validInputs[response]; valid {
+			break
+		} else {
+			fmt.Println("Invalid input. Please enter Y or N.")
+		}
+	}
+
+	if response == "Y" {
+		content, err := ioutil.ReadFile("siteurlsExport.txt")
+		if err != nil {
+			panic(err)
+		}
+
+		// Copy the content to the clipboard using pbcopy (macOS) or type to clip (Windows)
+		var copyCmd string
+
+		switch runtime.GOOS {
+		case "windows":
+			copyCmd = "type siteurlsExport.txt | clip"
+		default:
+			copyCmd = "pbcopy"
+		}
+
+		cmd := exec.Command(copyCmd)
+		cmd.Stdin = strings.NewReader(string(content))
+		if err := cmd.Run(); err != nil {
+			panic(err)
+		}
+		fmt.Println(bold + green + "\nThe exported URLs can be found in siteurlsExport.txt" + reset)
+		fmt.Println(bold + green + "The URLs have also been copied to your clipboard" + reset)
+	} else {
+		fmt.Println(bold + green + "\nThe exported URLs can be found in siteurlsExport.txt" + reset)
+	}
+}
+
 // Display the welcome banner
 func displayBanner() {
 
@@ -393,7 +447,13 @@ func displayBanner() {
 
 // Function to clear the screen
 func clearScreen() {
-	cmd := exec.Command("clear")
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "cls")
+	default:
+		cmd = exec.Command("clear")
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }

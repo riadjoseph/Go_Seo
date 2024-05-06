@@ -1,9 +1,6 @@
-// listAnalysis: Get key crawl attributes for the latest crawl of a specific project.
+// listAnalysis: Get key crawl attributes for the latest crawl of a specific project
+// Analysis based on 1MM URL maximum
 // Written by Jason Vicinanza
-
-// To run this:
-// go run listAnalysis username project_slug
-// Example: go run listAnalysis botify-project botify-project-name
 
 package main
 
@@ -15,10 +12,33 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
+	"strings"
 )
+
+// Version
+var version = "v0.1"
+
+// Colours
+var purple = "\033[0;35m"
+var blue = "\033[34m"
+var green = "\033[0;32m"
+var red = "\033[0;31m"
+var reset = "\033[0m"
 
 // Specify your Botify API token here
 var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+
+// Strings used to store the project credentials for API access
+var orgName string
+var projectName string
+
+// Strings used to store the input project credentials
+var orgNameInput string
+var projectNameInput string
+
+// Boolean to signal if the project credentials have been entered by the user
+var credentialsInput = false
 
 type botifyResponse struct {
 	Next     string      `json:"next"`
@@ -191,65 +211,59 @@ type botifyResponse struct {
 
 func main() {
 
-	// Version
-	version := "v0.1"
-
-	// ANSI escape code for purple color
-	purple := "\033[0;35m"
-	// ANSI escape code for blue color
-	blue := "\033[34m"
-	// ANSI escape code to reset color
-	reset := "\033[0m"
-
 	clearScreen()
 
-	// Get the user and org from the command-line arguments
-	if len(os.Args) < 3 {
-		clearScreen()
-		fmt.Println("listAnalysis")
-		fmt.Println("listAnalysis. Error. Please provide the Username and Project Slug as arguments.")
-		return
-	}
-	argUserName := os.Args[1]
-	argProjectSlug := os.Args[2]
+	displayBanner()
 
-	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", argUserName, argProjectSlug)
+	// Get the project credentials if they have not been specified on the command line
+	checkCredentials()
+
+	// If the credentials have been provided on the command line use them
+	if !credentialsInput {
+		orgName = os.Args[1]
+		projectName = os.Args[2]
+	} else {
+		orgName = orgNameInput
+		projectName = projectNameInput
+	}
+
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal("listAnalysis. Error creating request:", err)
+		log.Fatal(red+"\nError: Cannot create request:"+reset, err)
+		os.Exit(1)
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botify_api_token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal("listAnalysis. Error sending request:", err)
+		log.Fatal(red+"\nError: Cannot sent request:"+reset, err)
 	}
 	defer res.Body.Close()
 
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal("listAnalysis. Error reading response body:", err)
+		log.Fatal(red+"\nError: Cannot read response body:"+reset, err)
+		os.Exit(1)
 	}
 
 	var responseObject botifyResponse
 	err = json.Unmarshal(responseData, &responseObject)
 
 	if err != nil {
-		log.Fatal("Error unmarshalling JSON:", err)
+		log.Fatal(red+"\nError: Cannot unmarshall JSON:"+reset, err)
+		os.Exit(1)
 	}
 
-	// Display welcome message
-	fmt.Println(purple + "listAnalysis: Report the project metadata for the last crawl." + reset)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
-
-	fmt.Println(purple+"Username:", argUserName)
-	fmt.Println("Project Slug:", argProjectSlug+reset)
+	fmt.Println("\nOrganisation Name:", orgName)
+	fmt.Println("Project Name:", projectName)
 
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println("listAnalysis. Error. Invalid crawl or no crawls found in the project.")
+		fmt.Println(red + "\nError: Invalid crawl or no crawls found in the project." + reset)
+		os.Exit(1)
 	}
 
 	fmt.Println("\nNo. Crawls in project:", responseObject.Count)
@@ -441,12 +455,68 @@ func main() {
 		fmt.Println("Pk:", responseObject.Results[0].Pk)
 		fmt.Println("HasRawPages:", responseObject.Results[0].HasRawPages)
 	}
-	fmt.Println(purple + "\nlistAnalysis: Done\n")
+	fmt.Println(purple + "\nlistAnalysis: Done!\n")
+}
+
+// Check that the org and project names have been specified as command line arguments
+// if not prompt for them
+// Pressing Enter exits listURLs
+func checkCredentials() {
+
+	if len(os.Args) < 3 {
+
+		credentialsInput = true
+
+		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit listAnalysis" +
+			"\n")
+
+		fmt.Print(purple + "\nEnter Organisation Name: " + reset)
+		fmt.Scanln(&orgNameInput)
+		// Check if input is empty if so exit
+		if strings.TrimSpace(orgNameInput) == "" {
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			os.Exit(0)
+		}
+
+		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Scanln(&projectNameInput)
+		// Check if input is empty if so exit
+		if strings.TrimSpace(projectNameInput) == "" {
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			os.Exit(0)
+		}
+	}
+}
+
+// Display the welcome banner
+func displayBanner() {
+
+	//Banner
+	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+	fmt.Println(green + `
+
+██╗     ██╗███████╗████████╗ █████╗ ███╗   ██╗ █████╗ ██╗  ██╗   ██╗███████╗██╗███████╗
+██║     ██║██╔════╝╚══██╔══╝██╔══██╗████╗  ██║██╔══██╗██║  ╚██╗ ██╔╝██╔════╝██║██╔════╝
+██║     ██║███████╗   ██║   ███████║██╔██╗ ██║███████║██║   ╚████╔╝ ███████╗██║███████╗
+██║     ██║╚════██║   ██║   ██╔══██║██║╚██╗██║██╔══██║██║    ╚██╔╝  ╚════██║██║╚════██║
+███████╗██║███████║   ██║   ██║  ██║██║ ╚████║██║  ██║███████╗██║   ███████║██║███████║
+╚══════╝╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝   ╚══════╝╚═╝╚══════╝
+`)
+
+	//Display welcome message
+	fmt.Println(purple + "listAnalysis: Report the project metadata for the last crawl\n" + reset)
+	fmt.Println(purple+"Version:"+reset, version+"\n")
 }
 
 // Function to clear the screen
 func clearScreen() {
-	cmd := exec.Command("clear")
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "cls")
+	default:
+		cmd = exec.Command("clear")
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
