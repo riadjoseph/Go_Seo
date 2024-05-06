@@ -1,24 +1,24 @@
 # Go_Seo
 A series of command line utilities to support SEO actions.   
 
-# folderCount
+## folderCount
 folderCount is used to identify and count all first level folders.  
 Up to 1MM URLs maximum are used to produce the analysis.  
 **Usage:** *./folderCount* (organisation and project name will be prompted for)    
 **Usage:** *./folderCount org_name project_name* # paramCount  
 
-# paramCount  
+## paramCount  
 paramCount is used to identify and count all Parameter Keys in the crawl.   
 **Usage:** *./paramCount* (organisation and project name will be prompted for)    
 **Usage:** *./paramCount org_name project_name* 
 
-# listAnalysis
+## listAnalysis
 listAnalysis displays the crawl meta data for the most recent crawl in a specified project.   
 **Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your personal token.  
 **Usage:** *./listAnalysis* (organisation and project name will be prompted for)    
 **Usage:** *./listAnalysis org_name project_name* # listURLs
 
-# segmentifyLite   
+## segmentifyLite   
 Generates the segmentation regex for the following segments: 
 - First level folders
 - Second level folders
