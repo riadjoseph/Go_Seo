@@ -8,7 +8,7 @@ Up to 1MM URLs maximum are used to produce the analysis.
 **Usage:** *./folderCount org_name project_name* # paramCount  
 
 # paramCount  
-paramCount is used to identify and count all Parameter Keys in the crawl. 
+paramCount is used to identify and count all Parameter Keys in the crawl.   
 **Usage:** *./paramCount* (organisation and project name will be prompted for)    
 **Usage:** *./paramCount org_name project_name* 
 
