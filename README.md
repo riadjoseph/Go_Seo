@@ -21,13 +21,14 @@ listAnalysis displays the crawl meta data for the most recent crawl in a specifi
 **Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your personal token. 
 ```
 Usage: ./listAnalysis (organisation and project name will be prompted for)    
-Usage: ./listAnalysis org_name project_name*
+Usage: ./listAnalysis org_name project_name
 ```
 
 # listURLs  
 Export all URLs (up to a maximum of 1MM) to a file (siteurlsExport.csv)
 ```
-Usage: listURLs
+Usage: ./listURLs (organisation and project name will be prompted for)    
+Usage: ./listURLs org_name project_name
 ```
 
 ## segmentifyLite   
