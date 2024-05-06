@@ -25,7 +25,7 @@ Usage: ./listAnalysis org_name project_name*
 ```
 
 # listURLs  
-Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv)
+Export all URLs (up to a maximum of 1MM) to a file (siteurlsExport.csv)
 ```
 Usage: listURLs
 ```
@@ -46,6 +46,6 @@ Generates the segmentation regex for the following segments:
 **Note:** segmentifyLite will process a maximum of 300k URLs.  
 **Note:** All level 1 and level 2 segments which are less than 5% of the size of the largest level 1 or level 2 folder found are excluded from the segmentation regex. To amend this threshold change the percentage threshold in the variable **thresholdPercent**.  
 ```
-Usage: ./segmentifyLite* (organisation and project name will be prompted for)    
+Usage: ./segmentifyLite (organisation and project name will be prompted for)    
 Usage: ./segmentifyLite org_name project_name    
 ```
