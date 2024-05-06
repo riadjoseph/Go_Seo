@@ -175,6 +175,9 @@ func main() {
 	}
 
 	fmt.Println(purple + "\nRegex generation complete" + reset)
+
+	// Clean-up. Delete the temp. file
+	os.Remove(urlExtractFile)
 }
 
 // Check that the org and project names have been specified as command line arguments
