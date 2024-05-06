@@ -4,8 +4,10 @@ A series of command line utilities to support SEO actions.
 ## folderCount
 folderCount is used to identify and count all first level folders.  
 Up to 1MM URLs maximum are used to produce the analysis.  
+```
 **Usage:** *./folderCount* (organisation and project name will be prompted for)    
-**Usage:** *./folderCount org_name project_name* # paramCount  
+**Usage:** *./folderCount org_name project_name* # paramCount
+```
 
 ## paramCount  
 paramCount is used to identify and count all Parameter Keys in the crawl.   
