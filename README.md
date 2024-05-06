@@ -24,7 +24,7 @@ Usage: ./listAnalysis (organisation and project name will be prompted for)
 Usage: ./listAnalysis org_name project_name
 ```
 
-# listURLs  
+## listURLs  
 Export all URLs (up to a maximum of 1MM) to a file (siteurlsExport.csv)
 ```
 Usage: ./listURLs (organisation and project name will be prompted for)    
