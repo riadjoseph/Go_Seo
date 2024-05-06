@@ -845,8 +845,12 @@ path /*
 		panic(errParamaterUsage)
 	}
 
-	//Finished
+	// We're done
 	fmt.Println(purple + "\nsegmentifyLite: Done!\n")
+	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	var input string
+	fmt.Scanln(&input)
+	os.Exit(0)
 }
 
 // Regex to count the number of parameters in the URL

@@ -28,6 +28,7 @@ var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 var purple = "\033[0;35m"
 var green = "\033[0;32m"
 var red = "\033[0;31m"
+var bold = "\033[1m"
 var reset = "\033[0m"
 
 // Strings used to store the project credentials for API access
@@ -351,7 +352,12 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 		fmt.Printf("%s (count: %d)\n", vc.Text, vc.Count)
 	}
 
-	fmt.Println(purple + "\nfolderCount: Donei\n")
+	// We're done
+	fmt.Println(purple + "\nfolderCount: Done\n")
+	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	var input string
+	fmt.Scanln(&input)
+	os.Exit(0)
 
 	// Check for any errors during scanning
 	if err := scanner.Err(); err != nil {

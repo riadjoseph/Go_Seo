@@ -345,7 +345,12 @@ func main() {
 	// Prompt to save generated list in the clipboard
 	copyURLsToClipboard()
 
+	// We're done
 	fmt.Println(purple + "\nlistURLs: Done\n")
+	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	var input string
+	fmt.Scanln(&input)
+	os.Exit(0)
 }
 
 // Check that the org and project names have been specified as command line arguments

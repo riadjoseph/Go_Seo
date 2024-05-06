@@ -24,6 +24,7 @@ var purple = "\033[0;35m"
 var blue = "\033[34m"
 var green = "\033[0;32m"
 var red = "\033[0;31m"
+var bold = "\033[1m"
 var reset = "\033[0m"
 
 // Specify your Botify API token here
@@ -455,7 +456,13 @@ func main() {
 		fmt.Println("Pk:", responseObject.Results[0].Pk)
 		fmt.Println("HasRawPages:", responseObject.Results[0].HasRawPages)
 	}
+
+	// We're done
 	fmt.Println(purple + "\nlistAnalysis: Done!\n")
+	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	var input string
+	fmt.Scanln(&input)
+	os.Exit(0)
 }
 
 // Check that the org and project names have been specified as command line arguments
