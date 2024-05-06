@@ -27,7 +27,7 @@ Generates the segmentation regex for the following segments:
 - Parameter keys
 - No. of folders
 - Shopify (if detected)
-- SFCC (if detected, and the site is not using "Search-Friendly URLs for B2C Commerce")
+- SFCC (if detected, and the site is not using "Search-Friendly URLs for B2C Commerce")  
 **Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
 **Note:** The number of URLs found in level 1 folders, level 2 folders and parameter key segments are included as comments after the generated regex. Use these insights to decide which segments slices to keep and which to remove.   
 segmentifyLite will process a maximum of 300k URLs.  
