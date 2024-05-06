@@ -5,23 +5,29 @@ A series of command line utilities to support SEO actions.
 folderCount is used to identify and count all first level folders.  
 Up to 1MM URLs maximum are used to produce the analysis.  
 ```
-**Usage:** *./folderCount* (organisation and project name will be prompted for)    
-**Usage:** *./folderCount org_name project_name* # paramCount
+**Usage:** ./folderCount (organisation and project name will be prompted for)    
+**Usage:** ./folderCount org_name project_name  
 ```
 
 ## paramCount  
 paramCount is used to identify and count all Parameter Keys in the crawl.  
 ```
-**Usage:** *./paramCount* (organisation and project name will be prompted for)    
-**Usage:** *./paramCount org_name project_name*
+**Usage:** ./paramCount (organisation and project name will be prompted for)    
+**Usage:** ./paramCount org_name project_name  
 ```
 
 ## listAnalysis
 listAnalysis displays the crawl meta data for the most recent crawl in a specified project.   
 **Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your personal token. 
 ```
-**Usage:** *./listAnalysis* (organisation and project name will be prompted for)    
-**Usage:** *./listAnalysis org_name project_name* # listURLs
+**Usage:** ./listAnalysis (organisation and project name will be prompted for)    
+**Usage:** ./listAnalysis org_name project_name*
+```
+
+# listURLs  
+Export all URLs (up to a maximum of 1MM) to file (siteurlsExport.csv)
+```
+**Usage:** listURLs
 ```
 
 ## segmentifyLite   
