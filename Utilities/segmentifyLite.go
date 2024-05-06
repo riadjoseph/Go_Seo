@@ -40,8 +40,8 @@ var checkmark = "\u2713"
 var urlExtractFile = "siteurlsExport.tmp"
 var regexOutputFile = "segment.txt"
 
-// Maximum No. of URLs to export. (300 = 300k).
-var maxURLsToExport = 300
+// Maximum No. of URLs to process. (300 = 300k).
+var maxURLsToProcess = 300
 
 // Percentage threshold for level 1 & level 2 folders
 var thresholdPercent = 0.05
@@ -102,7 +102,7 @@ func main() {
 	checkCredentials()
 
 	//Generate the list of URLs
-	exportURLsFromProject()
+	processURLsInProject()
 
 	// Generate the output file to store the regex
 	generateRegexFile()
@@ -214,8 +214,8 @@ func checkCredentials() {
 	}
 }
 
-// Use the API to get the first 300k URLs and export them to a file
-func exportURLsFromProject() {
+// Use the API to get the first 300k URLs and export them to a temp file
+func processURLsInProject() {
 
 	// If the credentials have been provided on the command line use them
 	if !credentialsInput {
@@ -263,7 +263,7 @@ func exportURLsFromProject() {
 	}
 
 	//Display the welcome message
-	fmt.Println(purple + "\nExporting URLs" + reset)
+	fmt.Println(purple + "\nProcessing URLs" + reset)
 
 	//Create a file for writing
 	file, errorCheck := os.Create(urlExtractFile)
@@ -275,7 +275,7 @@ func exportURLsFromProject() {
 
 	//Initialize total count
 	totalCount := 0
-	fmt.Println("Maximum No. of URLs to be exported is", maxURLsToExport, "k")
+	fmt.Println("Maximum No. of URLs to be processed is", maxURLsToProcess, "k")
 	fmt.Println("Organisation Name:", orgName)
 	fmt.Println("Project Name:", projectName)
 	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
@@ -283,9 +283,9 @@ func exportURLsFromProject() {
 	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, analysisSlug)
 	fmt.Println("End point:", urlEndpoint, "\n")
 
-	//Iterate through pages 1 through to the maximum no of pages defined by maxURLsToExport
+	//Iterate through pages 1 through to the maximum no of pages defined by maxURLsToProcess
 	//Each page returns 1000 URLs
-	for page := 1; page <= maxURLsToExport; page++ {
+	for page := 1; page <= maxURLsToProcess; page++ {
 
 		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/urls?area=current&page=%d&size=1000", orgName, projectName, analysisSlug, page)
 
@@ -344,28 +344,28 @@ func exportURLsFromProject() {
 			}
 		}
 
-		//If there are no more URLS export exit the function
+		//If there are no more URLS process exit the function
 		if count == 0 {
 			//Print total number of URLs saved
-			fmt.Printf("\nTotal URLs exported: %d\n", totalCount)
+			fmt.Printf("\nTotal URLs processed: %d\n", totalCount)
 			if sfccDetected {
 				fmt.Printf(bold + "\nNote: Salesforce Commerce Cloud has been detected. Regex will be generated\n" + reset)
 			}
 			if shopifyDetected {
 				fmt.Printf(bold + "\nNote: Shopify has been detected. Regex will be generated\n" + reset)
 			}
-			fmt.Println(purple + "\nURL Extract complete. Generating regex...\n" + reset)
+			fmt.Println(purple + "\nURLs processed. Generating regex...\n" + reset)
 			// Check if SFCC is used. This bool us used to deterline if SFCC regex is generated
 			break
 		}
 
 		//Max. number of URLs (200k) has been reached
 		if totalCount > 190000 {
-			fmt.Printf("\n\nExport limit of %d URLs reached. Generating regex...\n\n", totalCount)
+			fmt.Printf("\n\nLimit of %d URLs reached. Generating regex...\n\n", totalCount)
 			break
 		}
 
-		fmt.Printf("\nPage %d: %d URLs exported\n", page, count)
+		fmt.Printf("\nPage %d: %d URLs processed\n", page, count)
 	}
 
 }
