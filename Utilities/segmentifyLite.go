@@ -154,6 +154,9 @@ func main() {
 		shopifyURLs()
 	}
 
+	//Static resources
+	staticResources()
+
 	// Copy the regex to the clipboard
 	copyRegexToClipboard()
 
@@ -167,6 +170,8 @@ func main() {
 	fmt.Println(green + checkmark + reset + " No. of parameters" + reset)
 	fmt.Println(green + checkmark + reset + " Parameter keys" + reset)
 	fmt.Println(green + checkmark + reset + " No. of folders" + reset)
+	fmt.Println(green + checkmark + reset + " Static resources" + reset)
+
 	if sfccDetected {
 		fmt.Println(green + checkmark + reset + " Salesforce Commerce Cloud" + reset)
 	}
@@ -507,11 +512,11 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	// SlashCount = 4 signals level 1 folders
 	// SlashCount = 5 signals level 2 folders
 	if slashCount == 4 {
-		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_Folders]\n@Home\npath /\n\n"))
+		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_folders]\n@Home\npath /\n\n"))
 	}
 
 	if slashCount == 5 {
-		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_Folders]\n@Home\npath /\n\n"))
+		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_folders]\n@Home\npath /\n\n"))
 	}
 
 	//Write the regex
@@ -780,7 +785,7 @@ func parameterKeys() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameterKeys]\n"))
+	writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameter_keys]\n"))
 
 	//Write the regex
 	for _, folderValueCount := range sortedCounts {
@@ -824,13 +829,14 @@ func parameterUsage() {
 	//URLs containing parameters
 	paramaterUsageRegex := `
 
-[segment:sl_parameter_Usage]
+[segment:sl_parameter_usage]
 @Parameters
 query *=*
 
 @Clean
 path /*
-# ----End of sl_parameter_Usage----`
+
+# ----End of sl_parameter_usage----`
 
 	//Parameter usage message
 	fmt.Println(purple + "\nParameter usage" + reset)
@@ -850,7 +856,7 @@ func noOfParameters() {
 	paramaterNoRegex := `
 
 
-[segment:sl_no_Of_Parameters]
+[segment:sl_no_of_parameters]
 @Home
 path /
 
@@ -871,7 +877,8 @@ query rx:=(.)+
 
 @~Other
 path /*
-# ----End of sl_no_Of_Parameters----`
+
+# ----End of sl_no_of_parameters----`
 
 	//No. of parameters message
 	fmt.Println(purple + "Number of parameters" + reset)
@@ -892,7 +899,7 @@ func noOfFolders() {
 	folderNoRegex := `
 
 
-[segment:sl_no_Of_Folders]
+[segment:sl_no_of_folders]
 @Home
 path /
 
@@ -913,7 +920,8 @@ path rx:^/[^/]+
 
 @~Other
 path /*
-# ----End of sl_no_Of_Folders----`
+
+# ----End of sl_no_of_folders----`
 
 	//No. of folders message
 	fmt.Println(purple + "Number of folders" + reset)
@@ -934,17 +942,17 @@ func sfccURLs() {
 	sfccURLs := `
 
 
-[segment:sl_sfcc_urls]
+[segment:sl_sfcc]
 @Home
 path /
 
-@SFCC_URLs
+@SFCC
 path */demandware*
 
 @~Other
 path /*
 
-# ----End of sl_sfcc_URLs----`
+# ----End of sl_sfcc----`
 
 	// SFCC message
 	fmt.Println(purple + "Salesforce Commerce Cloud (Demandware)" + reset)
@@ -984,7 +992,7 @@ path */pages/*
 
 @~Other
 path /*
-# ----End of s_shopify_URLs----`
+# ----End of sl_shopify----`
 
 	// Shopify message
 	fmt.Println(purple + "Shopify" + reset)
@@ -996,6 +1004,78 @@ path /*
 	//Finished
 	fmt.Println("Done!", green+checkmark+reset, "\n")
 
+}
+
+// Static resources
+func staticResources() {
+
+	// Static resources
+	staticResources := `
+
+
+[segment:s_Static_Resources]  
+@true  
+or (  
+path *.bmp
+path *.css
+path *.doc
+path *.gif
+path *.ief
+path *.jpe
+path *.jpeg
+path *.jpg
+path *.js
+path *.m1v
+path *.mov
+path *.mp2
+path *.mp3
+path *.mp4
+path *.mpa
+path *.mpe
+path *.mpeg
+path *.mpg
+path *.pbm
+path *.pdf
+path *.pgm
+path *.png
+path *.pnm
+path *.ppm
+path *.pps
+path *.ppt
+path *.ps
+path *.qt
+path *.ras
+path *.rgb
+path *.swf
+path *.tif
+path *.tiff
+path *.tsv
+path *.txt
+path *.vcf
+path *.wav
+path *.xbm
+path *.xls
+path *.xml
+path *.xpdl
+path *.xpm
+path *.xwd
+path */api/*
+)
+
+@~Other
+path /*
+
+# ----End of sl_static_resources----`
+
+	// Static resources message
+	fmt.Println(purple + "Static resources" + reset)
+	errStaticResources := insertStaticRegex(staticResources)
+	if errStaticResources != nil {
+		panic(errStaticResources)
+	}
+
+	//Finished
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Get the folder size threshold for level 1 & 2 folders
@@ -1135,6 +1215,7 @@ func displayBanner() {
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
+
 ███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
 ██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
 ███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██║█████╗   ╚████╔╝ ██║     ██║   ██║   █████╗
