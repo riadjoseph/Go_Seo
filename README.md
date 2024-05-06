@@ -14,7 +14,7 @@ paramCount is used to identify and count all Parameter Keys in the crawl.
 
 # listAnalysis
 listAnalysis displays the crawl meta data for the most recent crawl in a specified project.   
-**Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your token
+**Note:** Update the code to include your own Botify API key. Change the variable botify_api_token to reflect your personal token.  
 **Usage:** *./listAnalysis* (organisation and project name will be prompted for)    
 **Usage:** *./listAnalysis org_name project_name* # listURLs
 
