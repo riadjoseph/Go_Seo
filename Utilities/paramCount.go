@@ -373,7 +373,7 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 
 	// We're done
 	fmt.Println(purple + "\nParamCount: Done\n")
-	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
 	os.Exit(0)

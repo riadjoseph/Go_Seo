@@ -32,8 +32,6 @@ var red = "\033[0;31m"
 var green = "\033[0;32m"
 var bold = "\033[1m"
 var reset = "\033[0m"
-
-// Unicode escape sequence for the checkmark symbol
 var checkmark = "\u2713"
 
 // Default input and output files
@@ -161,16 +159,16 @@ func main() {
 	copyRegexToClipboard()
 
 	//It's done! segmentifyList has left the building
-	fmt.Println(bold+green+"Your regex can be found in:", regexOutputFile+reset)
-	fmt.Println(bold + green + "The regex is also in your clipboard ready to paste directly into Botify's segment editor\n" + reset)
+	fmt.Println(green+bold+"Your regex can be found in:", regexOutputFile+reset)
+	fmt.Println(green + bold + "The regex is also in your clipboard ready to paste directly into Botify's segment editor\n" + reset)
 
-	fmt.Println(green + checkmark + reset + " First level folders" + reset)
-	fmt.Println(green + checkmark + reset + " Second level folders" + reset)
-	fmt.Println(green + checkmark + reset + " Parameter usage" + reset)
-	fmt.Println(green + checkmark + reset + " No. of parameters" + reset)
-	fmt.Println(green + checkmark + reset + " Parameter keys" + reset)
-	fmt.Println(green + checkmark + reset + " No. of folders" + reset)
-	fmt.Println(green + checkmark + reset + " Static resources" + reset)
+	fmt.Println(green + bold + checkmark + reset + " First level folders" + reset)
+	fmt.Println(green + bold + checkmark + reset + " Second level folders" + reset)
+	fmt.Println(green + bold + checkmark + reset + " Parameter usage" + reset)
+	fmt.Println(green + bold + checkmark + reset + " No. of parameters" + reset)
+	fmt.Println(green + bold + checkmark + reset + " Parameter keys" + reset)
+	fmt.Println(green + bold + checkmark + reset + " No. of folders" + reset)
+	fmt.Println(green + bold + checkmark + reset + " Static resources" + reset)
 
 	if sfccDetected {
 		fmt.Println(green + checkmark + reset + " Salesforce Commerce Cloud" + reset)
@@ -178,11 +176,17 @@ func main() {
 	if shopifyDetected {
 		fmt.Println(green + checkmark + reset + " Shopify" + reset)
 	}
-
 	fmt.Println(purple + "\nRegex generation complete" + reset)
 
+	// We're done
 	// Clean-up. Delete the temp. file
 	os.Remove(urlExtractFile)
+
+	fmt.Println(purple + "\nsegmentifyLite: Done!\n")
+	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
+	var input string
+	fmt.Scanln(&input)
+	os.Exit(0)
 }
 
 // Check that the org and project names have been specified as command line arguments
@@ -528,7 +532,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 				folderLabel := parts[3] //Extract the text between the third and fourth forward-slashes
 				_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
 				if errorCheck != nil {
-					fmt.Printf(red+"\nsegment2ndLevel. Error: Cannot write to output file: %v\n"+reset, errorCheck)
+					fmt.Printf(red+"\nsegmentFolders. Error: Cannot write to output file: %v\n"+reset, errorCheck)
 					os.Exit(1)
 				}
 			}
@@ -539,7 +543,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 
 	//Insert the number of URLs found in each folder as comments
-	writer.WriteString("\n# ----Level 2 Folder URL analysis----\n")
+	writer.WriteString("\n# ----Folder URL analysis----\n")
 	for _, folderValueCount := range sortedCounts {
 		writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 	}
@@ -547,15 +551,11 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"\nsegment2ndLevel. Error: Cannot flush writer: %v\n", errorCheck)
+		fmt.Printf(red+"\nsegmentFolders. Error: Cannot flush writer: %v\n", errorCheck)
 		os.Exit(1)
 	}
-
-	//Check for any errors during scanning
-	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"\nsegment2ndLevel. Error: Cannot scan input file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	//Finished
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex for subdomains
@@ -685,12 +685,8 @@ func subDomains() {
 		fmt.Printf(red+"\nsubDomains. Error: Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-
-	//Check for any errors during scanning
-	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"\nsubDomains. Error: Cannot scan input file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	//Finished
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex to identify which parameter keys are used
@@ -815,12 +811,8 @@ func parameterKeys() {
 		fmt.Printf(red+"\nparameterKeys. Error: Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-
-	//Check for any errors during scanning
-	if errorCheck := scanner.Err(); errorCheck != nil {
-		fmt.Printf(red+"\nparameterKeys. Error: Canot scan input file: %v\n"+reset, errorCheck)
-		os.Exit(1)
-	}
+	//Finished
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex to identify of a parameter key is used in the URL
@@ -845,12 +837,8 @@ path /*
 		panic(errParamaterUsage)
 	}
 
-	// We're done
-	fmt.Println(purple + "\nsegmentifyLite: Done!\n")
-	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
-	var input string
-	fmt.Scanln(&input)
-	os.Exit(0)
+	//Finished
+	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex to count the number of parameters in the URL

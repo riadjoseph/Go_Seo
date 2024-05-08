@@ -13,11 +13,13 @@ echo - building listURLs.go
 go build listURLs.go
 echo - building segmentifyLite.go
 go build segmentifyLite.go
+echo - building apiTester.go
+go build apiTester.go
 echo
 echo "** Building Go_SEO utilities - Done!"
 echo
 echo "** Packaging binaries"
-tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite
+tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite apiTester
 echo
 echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
 echo

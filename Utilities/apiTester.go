@@ -1,4 +1,4 @@
-// listAnalysis: Get key crawl attributes for the latest crawl of a specific project
+// apiTester: Test Botify APIs
 // Analysis based on 1MM URL maximum
 // Written by Jason Vicinanza
 
@@ -21,11 +21,11 @@ var version = "v0.1"
 
 // Colours
 var purple = "\033[0;35m"
-var blue = "\033[34m"
 var green = "\033[0;32m"
 var red = "\033[0;31m"
 var bold = "\033[1m"
 var reset = "\033[0m"
+var checkmark = "\u2713"
 
 // Specify your Botify API token here
 var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
@@ -41,7 +41,37 @@ var projectNameInput string
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
 
-type botifyResponse struct {
+// API STRUCTS
+// The structs are defined in the order they are used in apiTester
+
+type datasourceResponse struct {
+	Sitemaps struct {
+		Runnable                   bool   `json:"runnable"`
+		Datasource                 string `json:"datasource"`
+		DateLastSuccessfulRevision string `json:"date_last_successful_revision"`
+		LastRevisionStatus         string `json:"last_revision_status"`
+		Stats                      struct {
+			Linkrels           int         `json:"Linkrels"`
+			ValidUrls          int         `json:"ValidUrls"`
+			InvalidUrls        int         `json:"InvalidUrls"`
+			FileUploaded       int         `json:"FileUploaded"`
+			UploadErrors       int         `json:"UploadErrors"`
+			ExecutionTime      string      `json:"ExecutionTime"`
+			ParsingErrors      int         `json:"ParsingErrors"`
+			DownloadErrors     int         `json:"DownloadErrors"`
+			SitemapsTreated    int         `json:"SitemapsTreated"`
+			DownLoadErrorsUrls interface{} `json:"DownLoadErrorsUrls"`
+		} `json:"stats"`
+		Segments struct {
+			Flags   []interface{} `json:"flags"`
+			Names   []interface{} `json:"names"`
+			Version int           `json:"version"`
+		} `json:"segments"`
+	} `json:"sitemaps"`
+}
+
+// Project
+type projectResponse struct {
 	Next     string      `json:"next"`
 	Previous interface{} `json:"previous"`
 	Count    int         `json:"count"`
@@ -216,7 +246,7 @@ func main() {
 
 	displayBanner()
 
-	// Get the project credentials if they have not been specified on the command line
+	// Get the credentials if they have not been specified on the command line
 	checkCredentials()
 
 	// If the credentials have been provided on the command line use them
@@ -228,11 +258,34 @@ func main() {
 		projectName = projectNameInput
 	}
 
-	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+	fmt.Println(bold+"\nOrganisation Name:", orgName)
+	fmt.Println(bold+"Project Name:", projectName+reset)
+	fmt.Println()
+
+	displaySeparator()
+
+	// Datasource API
+	datasourceApiTest()
+
+	displaySeparator()
+
+	// Project API
+	projectApiTest()
+
+	displaySeparator()
+
+	apiTesterDone()
+}
+
+// Display the datasource API results
+func datasourceApiTest() {
+	fmt.Println(bold + "\nAPI: Datasource API" + reset)
+
+	url := fmt.Sprintf("https://api.botify.com/v1/users/%s/datasources_summary_by_projects", orgName)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(red+"\nError: Cannot create request:"+reset, err)
+		log.Fatal(red+"\nError: datasourceApiTest. Cannot create request:"+reset, err)
 		os.Exit(1)
 	}
 	req.Header.Add("accept", "application/json")
@@ -240,38 +293,103 @@ func main() {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(red+"\nError: Cannot sent request:"+reset, err)
+		log.Fatal(red+"\nError: datasourceApiTest. Cannot sent request:"+reset, err)
 	}
 	defer res.Body.Close()
 
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(red+"\nError: Cannot read response body:"+reset, err)
+		log.Fatal(red+"\nError: datasourceApiTest. Cannot read response body:"+reset, err)
 		os.Exit(1)
 	}
 
-	var responseObject botifyResponse
+	var responseObject datasourceResponse
 	err = json.Unmarshal(responseData, &responseObject)
 
 	if err != nil {
-		log.Fatal(red+"\nError: Cannot unmarshall JSON:"+reset, err)
+		log.Fatal(red+"\nError: datasourceApiTest. Cannot unmarshall JSON:"+reset, err)
 		os.Exit(1)
 	}
 
-	fmt.Println("\nOrganisation Name:", orgName)
-	fmt.Println("Project Name:", projectName)
+	fmt.Println("Datasource:", responseObject)
+	//bloo
+
+	/*
+		// Display an error if no crawls found
+		if responseObject.Count == 0 {
+			fmt.Println(red + "\nError: datasourceApiTest. Invalid crawl or no crawls found in the project." + reset)
+			os.Exit(1)
+		}
+	*/
+}
+
+// Display the project API results
+func projectApiTest() {
+	fmt.Println(bold + "\nAPI: Project API" + reset)
+
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(red+"\nError: projectApiTest. Cannot create request:"+reset, err)
+		os.Exit(1)
+	}
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(red+"\nError: projectApiTest. Cannot sent request:"+reset, err)
+	}
+	defer res.Body.Close()
+
+	responseData, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(red+"\nError: projectApiTest. Cannot read response body:"+reset, err)
+		os.Exit(1)
+	}
+
+	var responseObject projectResponse
+	err = json.Unmarshal(responseData, &responseObject)
+
+	if err != nil {
+		log.Fatal(red+"\nError: projectApiTest. Cannot unmarshall JSON:"+reset, err)
+		os.Exit(1)
+	}
 
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "\nError: Invalid crawl or no crawls found in the project." + reset)
+		fmt.Println(red + "\nError: projectApiTest. Invalid crawl or no crawls found in the project." + reset)
 		os.Exit(1)
 	}
 
 	fmt.Println("\nNo. Crawls in project:", responseObject.Count)
 
+	fmt.Println(bold + "\nAll crawls found - Summary\n" + reset)
+
+	fmt.Println(bold + "Slug\t\tFriendly Name\tURL\t\t\t\t\t\t\tURLs\tActionB\tStatus" + reset)
+	for crawlIndex := range responseObject.Results {
+		friendlyName := "Not specified"
+		if responseObject.Results[crawlIndex].FriendlyName != nil {
+			friendlyName = fmt.Sprintf("%v", responseObject.Results[crawlIndex].FriendlyName)
+		}
+
+		// Format the string with tabs between the fields
+		line := fmt.Sprintf("%s\t%v\t%s\t%d\t%d\t%s",
+			responseObject.Results[crawlIndex].Slug,
+			friendlyName,
+			responseObject.Results[crawlIndex].URL,
+			responseObject.Results[crawlIndex].UrlsDone,
+			responseObject.Results[crawlIndex].Features.Scoring.ActionsCount,
+			responseObject.Results[crawlIndex].Status)
+		fmt.Println(line)
+	}
+
+	fmt.Println(bold + "\nLatest crawl detail" + reset)
+
 	if len(responseObject.Results) > 0 {
 		user := responseObject.Results[0].User
-		fmt.Println(purple + "\nUser" + reset)
+		fmt.Println(bold + "\nUser" + reset)
 		fmt.Println("User Login:", user.Login)
 		fmt.Println("User Email:", user.Email)
 		fmt.Println("Is Organization:", user.IsOrganization)
@@ -282,7 +400,7 @@ func main() {
 		fmt.Println("Company Name:", user.CompanyName)
 
 		owner := responseObject.Results[0].Owner
-		fmt.Println(purple + "\nOwner" + reset)
+		fmt.Println(bold + "\nOwner" + reset)
 		fmt.Println("Owner:", owner.Login)
 		fmt.Println("Email:", owner.Email)
 		fmt.Println("Is Organization:", owner.IsOrganisation)
@@ -293,7 +411,7 @@ func main() {
 		fmt.Println("Last Name:", owner.LastName)
 		fmt.Println("Company Name:", owner.CompanyName)
 
-		fmt.Println(purple + "\nCrawl Details" + reset)
+		fmt.Println(bold + "\nCrawl Details" + reset)
 		fmt.Println("Analysis Slug:", responseObject.Results[0].Slug)
 		fmt.Println("Friendly Name:", responseObject.Results[0].FriendlyName)
 		fmt.Println("URL:", responseObject.Results[0].URL)
@@ -301,34 +419,34 @@ func main() {
 		fmt.Println("Computing Revision:", responseObject.Results[0].ComputingRevision)
 
 		//Crawl Configuration
-		fmt.Println(purple + "\nCrawl Configuration" + reset)
+		fmt.Println(bold + "\nCrawl Configuration" + reset)
 		fmt.Println("MaxUrls:", responseObject.Results[0].Config.MaxUrls)
 		fmt.Println("Crawl Speed:", responseObject.Results[0].Config.MaxUrlsPerSec)
 		fmt.Println("Max Depth:", responseObject.Results[0].Config.MaxDepth)
 		fmt.Println("Virtual Robots:", responseObject.Results[0].Config.VirtualRobotsTxt)
 
-		fmt.Println(purple + "\nCrawled URLs" + reset)
+		fmt.Println(bold + "\nCrawled URLs" + reset)
 		fmt.Println("Crawl Schedule:", responseObject.Results[0].CrawlLaunchType)
 		fmt.Println("Latest URLs Crawled:", responseObject.Results[0].UrlsDone)
 		fmt.Println("URLs in Queue:", responseObject.Results[0].UrlsInQueue)
 
-		fmt.Println(purple + "\nActionBoard" + reset)
+		fmt.Println(bold + "\nActionBoard" + reset)
 		fmt.Println("No. Recommendations:", responseObject.Results[0].Features.Scoring.ActionsCount)
 
 		//Allowed domains
-		fmt.Println(purple + "\nAllowed Domains" + reset)
+		fmt.Println(bold + "\nAllowed Domains" + reset)
 		for _, AllowedDomains := range responseObject.Results[0].Config.AllowedDomains {
-			fmt.Println(blue+"Domain:", AllowedDomains.Domain)
-			fmt.Println(reset+"Mobile?:", AllowedDomains.Mobile)
+			fmt.Println(green+"Domain:", AllowedDomains.Domain+reset)
+			fmt.Println("Mobile?:", AllowedDomains.Mobile)
 			fmt.Println("Protocol:", AllowedDomains.Protocol)
 			fmt.Println("User Agent:", AllowedDomains.UserAgent)
 			fmt.Println("Allow Subdomains:", AllowedDomains.AllowSubdomains)
 		}
 
 		//Start URLs
-		fmt.Println(purple + "\nStart URLs" + reset)
+		fmt.Println(bold + "\nStart URLs" + reset)
 		for _, StartUrls := range responseObject.Results[0].Config.StartUrls {
-			fmt.Println(blue+"URLs:", StartUrls)
+			fmt.Println(green+"URLs:", StartUrls)
 		}
 		fmt.Println(reset+"Export Limit:", responseObject.Results[0].Config.ExportLimit)
 		fmt.Println("Date Launched:", responseObject.Results[0].DateLaunched)
@@ -341,16 +459,14 @@ func main() {
 		}
 
 		//Blacklisted domains
-		fmt.Println(purple + "\nBlacklisted Domains, if any" + reset)
+		fmt.Println(bold + "\nBlacklisted Domains, if any" + reset)
 		for _, BlacklistedDomains := range responseObject.Results[0].Config.BlacklistedDomains {
-			fmt.Println(blue+"Domain:", BlacklistedDomains)
+			fmt.Println(green+"Domain:", BlacklistedDomains)
 		}
 
 		//Segments
-		fmt.Println(purple + "\nSegments" + reset)
+		fmt.Println(bold + "\nSegments" + reset)
 		fmt.Println("Date Created:", responseObject.Results[0].Features.Segments.DateCreated)
-		//fmt.Println("Flags:", responseObject.Results[0].Features.Segments.Flags)
-		//fmt.Println("Segment Names:", responseObject.Results[0].Features.Segments.Names)
 		// Iterate over Values and print Name and Field
 		for _, segment := range responseObject.Results[0].Features.Segments.Values {
 			fmt.Println(segment.Name)
@@ -358,24 +474,24 @@ func main() {
 		}
 
 		//Sitemaps
-		fmt.Println(purple + "\nSitemaps" + reset)
+		fmt.Println(bold + "\nSitemaps" + reset)
 		// Iterate over values and print the URLs
 		for _, url := range responseObject.Results[0].Features.Sitemaps.Urls {
-			fmt.Println(blue+"URL:", url)
+			fmt.Println(green+"URL:", url)
 		}
 
 		fmt.Println(reset+"Date Retrieved:", responseObject.Results[0].Features.Sitemaps.DateRetrieved)
 		fmt.Println("Has Orphans Area:", responseObject.Results[0].Features.Sitemaps.HasOrphansArea)
 
 		//Search console
-		fmt.Println(purple + "\nSearch Console" + reset)
+		fmt.Println(bold + "\nSearch Console" + reset)
 		fmt.Println("Date Start:", responseObject.Results[0].Features.SearchConsole.DateStart)
 		fmt.Println("Date End:", responseObject.Results[0].Features.SearchConsole.DateEnd)
 
 		//Additional crawl attributes
-		fmt.Println(purple + "\n\nFEATURES" + reset)
+		fmt.Println(bold + "\n\nFEATURES" + reset)
 		//Rel
-		fmt.Println(purple + "Rel" + reset)
+		fmt.Println(bold + "Rel" + reset)
 		fmt.Println("ProcessRelAmp:", responseObject.Results[0].Features.Rel.ProcessRelAmp)
 		fmt.Println("ProcessRelApp:", responseObject.Results[0].Features.Rel.ProcessRelApp)
 		fmt.Println("ProcessRelAlternate:", responseObject.Results[0].Features.Rel.ProcessRelAlternate)
@@ -383,13 +499,13 @@ func main() {
 		fmt.Println("ProcessRelPrevNext:", responseObject.Results[0].Features.Rel.ProcessRelPrevNext)
 
 		//Main
-		fmt.Println(purple + "\nMain" + reset)
+		fmt.Println(bold + "\nMain" + reset)
 		fmt.Println("Lang:", responseObject.Results[0].Features.Main.Lang)
 		fmt.Println("ProcessDevice:", responseObject.Results[0].Features.Main.ProcessDevice)
 		fmt.Println("CompliantExcludeBadCanonicals:", responseObject.Results[0].Features.Main.CompliantExcludeBadCanonicals)
 
 		//Links
-		fmt.Println(purple + "\nLinks" + reset)
+		fmt.Println(bold + "\nLinks" + reset)
 		fmt.Println("Chains:", responseObject.Results[0].Features.Links.Chains)
 		fmt.Println("PageRank:", responseObject.Results[0].Features.Links.PageRank)
 		fmt.Println("PrevNext:", responseObject.Results[0].Features.Links.PrevNext)
@@ -408,10 +524,10 @@ func main() {
 		fmt.Println("MainImage:", responseObject.Results[0].Features.MainImage)
 
 		//Content quality
-		fmt.Println(purple + "\nContent quality" + reset)
+		fmt.Println(bold + "\nContent quality" + reset)
 		fmt.Println("Samples:", responseObject.Results[0].Features.ContentQuality.Samples)
 
-		fmt.Println(purple + "\nSemantic metadata" + reset)
+		fmt.Println(bold + "\nSemantic metadata" + reset)
 		fmt.Println("Length:", responseObject.Results[0].Features.SemanticMetadata.Length)
 		fmt.Println("Address:", responseObject.Results[0].Features.SemanticMetadata.StructuredData.Stats.Address)
 		fmt.Println("Product:", responseObject.Results[0].Features.SemanticMetadata.StructuredData.Stats.Product)
@@ -440,7 +556,7 @@ func main() {
 		fmt.Println("Version: VideoObject:", responseObject.Results[0].Features.SemanticMetadata.StructuredData.Versions.VideoObject)
 		fmt.Println("Version: EducationEvent:", responseObject.Results[0].Features.SemanticMetadata.StructuredData.Versions.EducationEvent)
 
-		fmt.Println(purple + "\nCurrency" + reset)
+		fmt.Println(bold + "\nCurrency" + reset)
 		for _, currency := range responseObject.Results[0].Features.SemanticMetadata.StructuredData.Currencies.Offer {
 			fmt.Println("Currency Offer:", currency)
 		}
@@ -456,13 +572,6 @@ func main() {
 		fmt.Println("Pk:", responseObject.Results[0].Pk)
 		fmt.Println("HasRawPages:", responseObject.Results[0].HasRawPages)
 	}
-
-	// We're done
-	fmt.Println(purple + "\nlistAnalysis: Done!\n")
-	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
-	var input string
-	fmt.Scanln(&input)
-	os.Exit(0)
 }
 
 // Check that the org and project names have been specified as command line arguments
@@ -474,7 +583,7 @@ func checkCredentials() {
 
 		credentialsInput = true
 
-		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit listAnalysis" +
+		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit apiTester" +
 			"\n")
 
 		fmt.Print(purple + "\nEnter Organisation Name: " + reset)
@@ -495,6 +604,16 @@ func checkCredentials() {
 	}
 }
 
+func apiTesterDone() {
+
+	// We're done
+	fmt.Println(purple + "\napiTester: Done!\n")
+	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	var input string
+	fmt.Scanln(&input)
+	os.Exit(0)
+}
+
 // Display the welcome banner
 func displayBanner() {
 
@@ -502,17 +621,36 @@ func displayBanner() {
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
 
-██╗     ██╗███████╗████████╗ █████╗ ███╗   ██╗ █████╗ ██╗  ██╗   ██╗███████╗██╗███████╗
-██║     ██║██╔════╝╚══██╔══╝██╔══██╗████╗  ██║██╔══██╗██║  ╚██╗ ██╔╝██╔════╝██║██╔════╝
-██║     ██║███████╗   ██║   ███████║██╔██╗ ██║███████║██║   ╚████╔╝ ███████╗██║███████╗
-██║     ██║╚════██║   ██║   ██╔══██║██║╚██╗██║██╔══██║██║    ╚██╔╝  ╚════██║██║╚════██║
-███████╗██║███████║   ██║   ██║  ██║██║ ╚████║██║  ██║███████╗██║   ███████║██║███████║
-╚══════╝╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝   ╚══════╝╚═╝╚══════╝
+█████╗ ██████╗ ██╗████████╗███████╗███████╗████████╗███████╗██████╗ 
+██╔══██╗██╔══██╗██║╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝██╔════╝██╔══██╗
+███████║██████╔╝██║   ██║   █████╗  ███████╗   ██║   █████╗  ██████╔╝
+██╔══██║██╔═══╝ ██║   ██║   ██╔══╝  ╚════██║   ██║   ██╔══╝  ██╔══██╗
+██║  ██║██║     ██║   ██║   ███████╗███████║   ██║   ███████╗██║  ██║
+╚═╝  ╚═╝╚═╝     ╚═╝   ╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 `)
 
 	//Display welcome message
-	fmt.Println(purple + "listAnalysis: Report the project metadata for the last crawl\n" + reset)
 	fmt.Println(purple+"Version:"+reset, version+"\n")
+
+	fmt.Println(purple + "apiTester: Test Botify APIs\n" + reset)
+	fmt.Println(purple + "This utility calls a range of Botify APIs and displays the results.\n" + reset)
+	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
+	fmt.Println(purple + "APIs used in this version.\n" + reset)
+	fmt.Println(checkmark + green + bold + " Datasource API" + reset)
+	fmt.Println(checkmark + green + bold + " Project API\n" + reset)
+}
+
+// Display the seperator
+
+func displaySeparator() {
+	block := "█"
+	fmt.Println()
+
+	for i := 0; i < 130; i++ {
+		fmt.Print(block)
+	}
+
+	fmt.Println()
 }
 
 // Function to clear the screen

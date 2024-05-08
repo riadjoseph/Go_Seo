@@ -347,7 +347,7 @@ func main() {
 
 	// We're done
 	fmt.Println(purple + "\nlistURLs: Done\n")
-	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
+	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
 	os.Exit(0)
@@ -422,10 +422,10 @@ func copyURLsToClipboard() {
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
-		fmt.Println(bold + green + "\nThe exported URLs can be found in siteurlsExport.txt" + reset)
-		fmt.Println(bold + green + "The URLs have also been copied to your clipboard" + reset)
+		fmt.Println(green + bold + "\nThe exported URLs can be found in siteurlsExport.txt" + reset)
+		fmt.Println(green + bold + "The URLs have also been copied to your clipboard" + reset)
 	} else {
-		fmt.Println(bold + green + "\nThe exported URLs can be found in siteurlsExport.txt" + reset)
+		fmt.Println(green + bold + "\nThe exported URLs can be found in siteurlsExport.txt" + reset)
 	}
 }
 
