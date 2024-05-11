@@ -616,9 +616,6 @@ func subDomains() {
 		}
 	}
 
-	//Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
-	totalRecords -= 2
-
 	fmt.Printf("\n")
 
 	//Create a slice to hold FolderCount structs

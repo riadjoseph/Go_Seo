@@ -44,30 +44,40 @@ var credentialsInput = false
 // API STRUCTS
 // The structs are defined in the order they are used in apiTester
 
+// DatasourceResponse represents the JSON structure
 type datasourceResponse struct {
+	SiteMapInfos map[string]SiteMapInfo `json:"sitemaps"`
+}
+
+type SiteMapInfo struct {
 	Sitemaps struct {
-		Runnable                   bool   `json:"runnable"`
-		Datasource                 string `json:"datasource"`
-		DateLastSuccessfulRevision string `json:"date_last_successful_revision"`
-		LastRevisionStatus         string `json:"last_revision_status"`
-		Stats                      struct {
-			Linkrels           int         `json:"Linkrels"`
-			ValidUrls          int         `json:"ValidUrls"`
-			InvalidUrls        int         `json:"InvalidUrls"`
-			FileUploaded       int         `json:"FileUploaded"`
-			UploadErrors       int         `json:"UploadErrors"`
-			ExecutionTime      string      `json:"ExecutionTime"`
-			ParsingErrors      int         `json:"ParsingErrors"`
-			DownloadErrors     int         `json:"DownloadErrors"`
-			SitemapsTreated    int         `json:"SitemapsTreated"`
-			DownLoadErrorsUrls interface{} `json:"DownLoadErrorsUrls"`
-		} `json:"stats"`
-		Segments struct {
-			Flags   []interface{} `json:"flags"`
-			Names   []interface{} `json:"names"`
-			Version int           `json:"version"`
-		} `json:"segments"`
+		Runnable                   bool         `json:"runnable"`
+		Datasource                 string       `json:"datasource"`
+		DateLastSuccessfulRevision string       `json:"date_last_successful_revision"`
+		LastRevisionStatus         string       `json:"last_revision_status"`
+		Stats                      StatsInfo    `json:"stats"`
+		Segments                   SegmentsInfo `json:"segments"`
 	} `json:"sitemaps"`
+}
+
+type StatsInfo struct {
+	Linkrels           int         `json:"Linkrels"`
+	ValidUrls          int         `json:"ValidUrls"`
+	InvalidUrls        int         `json:"InvalidUrls"`
+	FileUploaded       int         `json:"FileUploaded"`
+	UploadErrors       int         `json:"UploadErrors"`
+	ExecutionTime      string      `json:"ExecutionTime"`
+	ParsingErrors      int         `json:"ParsingErrors"`
+	DownloadErrors     int         `json:"DownloadErrors"`
+	SitemapsTreated    int         `json:"SitemapsTreated"`
+	DownLoadErrorsUrls interface{} `json:"DownLoadErrorsUrls"`
+}
+
+type SegmentsInfo struct {
+	Flags   []interface{} `json:"flags"`
+	Names   []string      `json:"names"`
+	Version int           `json:"version"`
+	ID      int           `json:"id,omitempty"`
 }
 
 // Project
@@ -269,6 +279,11 @@ func main() {
 
 	displaySeparator()
 
+	// Collections API
+	collectionsApiTest()
+
+	displaySeparator()
+
 	// Project API
 	projectApiTest()
 
@@ -277,93 +292,196 @@ func main() {
 	apiTesterDone()
 }
 
-// Display the datasource API results
 func datasourceApiTest() {
-	fmt.Println(bold + "\nAPI: Datasource API" + reset)
+
+	var projectCount = 0
+	var invalidProjectCount = 0
+
+	fmt.Println(green + bold + "\nAPI: Datasource API" + reset)
+	fmt.Println(bold + "List all projects created for the the specified organisation name.\n" + reset)
 
 	url := fmt.Sprintf("https://api.botify.com/v1/users/%s/datasources_summary_by_projects", orgName)
 
+	fmt.Println(bold+"Endpoint:", url+reset+"\n")
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(red+"\nError: datasourceApiTest. Cannot create request:"+reset, err)
-		os.Exit(1)
+		log.Fatal(red+"\nError. datasourceApiTest. Cannot create request:"+reset, err)
+		return
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botify_api_token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(red+"\nError: datasourceApiTest. Cannot sent request:"+reset, err)
+		log.Fatal(red+"\nError. datasourceApiTest. Cannot send request:"+reset, err)
+		return
 	}
+
 	defer res.Body.Close()
 
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(red+"\nError: datasourceApiTest. Cannot read response body:"+reset, err)
-		os.Exit(1)
+		log.Fatal(red+"\nError. datasourceApiTest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
+		return
 	}
 
-	var responseObject datasourceResponse
-	err = json.Unmarshal(responseData, &responseObject)
+	// Define a map with string keys for unmarshalling the JSON data
+	var jsonData map[string]interface{}
 
+	// Unmarshal the JSON data into the map
+	err = json.Unmarshal([]byte(responseData), &jsonData)
 	if err != nil {
-		log.Fatal(red+"\nError: datasourceApiTest. Cannot unmarshall JSON:"+reset, err)
-		os.Exit(1)
+		fmt.Println(red+"Error. datasourceApiTest. Cannot unmarshall JSON:"+reset, err)
+		return
 	}
 
-	fmt.Println("Datasource:", responseObject)
-	//bloo
+	// Print all top-level keys, ValidUrls, and segment names
+	for key, value := range jsonData {
 
-	/*
-		// Display an error if no crawls found
-		if responseObject.Count == 0 {
-			fmt.Println(red + "\nError: datasourceApiTest. Invalid crawl or no crawls found in the project." + reset)
-			os.Exit(1)
+		projectCount++
+
+		sitemap, ok := value.(map[string]interface{})["sitemaps"].(map[string]interface{})
+		if !ok {
+			fmt.Printf(red+"Error. datasourceApiTest. Invalid crawl: %s\n"+reset, key)
+			invalidProjectCount++
+			continue
 		}
-	*/
+
+		stats, ok := sitemap["stats"].(map[string]interface{})
+		if !ok {
+			fmt.Printf(red+"Error. datasourceApitest. Missing 'stats' key in %s\n"+reset, key)
+			continue
+		}
+
+		validUrls, ok := stats["ValidUrls"].(float64)
+		if !ok {
+			fmt.Printf(red+"Error. datasourceApiTest. Missing 'ValidUrls' key in %s\n"+reset, key)
+			continue
+		}
+		fmt.Printf("%s (URLs: %.0f)\n", key, validUrls)
+	}
+
+	fmt.Println(bold+"\nNo. of projects for this user:"+reset, projectCount)
+	fmt.Println(bold+"\nNo. of invalid projects for this user:"+reset, invalidProjectCount)
+
+}
+
+// Display the collections API results
+func collectionsApiTest() {
+	var collectionsCount = 0
+
+	fmt.Println(green + bold + "\nAPI: Collections API" + reset)
+	fmt.Println(bold + "List all collections found in a specified project.\n" + reset) //bloo
+
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/collections", orgName, projectName)
+
+	fmt.Println(bold+"Endpoint:", url+reset+"\n")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(red+"\nError. collectionsApitest. datasourceApiTest. Cannot create request:"+reset, err)
+		return
+	}
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(red+"\nError. collectionsApitest. Cannot send request:"+reset, err)
+		return
+	}
+
+	defer res.Body.Close()
+
+	var responseData []map[string]interface{}
+
+	err = json.NewDecoder(res.Body).Decode(&responseData)
+	if err != nil {
+		log.Fatal(red+"\nError. collectionsApitest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
+		return
+	}
+
+	// Print all collections
+	for _, collection := range responseData {
+		collectionsCount++
+
+		id, ok := collection["id"].(string)
+		if !ok {
+			fmt.Printf(red+"Error. collectionsApiTest. Invalid collection: %+v\n"+reset, collection)
+			continue
+		}
+		fmt.Printf("id: %s\n", id)
+
+		name, ok := collection["name"].(string)
+		if !ok {
+			fmt.Printf(red+"Error. collectionsApiTest. Invalid collection: %+v\n"+reset, collection)
+			continue
+		}
+		fmt.Printf("Name: %s\n", name)
+
+		date, ok := collection["date"].(string)
+		if !ok {
+			fmt.Printf(red+"Error. collectionsApiTest. Invalid collection: %+v\n"+reset, collection)
+			continue
+		}
+		fmt.Printf("Date: %s\n", date)
+
+		genericName, ok := collection["generic_name"].(string)
+		if !ok {
+			fmt.Printf("Generic Name: Not found\n")
+		} else {
+			fmt.Printf("Generic Name: %s\n", genericName)
+		}
+		fmt.Printf("\n")
+	}
+
+	fmt.Println(bold+"No. of collections found for this project:"+reset, collectionsCount)
 }
 
 // Display the project API results
 func projectApiTest() {
-	fmt.Println(bold + "\nAPI: Project API" + reset)
+	fmt.Println(green + bold + "\nAPI: Project API" + reset)
+	fmt.Println(bold + "Display all crawls found for the specified project. Also display the detailed information for the latest crawl.\n" + reset)
 
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+	fmt.Println(bold+"Endpoint:", url+reset)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(red+"\nError: projectApiTest. Cannot create request:"+reset, err)
-		os.Exit(1)
+		log.Fatal(red+"\nError. projectApiTest. Cannot create request:"+reset, err)
+		return
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botify_api_token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(red+"\nError: projectApiTest. Cannot sent request:"+reset, err)
+		log.Fatal(red+"\nError. projectApiTest. Cannot sent request:"+reset, err)
 	}
 	defer res.Body.Close()
 
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(red+"\nError: projectApiTest. Cannot read response body:"+reset, err)
-		os.Exit(1)
+		log.Fatal(red+"\nError. projectApiTest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
+		return
 	}
 
 	var responseObject projectResponse
 	err = json.Unmarshal(responseData, &responseObject)
 
 	if err != nil {
-		log.Fatal(red+"\nError: projectApiTest. Cannot unmarshall JSON:"+reset, err)
-		os.Exit(1)
+		log.Fatal(red+"\nError. projectApiTest. Cannot unmarshall JSON:"+reset, err)
+		return
 	}
 
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "\nError: projectApiTest. Invalid crawl or no crawls found in the project." + reset)
-		os.Exit(1)
+		fmt.Println(red + "\nError. projectApiTest. Invalid crawl or no crawls found in the project." + reset)
+		return
 	}
 
-	fmt.Println("\nNo. Crawls in project:", responseObject.Count)
+	fmt.Println(bold+"\nNo. of crawls in this project:"+reset, responseObject.Count)
 
 	fmt.Println(bold + "\nAll crawls found - Summary\n" + reset)
 
@@ -637,6 +755,7 @@ func displayBanner() {
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "APIs used in this version.\n" + reset)
 	fmt.Println(checkmark + green + bold + " Datasource API" + reset)
+	fmt.Println(checkmark + green + bold + " Collections API" + reset)
 	fmt.Println(checkmark + green + bold + " Project API\n" + reset)
 }
 

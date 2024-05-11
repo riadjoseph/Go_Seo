@@ -329,9 +329,6 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 		}
 	}
 
-	// Subtract 2 in order to account for the two header records which are defaults in Botify URL extracts
-	totalRecords -= 2
-
 	// Display the total number of records processed
 	fmt.Printf("\n\nTotal URLs processed: %d\n", totalRecords)
 	fmt.Printf("\n")
