@@ -5,6 +5,7 @@ A series of command line utilities to support SEO actions. Developed in Golang.
 Example utilisation of a range of Botify APIs. Included in this version are: 
 - Datasource API
 - Project API
+- Collections APi
 
 ```
 Usage: ./apiTester (organisation and project name will be prompted for)    
