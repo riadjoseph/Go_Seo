@@ -12,7 +12,19 @@ Example utilisation of a range of Botify APIs. Included in this version are:
 Usage: ./apiTester (organisation and project name will be prompted for)    
 Usage: ./apiTester org_name project_name    
 ```
-  
+
+## bqlTester   
+Demonstartion of using BQL in Go. Included in this version are BQL queries for: 
+- Funnel
+- Revenue
+- Vists
+- ActionBoard recommendations  
+   
+```
+Usage: ./bqlTester (organisation and project name will be prompted for)    
+Usage: ./bqlTester org_name project_name    
+```
+
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
 - First level folders
