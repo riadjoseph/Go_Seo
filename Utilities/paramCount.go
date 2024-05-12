@@ -105,7 +105,7 @@ func main() {
 
 // Check that the org and project names have been specified as command line arguments
 // if not prompt for them
-// Pressing Enter exits paramCount
+// Pressing Enter exits
 func checkCredentials() {
 	if len(os.Args) < 3 {
 		credentialsInput = true

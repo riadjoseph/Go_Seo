@@ -805,7 +805,7 @@ func projectApiTest() {
 
 // Check that the org and project names have been specified as command line arguments
 // if not prompt for them
-// Pressing Enter exits listURLs
+// Pressing Enter exits
 func checkCredentials() {
 
 	if len(os.Args) < 3 {
