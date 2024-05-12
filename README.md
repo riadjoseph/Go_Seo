@@ -1,5 +1,5 @@
 # Go_Seo
-A series of command line utilities to support SEO actions. Developed in Golang.   
+A series of command line utilities to support SEO actions. Developed in Go.   
 
 ## apiTester   
 Example utilisation of a range of Botify APIs. Included in this version are: 
