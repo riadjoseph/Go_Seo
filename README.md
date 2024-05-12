@@ -70,7 +70,7 @@ Usage: ./listAnalysis org_name project_name
 ```
 
 ## listURLs  
-Export all URLs (up to a maximum of 1MM) to a file (siteurlsExport.csv)
+Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
 ```
 Usage: ./listURLs (organisation and project name will be prompted for)    
 Usage: ./listURLs org_name project_name
