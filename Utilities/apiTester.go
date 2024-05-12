@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"text/tabwriter"
 )
 
 // Version
@@ -40,6 +41,9 @@ var projectNameInput string
 
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
+
+// Array used to store the name of all collections found in collectionsApiTest. This array is used in collectionsDetailsApiTest
+var collectionIdentifiers []string
 
 // API STRUCTS
 // The structs are defined in the order they are used in apiTester
@@ -284,6 +288,11 @@ func main() {
 
 	displaySeparator()
 
+	// Collections detail
+	collectionsDetailApiTest()
+
+	displaySeparator()
+
 	// Project API
 	projectApiTest()
 
@@ -298,7 +307,7 @@ func datasourceApiTest() {
 	var invalidProjectCount = 0
 
 	fmt.Println(green + bold + "\nAPI: Datasource API" + reset)
-	fmt.Println(bold + "List all projects created for the the specified organisation name.\n" + reset)
+	fmt.Println(bold + "List all projects created for the specified organisation name.\n" + reset)
 
 	url := fmt.Sprintf("https://api.botify.com/v1/users/%s/datasources_summary_by_projects", orgName)
 
@@ -376,11 +385,11 @@ func collectionsApiTest() {
 
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/collections", orgName, projectName)
 
-	fmt.Println(bold+"Endpoint:", url+reset+"\n")
+	fmt.Println(bold+"Endpoint:"+reset, url, "\n")
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(red+"\nError. collectionsApitest. datasourceApiTest. Cannot create request:"+reset, err)
+		log.Fatal(red+"\nError. collectionsApitest. collectionsApiTest. Cannot create request:"+reset, err)
 		return
 	}
 	req.Header.Add("accept", "application/json")
@@ -402,7 +411,7 @@ func collectionsApiTest() {
 		return
 	}
 
-	// Print all collections
+	// Display all collections
 	for _, collection := range responseData {
 		collectionsCount++
 
@@ -419,6 +428,9 @@ func collectionsApiTest() {
 			continue
 		}
 		fmt.Printf("Name: %s\n", name)
+
+		// Save the name of the collection in an array, for use in collectionDetailApiTest
+		collectionIdentifiers = append(collectionIdentifiers, id)
 
 		date, ok := collection["date"].(string)
 		if !ok {
@@ -437,6 +449,105 @@ func collectionsApiTest() {
 	}
 
 	fmt.Println(bold+"No. of collections found for this project:"+reset, collectionsCount)
+}
+
+func collectionsDetailApiTest() {
+	fmt.Println(green + bold + "\nAPI: Collections detail API" + reset)
+	fmt.Println(bold + "Display the Name, Identifier, Kind, and Type for the first collection." + reset)
+	fmt.Println(bold + "For demonstration purposes only the first 30 attributes of the first collection are displayed." + reset)
+
+	// Iterate through the collectionIdentifiers array
+	collectionName := collectionIdentifiers[0] // Only return attributes for the first collection only
+	fmt.Println(bold+"\nCollection:"+reset, collectionName, "\n")
+
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/collections/%s", orgName, projectName, collectionName)
+	fmt.Println(bold+"Endpoint:"+reset, url, "\n")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(red+"\nError. collectionsDetailApiTest. Cannot create request:"+reset, err)
+		return
+	}
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(red+"\nError. collectionsDetailApiTest. Cannot send request:"+reset, err)
+		return
+	}
+	defer res.Body.Close()
+
+	var responseData map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&responseData)
+	if err != nil {
+		log.Fatal(red+"\nError. collectionsDetailApiTest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
+		return
+	}
+
+	datasets, ok := responseData["datasets"].([]interface{})
+	if !ok || len(datasets) == 0 {
+		fmt.Println(red + "\nNo datasets found in the response." + reset)
+		return
+	}
+
+	firstDataset, ok := datasets[0].(map[string]interface{})
+	if !ok {
+		log.Println(red+"Error. collectionsDetailApiTest. Invalid dataset format:"+reset, datasets[0])
+		return
+	}
+
+	fields, ok := firstDataset["fields"].([]interface{})
+	if !ok {
+		fmt.Println(red + "Error. collectionsDetailApiTest. Fields not found for dataset." + reset)
+		return
+	}
+
+	// Set up tab writer
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	defer w.Flush()
+
+	// Print header
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", "Name", "Identifier", "Kind", "Type")
+
+	// Loop through the first 30 fields
+	for i, field := range fields {
+		if i >= 30 {
+			break
+		}
+		fieldMap, ok := field.(map[string]interface{})
+		if !ok {
+			log.Println(red+"Error. collectionsDetailApiTest. Invalid field format:"+reset, field)
+			continue
+		}
+
+		id, ok := fieldMap["id"].(string)
+		if !ok {
+			fmt.Println(red + "Error. collectionsDetailApiTest. Invalid field: ID not found" + reset)
+			continue
+		}
+
+		name, ok := fieldMap["name"].(string)
+		if !ok {
+			fmt.Println(red + "Error. collectionsDetailApiTest. Invalid field: Name not found" + reset)
+			continue
+		}
+
+		kind, ok := fieldMap["kind"].(string)
+		if !ok {
+			fmt.Println(red + "Error. collectionsDetailApiTest. Invalid field: Kind not found" + reset)
+			continue
+		}
+
+		typeData, ok := fieldMap["type"].(string)
+		if !ok {
+			fmt.Println(red + "Error. collectionsDetailApiTest. Invalid field: Type not found" + reset)
+			continue
+		}
+
+		// Print fields with tabwriter
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, id, kind, typeData)
+	}
 }
 
 // Display the project API results
@@ -756,6 +867,7 @@ func displayBanner() {
 	fmt.Println(purple + "APIs used in this version.\n" + reset)
 	fmt.Println(checkmark + green + bold + " Datasource API" + reset)
 	fmt.Println(checkmark + green + bold + " Collections API" + reset)
+	fmt.Println(checkmark + green + bold + " Collections Attributes API" + reset)
 	fmt.Println(checkmark + green + bold + " Project API\n" + reset)
 }
 
