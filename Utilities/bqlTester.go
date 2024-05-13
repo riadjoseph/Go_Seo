@@ -5,12 +5,27 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 )
+
+type botifyResponse struct {
+	Next     string      `json:"next"`
+	Previous interface{} `json:"previous"`
+	Count    int         `json:"count"`
+	Results  []struct {
+		Slug string `json:"slug"`
+	} `json:"results"`
+	Page int `json:"page"`
+	Size int `json:"size"`
+}
 
 // Version
 var version = "v0.1"
@@ -37,48 +52,6 @@ var projectNameInput string
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
 
-// Array used to store the name of all collections found in collectionsApiTest. This array is used in collectionsDetailsApiTest
-var collectionIdentifiers []string
-
-// API STRUCTS
-// The structs are defined in the order they are used in bqlTester
-
-// DatasourceResponse represents the JSON structure
-type datasourceResponse struct {
-	SiteMapInfos map[string]SiteMapInfo `json:"sitemaps"`
-}
-
-type SiteMapInfo struct {
-	Sitemaps struct {
-		Runnable                   bool         `json:"runnable"`
-		Datasource                 string       `json:"datasource"`
-		DateLastSuccessfulRevision string       `json:"date_last_successful_revision"`
-		LastRevisionStatus         string       `json:"last_revision_status"`
-		Stats                      StatsInfo    `json:"stats"`
-		Segments                   SegmentsInfo `json:"segments"`
-	} `json:"sitemaps"`
-}
-
-type StatsInfo struct {
-	Linkrels           int         `json:"Linkrels"`
-	ValidUrls          int         `json:"ValidUrls"`
-	InvalidUrls        int         `json:"InvalidUrls"`
-	FileUploaded       int         `json:"FileUploaded"`
-	UploadErrors       int         `json:"UploadErrors"`
-	ExecutionTime      string      `json:"ExecutionTime"`
-	ParsingErrors      int         `json:"ParsingErrors"`
-	DownloadErrors     int         `json:"DownloadErrors"`
-	SitemapsTreated    int         `json:"SitemapsTreated"`
-	DownLoadErrorsUrls interface{} `json:"DownLoadErrorsUrls"`
-}
-
-type SegmentsInfo struct {
-	Flags   []interface{} `json:"flags"`
-	Names   []string      `json:"names"`
-	Version int           `json:"version"`
-	ID      int           `json:"id,omitempty"`
-}
-
 func main() {
 
 	clearScreen()
@@ -102,6 +75,10 @@ func main() {
 	fmt.Println()
 
 	displaySeparator()
+
+	seoFunnel()
+
+	bqlTesterDone()
 }
 
 // Check that the org and project names have been specified as command line arguments
@@ -132,6 +109,124 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 	}
+}
+
+func seoFunnel() {
+	//Display the welcome message
+	fmt.Println(purple + "\nGetting the latest funnel insights." + reset)
+
+	// Get the latest analysis slug
+	latestSlug = getLatestSlug()
+
+	//Crawled URLs BQL
+	var bqlDiscoveredByBotify = """
+	{
+		"field": "crawl.\(latestSlug).count_urls_crawl"
+	}
+	"""
+
+
+	var bqlFunnelBody = """
+	{
+		"collections": [
+	"crawl.\latestSlug)",
+	"search_console",
+	"\(conversionCollection)"
+	],
+	"periods": [
+	[
+	"\(AnaProjects.crawlStartDate[slugCount])",
+	"\(AnaProjects.crawlEndDate[slugCount])"
+	]
+	],
+	"query": {
+	"dimensions": [],
+	"metrics": [
+	\(bqldiscoveredByBotify),
+	]
+	}
+	}
+	"""
+
+
+
+
+
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
+	fmt.Println("End point:", url, "\n")
+
+	req, errorCheck := http.NewRequest("GET", url, nil)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
+	}
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+
+
+	res, errorCheck := http.DefaultClient.Do(req)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Check your network connection: "+reset, errorCheck)
+	}
+	defer res.Body.Close()
+
+	responseData, errorCheck := ioutil.ReadAll(res.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot read request body: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+	var responseObject botifyResponse
+	errorCheck = json.Unmarshal(responseData, &responseObject)
+
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot unmarshall JSON: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+}
+
+func getLatestSlug() string {
+	//Get the last analysis slug
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+
+	req, errorCheck := http.NewRequest("GET", url, nil)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
+	}
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+
+	res, errorCheck := http.DefaultClient.Do(req)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Check your network connection: "+reset, errorCheck)
+	}
+	defer res.Body.Close()
+
+	responseData, errorCheck := ioutil.ReadAll(res.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot read request body: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+	var responseObject botifyResponse
+	errorCheck = json.Unmarshal(responseData, &responseObject)
+
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot unmarshall JSON: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+	//Display an error if no crawls found
+	if responseObject.Count == 0 {
+		fmt.Println(red + "\nError: seoFunnel. Invalid credentials or no crawls found in the project")
+		os.Exit(1)
+	}
+
+	fmt.Println("Organisation Name:", orgName)
+	fmt.Println("Project Name:", projectName)
+	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
+
+	return(responseObject.Results[0].Slug)
 }
 
 func bqlTesterDone() {

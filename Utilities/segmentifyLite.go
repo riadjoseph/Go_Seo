@@ -198,7 +198,7 @@ func checkCredentials() {
 
 		credentialsInput = true
 
-		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit Segmentify Lite\n")
+		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit segmentifyLite\n")
 
 		fmt.Print(purple + "\nEnter Organization Name: " + reset)
 		fmt.Scanln(&orgNameInput)
@@ -396,7 +396,7 @@ func generateRegexFile() {
 	// Get the current date and time in the user's local time zone
 	currentTime := time.Now().In(userLocation)
 
-	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with love using Go_SEO/segmentifyLite %s\n", version))
+	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with love using segmentifyLite %s\n", version))
 
 	if errorCheck != nil {
 		fmt.Printf(red+"\nsegment1stLevel. Error: Cannot write header to output file: %v\n"+reset, errorCheck)

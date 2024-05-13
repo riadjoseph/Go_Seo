@@ -451,6 +451,9 @@ func collectionsApiTest() {
 	fmt.Println(bold+"No. of collections found for this project:"+reset, collectionsCount)
 }
 
+// Display the collections attributes API results
+// This example only displays the first 30 attributes for the the first collection found
+// Iterate through collectionIdentifiers[] to display the attributes for all collections
 func collectionsDetailApiTest() {
 	fmt.Println(green + bold + "\nAPI: Collections detail API" + reset)
 	fmt.Println(bold + "Display the Name, Identifier, Kind, and Type for the first collection." + reset)
@@ -510,7 +513,7 @@ func collectionsDetailApiTest() {
 	// Print header
 	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", "Name", "Identifier", "Kind", "Type")
 
-	// Loop through the first 30 fields
+	// Loop through the first 30 fields.
 	for i, field := range fields {
 		if i >= 30 {
 			break
