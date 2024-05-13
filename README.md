@@ -1,5 +1,5 @@
 # Go_Seo
-A series of command line utilities to support SEO actions. Developed in Golang.   
+A series of command line utilities to support SEO actions. Developed in Go.   
 
 ## apiTester   
 Example utilisation of a range of Botify APIs. Included in this version are: 
@@ -12,7 +12,19 @@ Example utilisation of a range of Botify APIs. Included in this version are:
 Usage: ./apiTester (organisation and project name will be prompted for)    
 Usage: ./apiTester org_name project_name    
 ```
-  
+
+## bqlTester   
+Demonstartion of using BQL in Go. Included in this version are BQL queries for: 
+- Funnel
+- Revenue
+- Vists
+- ActionBoard recommendations  
+   
+```
+Usage: ./bqlTester (organisation and project name will be prompted for)    
+Usage: ./bqlTester org_name project_name    
+```
+
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
 - First level folders
@@ -58,7 +70,7 @@ Usage: ./listAnalysis org_name project_name
 ```
 
 ## listURLs  
-Export all URLs (up to a maximum of 1MM) to a file (siteurlsExport.csv)
+Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
 ```
 Usage: ./listURLs (organisation and project name will be prompted for)    
 Usage: ./listURLs org_name project_name
