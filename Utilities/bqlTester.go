@@ -150,7 +150,7 @@ func seoFunnel() {
 
 	// Define the slow pages speed URLs (greater than 500ms)
 	bqlSlowPageSpeedUrls := fmt.Sprintf(`
-        {
+	{
             "field": "crawl.%s.count_urls_crawl",
             "filters": {
                 "and": [
@@ -166,10 +166,10 @@ func seoFunnel() {
                     }
                 ]
             }
-        }`, latestSlug, latestSlug, latestSlug)
+	}`, latestSlug, latestSlug, latestSlug)
 
 	bqlFewInlinksUrls := fmt.Sprintf(`
-                 {
+	{
             "field": "crawl.%s.count_urls_crawl",
             "filters": {
                 "and": [
@@ -185,11 +185,11 @@ func seoFunnel() {
                     }
                 ]
             }
-        }`, latestSlug, latestSlug, latestSlug)
+	}`, latestSlug, latestSlug, latestSlug)
 
 	// Define the deep links URLs BQL (greater than 4)
 	bqlDeepUrls := fmt.Sprintf(`
-                 {
+	{
             "field": "crawl.%s.count_urls_crawl",
             "filters": {
                 "and": [
@@ -205,7 +205,7 @@ func seoFunnel() {
                     }
                 ]
             }
-        }`, latestSlug, latestSlug, latestSlug)
+	}`, latestSlug, latestSlug, latestSlug)
 
 	// Bring the BQL fragments into a single query
 	bqlFunnelBody := fmt.Sprintf(`
