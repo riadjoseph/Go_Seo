@@ -116,72 +116,156 @@ func seoFunnel() {
 	fmt.Println(purple + "\nGetting the latest funnel insights." + reset)
 
 	// Get the latest analysis slug
-	latestSlug = getLatestSlug()
+	var latestSlug = getLatestSlug()
 
-	//Crawled URLs BQL
-	var bqlDiscoveredByBotify = """
+	// Define the indexable URLs BQL
+	bqlIndexableUrls := fmt.Sprintf(`
 	{
-		"field": "crawl.\(latestSlug).count_urls_crawl"
-	}
-	"""
+		"field": "crawl.%s.count_urls_crawl",
+		"filters": {
+			"and": [
+				{
+					"field": "crawl.%s.compliant.is_compliant",
+					"predicate": "eq",
+					"value": true
+				}
+			]
+		}
+	}`, latestSlug, latestSlug)
 
+	// Define the non indexable URLs BQL
+	bqlNonIndexableUrls := fmt.Sprintf(`
+	{
+		"field": "crawl.%s.count_urls_crawl",
+		"filters": {
+			"and": [
+				{
+					"field": "crawl.%s.compliant.is_compliant",
+					"predicate": "eq",
+					"value": false
+				}
+			]
+		}
+	}`, latestSlug, latestSlug)
 
-	var bqlFunnelBody = """
+	// Define the slow pages speed URLs (greater than 500ms)
+	bqlSlowPageSpeedUrls := fmt.Sprintf(`
+        {
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.delay_last_byte",
+                            "predicate": "gt",
+                            "value": 500
+                    },
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    }
+                ]
+            }
+        }`, latestSlug, latestSlug, latestSlug)
+
+	bqlFewInlinksUrls := fmt.Sprintf(`
+                 {
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.inlinks_internal.nb.unique",
+                            "predicate": "gt",
+                            "value": 500
+                    },
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    }
+                ]
+            }
+        }`, latestSlug, latestSlug, latestSlug)
+
+	// Define the deep links URLs BQL (greater than 4)
+	bqlDeepUrls := fmt.Sprintf(`
+                 {
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.depth",
+                            "predicate": "gt",
+                            "value": 5
+                    },
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    }
+                ]
+            }
+        }`, latestSlug, latestSlug, latestSlug)
+
+	// Bring the BQL fragments into a single query
+	bqlFunnelBody := fmt.Sprintf(`
 	{
 		"collections": [
-	"crawl.\latestSlug)",
-	"search_console",
-	"\(conversionCollection)"
-	],
-	"periods": [
-	[
-	"\(AnaProjects.crawlStartDate[slugCount])",
-	"\(AnaProjects.crawlEndDate[slugCount])"
-	]
-	],
-	"query": {
-	"dimensions": [],
-	"metrics": [
-	\(bqldiscoveredByBotify),
-	]
-	}
-	}
-	"""
+			"crawl.%s"
+		],
+		"query": {
+			"dimensions": [],
+			"metrics": [
+				%s,
+				%s,
+				%s,
+				%s,
+				%s
+			]
+		}
+	}`, latestSlug, bqlIndexableUrls, bqlNonIndexableUrls, bqlSlowPageSpeedUrls, bqlFewInlinksUrls, bqlDeepUrls)
 
-
-
-
-
-	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-	fmt.Println("End point:", url, "\n")
-
-	req, errorCheck := http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
-	}
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
-
-
-	res, errorCheck := http.DefaultClient.Do(req)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. seoFunnel. Check your network connection: "+reset, errorCheck)
-	}
-	defer res.Body.Close()
-
-	responseData, errorCheck := ioutil.ReadAll(res.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. seoFunnel. Cannot read request body: "+reset, errorCheck)
-		os.Exit(1)
+	fmt.Println(bqlFunnelBody)
+	cmd := exec.Command("pbcopy")
+	cmd.Stdin = strings.NewReader(bqlFunnelBody)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error copying to clipboard:", err)
+		return
 	}
 
-	var responseObject botifyResponse
-	errorCheck = json.Unmarshal(responseData, &responseObject)
+	/*
+		url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
+		fmt.Println("End point:", url, "\n")
 
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. seoFunnel. Cannot unmarshall JSON: "+reset, errorCheck)
-		os.Exit(1)
-	}
+		req, errorCheck := http.NewRequest("GET", url, nil)
+		if errorCheck != nil {
+			log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
+		}
+		req.Header.Add("accept", "application/json")
+		req.Header.Add("Authorization", "token "+botify_api_token)
+		req.Header.Add("httpbody" + bqlFunnelBody)
+
+		res, errorCheck := http.DefaultClient.Do(req)
+		if errorCheck != nil {
+			log.Fatal(red+"\nError. seoFunnel. Check your network connection: "+reset, errorCheck)
+		}
+		defer res.Body.Close()
+
+		responseData, errorCheck := ioutil.ReadAll(res.Body)
+		if errorCheck != nil {
+			log.Fatal(red+"\nError. seoFunnel. Cannot read request body: "+reset, errorCheck)
+			os.Exit(1)
+		}
+
+		var responseObject botifyResponse
+		errorCheck = json.Unmarshal(responseData, &responseObject)
+
+		if errorCheck != nil {
+			log.Fatal(red+"\nError. seoFunnel. Cannot unmarshall JSON: "+reset, errorCheck)
+			os.Exit(1)
+		}
+	*/
 
 }
 
@@ -226,7 +310,7 @@ func getLatestSlug() string {
 	fmt.Println("Project Name:", projectName)
 	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
 
-	return(responseObject.Results[0].Slug)
+	return (responseObject.Results[0].Slug)
 }
 
 func bqlTesterDone() {
