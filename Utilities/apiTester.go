@@ -304,7 +304,6 @@ func main() {
 func datasourceApiTest() {
 
 	var projectCount = 0
-	var invalidProjectCount = 0
 
 	fmt.Println(green + bold + "\nAPI: Datasource API" + reset)
 	fmt.Println(bold + "List all projects created for the specified organisation name.\n" + reset)
@@ -345,34 +344,113 @@ func datasourceApiTest() {
 		return
 	}
 
-	// Print all top-level keys, ValidUrls, and segment names
-	for key, value := range jsonData {
+	/*
+		// Print only the URL
+		for projectURL := range jsonData {
+
+			projectCount++
+
+			fmt.Printf("%s\n", projectURL)
+		}
+
+		fmt.Println(bold+"\nNo. of projects for this user:"+reset, projectCount)
+	*/
+
+	for projectURL, value := range jsonData {
 
 		projectCount++
 
+		fmt.Printf("\n%s ", projectURL)
+
+		// Sitemaps
 		sitemap, ok := value.(map[string]interface{})["sitemaps"].(map[string]interface{})
-		if !ok {
-			fmt.Printf(red+"Error. datasourceApiTest. Invalid crawl: %s\n"+reset, key)
-			invalidProjectCount++
-			continue
+		if ok {
+			fmt.Printf(green + "sitemaps " + reset)
 		}
 
+		// Search Console
+		searchConsole, ok := value.(map[string]interface{})["search_console"].(map[string]interface{})
+		if searchConsole == nil {
+			continue
+		} else {
+			// Check if "runnable" field exists and is set to true
+			if runnable, ok := searchConsole["runnable"].(bool); ok && runnable {
+				fmt.Printf(green + "GSC " + reset)
+			}
+		}
+
+		// Google Analytics 3
+		googleAnalytics, ok := value.(map[string]interface{})["visits.ganalytics"].(map[string]interface{})
+		if googleAnalytics == nil {
+			continue
+		} else {
+			// Check if "runnable" field exists and is set to true
+			if runnable, ok := googleAnalytics["runnable"].(bool); ok && runnable {
+				fmt.Printf(green + "GA3 " + reset)
+			}
+		}
+
+		// Google Analytics 4 visits
+		googleAnalytics4Visits, ok := value.(map[string]interface{})["visits.dip"].(map[string]interface{})
+		if googleAnalytics4Visits == nil {
+			continue
+		} else {
+			// Check if "runnable" field exists and is set to true
+			if runnable, ok := googleAnalytics4Visits["runnable"].(bool); ok && runnable {
+				fmt.Printf(green + "GA4Visits " + reset)
+			}
+		}
+
+		// Google Analytics 4 conversion
+		googleAnalytics4Revenue, ok := value.(map[string]interface{})["conversion.dip"].(map[string]interface{})
+		if googleAnalytics4Revenue == nil {
+			continue
+		} else {
+			// Check if "runnable" field exists and is set to true
+			if runnable, ok := googleAnalytics4Revenue["runnable"].(bool); ok && runnable {
+				fmt.Printf(green + "GA4Revenue " + reset)
+			}
+		}
+
+		// Google Analytics 4 paid date
+		googleAnalytics4Paid, ok := value.(map[string]interface{})["paid_search.ga4.dip"].(map[string]interface{})
+		if googleAnalytics4Paid == nil {
+			continue
+		} else {
+			// Check if "runnable" field exists and is set to true
+			if runnable, ok := googleAnalytics4Paid["runnable"].(bool); ok && runnable {
+				fmt.Printf(green + "GA4Paid " + reset)
+			}
+		}
+
+		// Adobe
+		adobeAnalytics, ok := value.(map[string]interface{})["visits.adobe"].(map[string]interface{})
+		if adobeAnalytics == nil {
+			continue
+		} else {
+			// Check if "runnable" field exists and is set to true
+			if runnable, ok := adobeAnalytics["runnable"].(bool); ok && runnable {
+				fmt.Printf(green + "Adobe " + reset)
+			}
+		}
+
+		// No. of URLs crawled. If not found the crawl is invalid
 		stats, ok := sitemap["stats"].(map[string]interface{})
 		if !ok {
-			fmt.Printf(red+"Error. datasourceApitest. Missing 'stats' key in %s\n"+reset, key)
+			fmt.Printf(red + "(Crawl invalid)" + reset)
 			continue
 		}
 
 		validUrls, ok := stats["ValidUrls"].(float64)
 		if !ok {
-			fmt.Printf(red+"Error. datasourceApiTest. Missing 'ValidUrls' key in %s\n"+reset, key)
+			fmt.Printf(red+"Error. datasourceApiTest. Missing 'ValidUrls' key in %s\n"+reset, projectURL)
 			continue
 		}
-		fmt.Printf("%s (URLs: %.0f)\n", key, validUrls)
+
+		fmt.Printf(" (URLs: %.0f)", validUrls)
 	}
 
-	fmt.Println(bold+"\nNo. of projects for this user:"+reset, projectCount)
-	fmt.Println(bold+"\nNo. of invalid projects for this user:"+reset, invalidProjectCount)
+	fmt.Println(bold+"\n\nNo. of projects for this user:"+reset, projectCount)
 
 }
 

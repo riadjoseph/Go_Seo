@@ -148,7 +148,7 @@ func seoFunnel() {
 		}
 	}`, latestSlug, latestSlug)
 
-	// Define the slow page speed URLs (greater than 500ms)
+	// Define the slow pages speed URLs (greater than 500ms)
 	bqlSlowPageSpeedUrls := fmt.Sprintf(`
 	{
             "field": "crawl.%s.count_urls_crawl",
@@ -175,8 +175,8 @@ func seoFunnel() {
                 "and": [
                     {
                         "field": "crawl.%s.inlinks_internal.nb.unique",
-                            "predicate": "lt",
-                            "value": 10
+                            "predicate": "gt",
+                            "value": 500
                     },
                     {
                         "field": "crawl.%s.compliant.is_compliant",
@@ -187,7 +187,7 @@ func seoFunnel() {
             }
 	}`, latestSlug, latestSlug, latestSlug)
 
-	// Define the deep links URLs BQL (depth greater than 4)
+	// Define the deep links URLs BQL (greater than 4)
 	bqlDeepUrls := fmt.Sprintf(`
 	{
             "field": "crawl.%s.count_urls_crawl",
@@ -225,7 +225,7 @@ func seoFunnel() {
 		}
 	}`, latestSlug, bqlIndexableUrls, bqlNonIndexableUrls, bqlSlowPageSpeedUrls, bqlFewInlinksUrls, bqlDeepUrls)
 
-	// Copy the query to the clipboard - for testing purposes
+	fmt.Println(bqlFunnelBody)
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = strings.NewReader(bqlFunnelBody)
 	err := cmd.Run()
@@ -233,21 +233,6 @@ func seoFunnel() {
 		fmt.Println("Error copying to clipboard:", err)
 		return
 	}
-
-	// Define the endpoint
-	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-	fmt.Println("End point:", url, "\n")
-
-	// Make the HTTP request
-	req, errorCheck := http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
-	}
-
-	// Define the header
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
-	req.Header.Add("httpbody" + bqlFunnelBody)
 
 	/*
 		url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
@@ -338,7 +323,7 @@ func bqlTesterDone() {
 	os.Exit(0)
 }
 
-// Display welcome message
+// Display the welcome banner
 func displayBanner() {
 
 	//Banner
@@ -355,6 +340,7 @@ func displayBanner() {
 
 	//Display welcome message
 	fmt.Println(purple+"Version:"+reset, version+"\n")
+
 	fmt.Println(purple + "bqlTester: Test Botify BQL.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
