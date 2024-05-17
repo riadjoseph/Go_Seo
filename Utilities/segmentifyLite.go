@@ -158,10 +158,6 @@ func main() {
 	// Copy the regex to the clipboard
 	copyRegexToClipboard()
 
-	//It's done! segmentifyList has left the building
-	fmt.Println(green+bold+"Your regex can be found in:", regexOutputFile+reset)
-	fmt.Println(green + bold + "The regex is also in your clipboard ready to paste directly into Botify's segment editor\n" + reset)
-
 	fmt.Println(green + bold + checkmark + reset + " First level folders" + reset)
 	fmt.Println(green + bold + checkmark + reset + " Second level folders" + reset)
 	fmt.Println(green + bold + checkmark + reset + " Parameter usage" + reset)
@@ -177,6 +173,10 @@ func main() {
 		fmt.Println(green + checkmark + reset + " Shopify" + reset)
 	}
 	fmt.Println(purple + "\nRegex generation complete" + reset)
+
+	//It's done! segmentifyList has left the building
+	fmt.Println(green+bold+"\nYour regex can be found in:", regexOutputFile+reset)
+	fmt.Println(green + bold + "The regex is also in your clipboard ready to paste directly into Botify's segment editor" + reset)
 
 	// We're done
 	// Clean-up. Delete the temp. file
@@ -200,7 +200,7 @@ func checkCredentials() {
 
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit segmentifyLite\n")
 
-		fmt.Print(purple + "\nEnter Organization Name: " + reset)
+		fmt.Print(purple + "\nEnter organization name: " + reset)
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
@@ -208,7 +208,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 
-		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Print(purple + "Enter project name: " + reset)
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
@@ -280,9 +280,10 @@ func processURLsInProject() {
 	//Initialize total count
 	totalCount := 0
 	fmt.Println("Maximum No. of URLs to be processed is", maxURLsToProcess, "k")
-	fmt.Println("Organisation Name:", orgName)
-	fmt.Println("Project Name:", projectName)
-	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
+	fmt.Println("Organisation name:", orgName)
+	fmt.Println("Project name:", projectName)
+	fmt.Println("Latest analysis slug:", responseObject.Results[0].Slug)
+
 	analysisSlug := responseObject.Results[0].Slug
 	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, analysisSlug)
 	fmt.Println("End point:", urlEndpoint, "\n")
@@ -403,8 +404,8 @@ func generateRegexFile() {
 		os.Exit(1)
 	}
 
-	writer.WriteString(fmt.Sprintf("# Organisation Name: %s\n", orgName))
-	writer.WriteString(fmt.Sprintf("# Project Name: %s\n", projectName))
+	writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
+	writer.WriteString(fmt.Sprintf("# Project name: %s\n", projectName))
 	writer.WriteString(fmt.Sprintf("# Generated %s", currentTime.Format(time.RFC1123)))
 
 	//Flush the writer to ensure all data is written to the file

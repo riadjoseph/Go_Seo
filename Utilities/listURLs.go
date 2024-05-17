@@ -263,9 +263,9 @@ func main() {
 	}
 
 	fmt.Println(purple + "\nExporting URLs" + reset)
-	fmt.Println("Organisation Name:", orgName)
-	fmt.Println("Project Name:", projectName)
-	fmt.Println("Analysis Slug:", responseObject.Results[0].Slug)
+	fmt.Println("Organisation name:", orgName)
+	fmt.Println("Project name:", projectName)
+	fmt.Println("Analysis slug:", responseObject.Results[0].Slug)
 	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, responseObject.Results[0].Slug)
 	fmt.Println("End point:", urlEndpoint, "\n")
 
@@ -365,7 +365,7 @@ func checkCredentials() {
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit listURLs" +
 			"\n")
 
-		fmt.Print(purple + "\nEnter Organisation Name: " + reset)
+		fmt.Print(purple + "\nEnter organisation name: " + reset)
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
@@ -373,7 +373,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 
-		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Print(purple + "Enter project name: " + reset)
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {

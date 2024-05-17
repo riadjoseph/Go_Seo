@@ -46,7 +46,6 @@ var credentialsInput = false
 var collectionIdentifiers []string
 
 // API STRUCTS
-// The structs are defined in the order they are used in apiTester
 
 // DatasourceResponse represents the JSON structure
 type datasourceResponse struct {
@@ -272,7 +271,7 @@ func main() {
 		projectName = projectNameInput
 	}
 
-	fmt.Println(bold+"\nOrganisation Name:", orgName)
+	fmt.Println(bold+"\nOrganisation name:", orgName)
 	fmt.Println(bold+"Project Name:", projectName+reset)
 	fmt.Println()
 
@@ -326,8 +325,6 @@ func datasourceApiTest() {
 		return
 	}
 
-	defer res.Body.Close()
-
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(red+"\nError. datasourceApiTest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
@@ -343,6 +340,8 @@ func datasourceApiTest() {
 		fmt.Println(red+"Error. datasourceApiTest. Cannot unmarshall JSON:"+reset, err)
 		return
 	}
+
+	defer res.Body.Close()
 
 	/*
 		// Print only the URL
@@ -896,7 +895,7 @@ func checkCredentials() {
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit apiTester" +
 			"\n")
 
-		fmt.Print(purple + "\nEnter Organisation Name: " + reset)
+		fmt.Print(purple + "\nEnter organisation name: " + reset)
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
@@ -904,7 +903,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 
-		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Print(purple + "Enter project Name: " + reset)
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {

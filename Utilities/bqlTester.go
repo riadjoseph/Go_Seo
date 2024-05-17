@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,20 @@ type botifyResponse struct {
 	} `json:"results"`
 	Page int `json:"page"`
 	Size int `json:"size"`
+}
+
+// Basic KPI struct
+type Response struct {
+	Results  []Result `json:"results"`
+	Previous *string  `json:"previous"`
+	Next     *string  `json:"next"`
+	Page     int      `json:"page"`
+	Size     int      `json:"size"`
+}
+
+type Result struct {
+	Dimensions []string `json:"dimensions"`
+	Metrics    []int    `json:"metrics"`
 }
 
 // Version
@@ -70,13 +85,23 @@ func main() {
 		projectName = projectNameInput
 	}
 
-	fmt.Println(bold+"\nOrganisation Name:", orgName)
-	fmt.Println(bold+"Project Name:", projectName+reset)
+	fmt.Println(bold+"\nOrganisation name:", orgName)
+	fmt.Println(bold+"Project name:", projectName+reset)
 	fmt.Println()
 
 	displaySeparator()
 
+	// Basic KPIs
 	seoFunnel()
+
+	// Revenue for the last 12 months
+	//seoRevenue()
+
+	// Visits for the last 12 months
+	//seoVisits()
+
+	// ActionBoard actions for the last crawl
+	//seoActionBoard()
 
 	bqlTesterDone()
 }
@@ -93,7 +118,7 @@ func checkCredentials() {
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit apiTester" +
 			"\n")
 
-		fmt.Print(purple + "\nEnter Organisation Name: " + reset)
+		fmt.Print(purple + "\nEnter organisation name: " + reset)
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
@@ -101,7 +126,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 
-		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Print(purple + "Enter project name: " + reset)
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
@@ -111,8 +136,8 @@ func checkCredentials() {
 	}
 }
 
+// Basic KPIs
 func seoFunnel() {
-	//Display the welcome message
 	fmt.Println(purple + "\nGetting the latest funnel insights." + reset)
 
 	// Get the latest analysis slug
@@ -168,6 +193,7 @@ func seoFunnel() {
             }
 	}`, latestSlug, latestSlug, latestSlug)
 
+	// Define the BQL to get the pages with few inlinks (< 10 inlinks)
 	bqlFewInlinksUrls := fmt.Sprintf(`
 	{
             "field": "crawl.%s.count_urls_crawl",
@@ -175,8 +201,8 @@ func seoFunnel() {
                 "and": [
                     {
                         "field": "crawl.%s.inlinks_internal.nb.unique",
-                            "predicate": "gt",
-                            "value": 500
+                            "predicate": "lt",
+                            "value": 10
                     },
                     {
                         "field": "crawl.%s.compliant.is_compliant",
@@ -225,7 +251,7 @@ func seoFunnel() {
 		}
 	}`, latestSlug, bqlIndexableUrls, bqlNonIndexableUrls, bqlSlowPageSpeedUrls, bqlFewInlinksUrls, bqlDeepUrls)
 
-	fmt.Println(bqlFunnelBody)
+	// Copy the BQL to the clipboard for pasting into Postman
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = strings.NewReader(bqlFunnelBody)
 	err := cmd.Run()
@@ -234,38 +260,65 @@ func seoFunnel() {
 		return
 	}
 
-	/*
-		url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-		fmt.Println("End point:", url, "\n")
+	// Define the URL
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
+	fmt.Println("End point:", url, "\n")
 
-		req, errorCheck := http.NewRequest("GET", url, nil)
-		if errorCheck != nil {
-			log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
-		}
-		req.Header.Add("accept", "application/json")
-		req.Header.Add("Authorization", "token "+botify_api_token)
-		req.Header.Add("httpbody" + bqlFunnelBody)
+	// GET the HTTP request
+	req, errorCheck := http.NewRequest("GET", url, nil)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoFunnel. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
+	}
 
-		res, errorCheck := http.DefaultClient.Do(req)
-		if errorCheck != nil {
-			log.Fatal(red+"\nError. seoFunnel. Check your network connection: "+reset, errorCheck)
-		}
-		defer res.Body.Close()
+	// Define the body
+	httpBody := []byte(bqlFunnelBody)
 
-		responseData, errorCheck := ioutil.ReadAll(res.Body)
-		if errorCheck != nil {
-			log.Fatal(red+"\nError. seoFunnel. Cannot read request body: "+reset, errorCheck)
-			os.Exit(1)
-		}
+	// Create the POST request
+	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
+	if errorCheck != nil {
+		log.Fatal("Error. seoFunnel. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
+	}
 
-		var responseObject botifyResponse
-		errorCheck = json.Unmarshal(responseData, &responseObject)
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Content-Type", "application/json")
 
-		if errorCheck != nil {
-			log.Fatal(red+"\nError. seoFunnel. Cannot unmarshall JSON: "+reset, errorCheck)
-			os.Exit(1)
-		}
-	*/
+	// Create HTTP client and execute the request
+	client := &http.Client{}
+	resp, errorCheck := client.Do(req)
+	if errorCheck != nil {
+		log.Fatal("Error. seoFunnel. Error: ", errorCheck)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. seoFunnel. Cannot read response body: "+reset, errorCheck)
+		return
+	}
+
+	// Unmarshal the JSON data into the struct
+	var responseObject Response
+	errorCheck = json.Unmarshal(responseData, &responseObject)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. seoFunnel. Cannot unmarshal JSON: "+reset, errorCheck)
+	}
+
+	firstResult := responseObject.Results[0]
+	indexableURLs := firstResult.Metrics[0]
+	nonIndexableURLs := firstResult.Metrics[1]
+	slowURLs := firstResult.Metrics[2]
+	fewInlinksURLs := firstResult.Metrics[3]
+	deepURLs := firstResult.Metrics[4]
+
+	// Print the results
+	fmt.Println(bold+"Indexable:"+reset, indexableURLs)
+	fmt.Println(bold+"Non indexable:"+reset, nonIndexableURLs)
+	fmt.Println(bold+"Slow pages (> 500 ms):"+reset, slowURLs)
+	fmt.Println(bold+"Pages with few inlinks (< 10 inlinks):"+reset, fewInlinksURLs)
+	fmt.Println(bold+"Deep pages (> depth 5):"+reset, deepURLs)
 
 }
 
@@ -306,8 +359,8 @@ func getLatestSlug() string {
 		os.Exit(1)
 	}
 
-	fmt.Println("Organisation Name:", orgName)
-	fmt.Println("Project Name:", projectName)
+	fmt.Println("Organisation name:", orgName)
+	fmt.Println("Project name:", projectName)
 	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
 
 	return (responseObject.Results[0].Slug)
@@ -344,7 +397,7 @@ func displayBanner() {
 	fmt.Println(purple + "bqlTester: Test Botify BQL.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
-	fmt.Println(checkmark + green + bold + " Funnel statistics" + reset)
+	fmt.Println(checkmark + green + bold + " Funnel insights (example of basic KPI retrieval)" + reset)
 	fmt.Println(checkmark + green + bold + " Revenue" + reset)
 	fmt.Println(checkmark + green + bold + " Visits" + reset)
 	fmt.Println(checkmark + green + bold + " ActionBoard\n" + reset)

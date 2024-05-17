@@ -258,8 +258,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("\nOrganisation Name:", orgName)
-	fmt.Println("Project Name:", projectName)
+	fmt.Println("\nOrganisation name:", orgName)
+	fmt.Println("Project name:", projectName)
 
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
@@ -477,7 +477,7 @@ func checkCredentials() {
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit listAnalysis" +
 			"\n")
 
-		fmt.Print(purple + "\nEnter Organisation Name: " + reset)
+		fmt.Print(purple + "\nEnter organisation name: " + reset)
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
@@ -485,7 +485,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 
-		fmt.Print(purple + "Enter Project Name: " + reset)
+		fmt.Print(purple + "Enter project name: " + reset)
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
