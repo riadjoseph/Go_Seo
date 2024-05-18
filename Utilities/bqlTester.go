@@ -580,6 +580,46 @@ func seoFunnel() {
 	queryDepth10Plus := generateQuery(latestSlug, 10, "gt", 10)
 	bqlQueriesDepth = append(bqlQueriesDepth, queryDepth10Plus)
 
+	// Indexable URLs in Sitemap
+	bqlIndexableInSitemapURLs := fmt.Sprintf(`
+{
+        "field": "crawl.%s.count_urls_crawl",
+        "filters": {
+            "and": [
+                {
+                    "field": "crawl.%s.compliant.is_compliant",
+                    "predicate": "eq",
+                    "value": true
+                },
+                {
+                    "field": "crawl.%s.sitemaps.present",
+                    "predicate": "eq",
+                    "value": true
+                }
+            ]
+        }
+}`, latestSlug, latestSlug, latestSlug)
+
+	// Non Indexable URLs in Sitemap
+	bqlNonIndexableInSitemapURLs := fmt.Sprintf(`
+{
+        "field": "crawl.%s.count_urls_crawl",
+        "filters": {
+            "and": [
+                {
+                    "field": "crawl.%s.compliant.is_compliant",
+                    "predicate": "eq",
+                    "value": false
+                },
+                {
+                    "field": "crawl.%s.sitemaps.present",
+                    "predicate": "eq",
+                    "value": true
+                }
+            ]
+        }
+}`, latestSlug, latestSlug, latestSlug)
+
 	// Array of BQL fragments used to construct the final BQL
 	metrics := []string{
 		bqlIndexableUrls,
@@ -616,6 +656,8 @@ func seoFunnel() {
 		bqlQueriesDepth[8],
 		bqlQueriesDepth[9],
 		bqlQueriesDepth[10],
+		bqlIndexableInSitemapURLs,
+		bqlNonIndexableInSitemapURLs,
 	}
 
 	// Join the metrics BQL fragments together
@@ -725,6 +767,8 @@ func seoFunnel() {
 	depth8URLs := firstResult.KPI[31]
 	depth9URLs := firstResult.KPI[32]
 	depth10PlusURLs := firstResult.KPI[33]
+	indexableInSitemap := firstResult.KPI[34]
+	nonIndexableInSitemap := firstResult.KPI[35]
 
 	// Print the results
 	fmt.Println(bold+"Indexable:"+reset, indexableURLs)
@@ -750,10 +794,10 @@ func seoFunnel() {
 	fmt.Println(bold+"HTTP 400 class. Client error response:"+reset, http400)
 	fmt.Println(bold+"HTTP 500 class. Server error response:"+reset, http500)
 	fmt.Println(green + "\nLoad time Distribution (Indexable URLs)" + reset)
-	fmt.Println(bold+"Fast URLs:"+reset, fastURLs)
-	fmt.Println(bold+"Medium URLs:"+reset, mediumURLs)
-	fmt.Println(bold+"Slow URLs:"+reset, slowSpeedURLs)
-	fmt.Println(bold+"Slowest URLs:"+reset, slowestURLs)
+	fmt.Println(bold+"Fast URLs (0-499ms):"+reset, fastURLs)
+	fmt.Println(bold+"Medium URLs (500-999ms):"+reset, mediumURLs)
+	fmt.Println(bold+"Slow URLs (1000-1999ms):"+reset, slowSpeedURLs)
+	fmt.Println(bold+"Slowest URLs (>2000ms):"+reset, slowestURLs)
 	fmt.Println(green + "\nURLs By Depth for text/HTML content" + reset)
 	fmt.Println(bold+"Depth 0 URLs:"+reset, depth0URLs)
 	fmt.Println(bold+"Depth 1 URLs:"+reset, depth1URLs)
@@ -766,6 +810,10 @@ func seoFunnel() {
 	fmt.Println(bold+"Depth 8 URLs:"+reset, depth8URLs)
 	fmt.Println(bold+"Depth 9 URLs:"+reset, depth9URLs)
 	fmt.Println(bold+"Depth 10+ URLs:"+reset, depth10PlusURLs)
+	fmt.Println(green + "\nURLs Distribution In Sitemaps" + reset)
+	fmt.Println(bold+"Indexable URLs in sitemap:"+reset, indexableInSitemap)
+	fmt.Println(bold+"Non indexable URLs in sitemap:"+reset, nonIndexableInSitemap)
+
 }
 
 // Function to generate the query for a given depth
