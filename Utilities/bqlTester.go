@@ -17,29 +17,19 @@ import (
 	"strings"
 )
 
-type botifyResponse struct {
-	Next     string      `json:"next"`
-	Previous interface{} `json:"previous"`
-	Count    int         `json:"count"`
-	Results  []struct {
+// Used to get the latest slug
+type latestSlug struct {
+	Count   int `json:"count"`
+	Results []struct {
 		Slug string `json:"slug"`
 	} `json:"results"`
-	Page int `json:"page"`
-	Size int `json:"size"`
 }
 
-// Basic KPI struct
-type Response struct {
-	Results  []Result `json:"results"`
-	Previous *string  `json:"previous"`
-	Next     *string  `json:"next"`
-	Page     int      `json:"page"`
-	Size     int      `json:"size"`
-}
-
-type Result struct {
-	Dimensions []string `json:"dimensions"`
-	Metrics    []int    `json:"metrics"`
+// Used to store the site crawler KPIs
+type basicKPIs struct {
+	Results []struct {
+		KPI []int `json:"metrics"`
+	} `json:"results"`
 }
 
 // Version
@@ -233,23 +223,417 @@ func seoFunnel() {
             }
 	}`, latestSlug, latestSlug, latestSlug)
 
+	// Duplicate titles
+	bqlDuplicateTitles := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+                    {
+                        "field": "crawl.%s.metadata.title.duplicates.context_aware.nb",
+                            "predicate": "gt",
+                            "value": 0
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Unique titles
+	bqlUniqueTitles := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    }, 
+      				{
+                        "field": "crawl.%s.metadata.title.duplicates.context_aware.nb",
+                            "value": 0
+                    },
+   					 {
+						"field": "crawl.%s.metadata.title.nb",
+						"predicate": "gt",
+						"value": 0
+  				    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug, latestSlug)
+
+	// Missing H1
+	bqlMissingTitles := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+                    {
+                        "field": "crawl.%s.metadata.title.nb",
+                            "value": 0
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Duplicate H1
+	bqlDuplicateH1 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+                    {
+                        "field": "crawl.%s.metadata.h1.duplicates.context_aware.nb",
+                            "predicate": "gt",
+                            "value": 0
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Unique H1
+	bqlUniqueH1 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    }, 
+      				{
+                        "field": "crawl.%s.metadata.h1.duplicates.context_aware.nb",
+                            "value": 0
+                    },
+   					 {
+						"field": "crawl.%s.metadata.h1.nb",
+						"predicate": "gt",
+						"value": 0
+  				    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug, latestSlug)
+
+	// Missing H1
+	bqlMissingH1 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+                    {
+                        "field": "crawl.%s.metadata.h1.nb",
+                            "value": 0
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Duplicate Description
+	bqlDuplicateDescription := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+                    {
+                        "field": "crawl.%s.metadata.description.duplicates.context_aware.nb",
+                            "predicate": "gt",
+                            "value": 0
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Unique Description
+	bqlUniqueDescription := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    }, 
+      				{
+                        "field": "crawl.%s.metadata.description.duplicates.context_aware.nb",
+                            "value": 0
+                    },
+   					 {
+						"field": "crawl.%s.metadata.description.nb",
+						"predicate": "gt",
+						"value": 0
+  				    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug, latestSlug)
+
+	// Missing Description
+	bqlMissingDescription := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+                    {
+                        "field": "crawl.%s.metadata.description.nb",
+                            "value": 0
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// HTTP 100: Informational responses (100 – 199)
+	bqlHttp100 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.http_code",
+                         "predicate": "between",
+						 "value": [100, 199]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug)
+
+	// HTTP 200: Successful responses (200 – 299)
+	bqlHttp200 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.http_code",
+                         "predicate": "between",
+						 "value": [200, 299]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug)
+
+	// HTTP 300: Redirection messages (300 – 399)
+	bqlHttp300 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.http_code",
+                         "predicate": "between",
+						 "value": [300, 399]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug)
+
+	// HTTP 400: Client error messages (400 – 499)
+	bqlHttp400 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.http_code",
+                         "predicate": "between",
+						 "value": [400, 499]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug)
+
+	// Page load speed - Fast
+	bqlHttp500 := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+					{
+                        "field": "crawl.%s.http_code",
+                         "predicate": "between",
+						 "value": [500, 599]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug)
+
+	// Fast URLs
+	bqlFastURLs := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+					{
+                        "field": "crawl.%s.delay_last_byte",
+                         "predicate": "between",
+						 "value": [0, 499]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Medium speed URLs
+	bqlMediumURLs := fmt.Sprintf(`
+	{
+            "field": "crawl.%s.count_urls_crawl",
+            "filters": {
+                "and": [
+                    {
+                        "field": "crawl.%s.compliant.is_compliant",
+                        "predicate": "eq",
+                        "value": true
+                    },
+					{
+                        "field": "crawl.%s.delay_last_byte",
+                         "predicate": "between",
+						 "value": [500, 999]
+                    }
+                ]
+            }
+	}`, latestSlug, latestSlug, latestSlug)
+
+	// Slow speed URLs
+	bqlSlowSpeedURLs := fmt.Sprintf(`
+{
+        "field": "crawl.%s.count_urls_crawl",
+        "filters": {
+            "and": [
+                {
+                    "field": "crawl.%s.compliant.is_compliant",
+                    "predicate": "eq",
+                    "value": true
+                },
+                {
+                    "field": "crawl.%s.delay_last_byte",
+                     "predicate": "between",
+                     "value": [1000, 1999]
+                }
+            ]
+        }
+}`, latestSlug, latestSlug, latestSlug)
+
+	// Slowest speed URLs
+	bqlSlowestURLs := fmt.Sprintf(`
+{
+        "field": "crawl.%s.count_urls_crawl",
+        "filters": {
+            "and": [
+                {
+                    "field": "crawl.%s.compliant.is_compliant",
+                    "predicate": "eq",
+                    "value": true
+                },
+                {
+                    "field": "crawl.%s.delay_last_byte",
+                    "predicate": "gt",
+				    "value": 2000
+                }
+            ]
+        }
+}`, latestSlug, latestSlug, latestSlug)
+
+	// Generate the bqlQueriesDepth for the depth (text/HTML only)
+	depths := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	bqlQueriesDepth := make([]string, 0, len(depths)+1)
+
+	for _, depth := range depths {
+		bqlDepthQuery := generateQuery(latestSlug, depth, "eq", depth)
+		bqlQueriesDepth = append(bqlQueriesDepth, bqlDepthQuery)
+	}
+
+	queryDepth10Plus := generateQuery(latestSlug, 10, "gt", 10)
+	bqlQueriesDepth = append(bqlQueriesDepth, queryDepth10Plus)
+
+	// Array of BQL fragments used to construct the final BQL
+	metrics := []string{
+		bqlIndexableUrls,
+		bqlNonIndexableUrls,
+		bqlSlowPageSpeedUrls,
+		bqlFewInlinksUrls,
+		bqlDeepUrls,
+		bqlDuplicateTitles,
+		bqlUniqueTitles,
+		bqlMissingTitles,
+		bqlDuplicateH1,
+		bqlUniqueH1,
+		bqlMissingH1,
+		bqlDuplicateDescription,
+		bqlUniqueDescription,
+		bqlMissingDescription,
+		bqlHttp100,
+		bqlHttp200,
+		bqlHttp300,
+		bqlHttp400,
+		bqlHttp500,
+		bqlFastURLs,
+		bqlMediumURLs,
+		bqlSlowSpeedURLs,
+		bqlSlowestURLs,
+		bqlQueriesDepth[0],
+		bqlQueriesDepth[1],
+		bqlQueriesDepth[2],
+		bqlQueriesDepth[3],
+		bqlQueriesDepth[4],
+		bqlQueriesDepth[5],
+		bqlQueriesDepth[6],
+		bqlQueriesDepth[7],
+		bqlQueriesDepth[8],
+		bqlQueriesDepth[9],
+		bqlQueriesDepth[10],
+	}
+
+	// Join the metrics BQL fragments together
+	metricsString := strings.Join(metrics, ",\n")
+
 	// Bring the BQL fragments into a single query
 	bqlFunnelBody := fmt.Sprintf(`
-	{
-		"collections": [
-			"crawl.%s"
-		],
-		"query": {
-			"dimensions": [],
-			"metrics": [
-				%s,
-				%s,
-				%s,
-				%s,
-				%s
-			]
-		}
-	}`, latestSlug, bqlIndexableUrls, bqlNonIndexableUrls, bqlSlowPageSpeedUrls, bqlFewInlinksUrls, bqlDeepUrls)
+{
+	"collections": [
+		"crawl.%s"
+	],
+	"query": {
+		"dimensions": [],
+		"metrics": [
+			%s
+		]
+	}
+}`, latestSlug, metricsString)
 
 	// Copy the BQL to the clipboard for pasting into Postman
 	cmd := exec.Command("pbcopy")
@@ -300,26 +684,115 @@ func seoFunnel() {
 	}
 
 	// Unmarshal the JSON data into the struct
-	var responseObject Response
+	var responseObject basicKPIs
 	errorCheck = json.Unmarshal(responseData, &responseObject)
 	if errorCheck != nil {
 		log.Fatal(red+"Error. seoFunnel. Cannot unmarshal JSON: "+reset, errorCheck)
 	}
 
 	firstResult := responseObject.Results[0]
-	indexableURLs := firstResult.Metrics[0]
-	nonIndexableURLs := firstResult.Metrics[1]
-	slowURLs := firstResult.Metrics[2]
-	fewInlinksURLs := firstResult.Metrics[3]
-	deepURLs := firstResult.Metrics[4]
+	indexableURLs := firstResult.KPI[0]
+	nonIndexableURLs := firstResult.KPI[1]
+	slowURLs := firstResult.KPI[2]
+	fewInlinksURLs := firstResult.KPI[3]
+	deepURLs := firstResult.KPI[4]
+	duplicateTitles := firstResult.KPI[5]
+	uniqueTitles := firstResult.KPI[6]
+	missingTitles := firstResult.KPI[7]
+	duplicateH1 := firstResult.KPI[8]
+	uniqueH1 := firstResult.KPI[9]
+	missingH1 := firstResult.KPI[10]
+	duplicateDescription := firstResult.KPI[11]
+	uniqueDescription := firstResult.KPI[12]
+	missingDescription := firstResult.KPI[13]
+	http100 := firstResult.KPI[14]
+	http200 := firstResult.KPI[15]
+	http300 := firstResult.KPI[16]
+	http400 := firstResult.KPI[17]
+	http500 := firstResult.KPI[18]
+	fastURLs := firstResult.KPI[19]
+	mediumURLs := firstResult.KPI[20]
+	slowSpeedURLs := firstResult.KPI[21]
+	slowestURLs := firstResult.KPI[22]
+	depth0URLs := firstResult.KPI[23]
+	depth1URLs := firstResult.KPI[24]
+	depth2URLs := firstResult.KPI[25]
+	depth3URLs := firstResult.KPI[26]
+	depth4URLs := firstResult.KPI[27]
+	depth5URLs := firstResult.KPI[28]
+	depth6URLs := firstResult.KPI[29]
+	depth7URLs := firstResult.KPI[30]
+	depth8URLs := firstResult.KPI[31]
+	depth9URLs := firstResult.KPI[32]
+	depth10PlusURLs := firstResult.KPI[33]
 
 	// Print the results
 	fmt.Println(bold+"Indexable:"+reset, indexableURLs)
 	fmt.Println(bold+"Non indexable:"+reset, nonIndexableURLs)
+	fmt.Println(green + "\nKPIs for Indexable pages" + reset)
 	fmt.Println(bold+"Slow pages (> 500 ms):"+reset, slowURLs)
 	fmt.Println(bold+"Pages with few inlinks (< 10 inlinks):"+reset, fewInlinksURLs)
 	fmt.Println(bold+"Deep pages (> depth 5):"+reset, deepURLs)
+	fmt.Println(green + "\nHTML Tags Performance For Indexable URLs" + reset)
+	fmt.Println(bold+"Duplicate titles:"+reset, duplicateTitles)
+	fmt.Println(bold+"Unique titles:"+reset, uniqueTitles)
+	fmt.Println(bold+"Missing titles:"+reset, missingTitles)
+	fmt.Println(bold+"Duplicate H1:"+reset, duplicateH1)
+	fmt.Println(bold+"Unique H1:"+reset, uniqueH1)
+	fmt.Println(bold+"Missing H1:"+reset, missingH1)
+	fmt.Println(bold+"Duplicate description:"+reset, duplicateDescription)
+	fmt.Println(bold+"Unique description:"+reset, uniqueDescription)
+	fmt.Println(bold+"Missing description:"+reset, missingDescription)
+	fmt.Println(green + "\nHTTP Status Codes Distribution (Indexable URLs)" + reset)
+	fmt.Println(bold+"HTTP 100 class. Informational:"+reset, http100)
+	fmt.Println(bold+"HTTP 200 class. Successful response:"+reset, http200)
+	fmt.Println(bold+"HTTP 300 class. Redirect response:"+reset, http300)
+	fmt.Println(bold+"HTTP 400 class. Client error response:"+reset, http400)
+	fmt.Println(bold+"HTTP 500 class. Server error response:"+reset, http500)
+	fmt.Println(green + "\nLoad time Distribution (Indexable URLs)" + reset)
+	fmt.Println(bold+"Fast URLs:"+reset, fastURLs)
+	fmt.Println(bold+"Medium URLs:"+reset, mediumURLs)
+	fmt.Println(bold+"Slow URLs:"+reset, slowSpeedURLs)
+	fmt.Println(bold+"Slowest URLs:"+reset, slowestURLs)
+	fmt.Println(green + "\nURLs By Depth for text/HTML content" + reset)
+	fmt.Println(bold+"Depth 0 URLs:"+reset, depth0URLs)
+	fmt.Println(bold+"Depth 1 URLs:"+reset, depth1URLs)
+	fmt.Println(bold+"Depth 2 URLs:"+reset, depth2URLs)
+	fmt.Println(bold+"Depth 3 URLs:"+reset, depth3URLs)
+	fmt.Println(bold+"Depth 4 URLs:"+reset, depth4URLs)
+	fmt.Println(bold+"Depth 5 URLs:"+reset, depth5URLs)
+	fmt.Println(bold+"Depth 6 URLs:"+reset, depth6URLs)
+	fmt.Println(bold+"Depth 7 URLs:"+reset, depth7URLs)
+	fmt.Println(bold+"Depth 8 URLs:"+reset, depth8URLs)
+	fmt.Println(bold+"Depth 9 URLs:"+reset, depth9URLs)
+	fmt.Println(bold+"Depth 10+ URLs:"+reset, depth10PlusURLs)
+}
 
+// Function to generate the query for a given depth
+func generateQuery(slug string, depth int, predicate string, value interface{}) string {
+	return fmt.Sprintf(`
+	{
+		"field": "crawl.%s.count_urls_crawl",
+		"filters": {
+			"and": [
+				{
+					"field": "crawl.%s.compliant.is_compliant",
+					"predicate": "eq",
+					"value": true
+				},
+				{
+					"field": "crawl.%s.depth",
+					"predicate": "%s",
+					"value": %v
+				},
+				{
+					"field": "crawl.%s.content_type",
+					"predicate": "eq",
+					"value": "text/html"
+				}
+			]
+		}
+	}`, slug, slug, slug, predicate, value, slug)
 }
 
 func getLatestSlug() string {
@@ -345,7 +818,7 @@ func getLatestSlug() string {
 		os.Exit(1)
 	}
 
-	var responseObject botifyResponse
+	var responseObject latestSlug
 	errorCheck = json.Unmarshal(responseData, &responseObject)
 
 	if errorCheck != nil {
@@ -397,7 +870,7 @@ func displayBanner() {
 	fmt.Println(purple + "bqlTester: Test Botify BQL.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
-	fmt.Println(checkmark + green + bold + " Funnel insights (example of basic KPI retrieval)" + reset)
+	fmt.Println(checkmark + green + bold + " Site crawler insights (examples of site crawler KPI retrieval)" + reset)
 	fmt.Println(checkmark + green + bold + " Revenue" + reset)
 	fmt.Println(checkmark + green + bold + " Visits" + reset)
 	fmt.Println(checkmark + green + bold + " ActionBoard\n" + reset)
