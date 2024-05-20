@@ -1,0 +1,737 @@
+# Regex made with love using segmentifyLite v0.1
+# Organisation Name: jason-org
+# Project Name: curio
+# Generated Thu, 16 May 2024 07:45:42 UTC
+
+[segment:sl_level1_folders]
+@Home
+path /
+
+@collections
+url *https://www.curiocottage.in/collections/*
+
+@~Other
+path /*
+# ----End of level2Folders Segment----
+
+# ----Folder URL analysis----
+# --https://www.curiocottage.in/collections (URLs found: 30701)
+
+
+[segment:sl_level2_folders]
+@Home
+path /
+
+@collections/best-sellers
+url *https://www.curiocottage.in/collections/best-sellers/*
+
+@collections/wedding-gift
+url *https://www.curiocottage.in/collections/wedding-gift/*
+
+@collections/birthday-gifts
+url *https://www.curiocottage.in/collections/birthday-gifts/*
+
+@collections/all-products
+url *https://www.curiocottage.in/collections/all-products/*
+
+@collections/lohri
+url *https://www.curiocottage.in/collections/lohri/*
+
+@collections/rakhi-gifting
+url *https://www.curiocottage.in/collections/rakhi-gifting/*
+
+@collections/valentines-day-special
+url *https://www.curiocottage.in/collections/valentines-day-special/*
+
+@collections/eoss
+url *https://www.curiocottage.in/collections/eoss/*
+
+@collections/womens-day
+url *https://www.curiocottage.in/collections/womens-day/*
+
+@collections/monsoon-sale
+url *https://www.curiocottage.in/collections/monsoon-sale/*
+
+@collections/black-friday-sale
+url *https://www.curiocottage.in/collections/black-friday-sale/*
+
+@collections/all
+url *https://www.curiocottage.in/collections/all/*
+
+@collections/shop-all-republic-sale
+url *https://www.curiocottage.in/collections/shop-all-republic-sale/*
+
+@collections/shop-all
+url *https://www.curiocottage.in/collections/shop-all/*
+
+@collections/diwali
+url *https://www.curiocottage.in/collections/diwali/*
+
+@collections/black-friday-sale-2023
+url *https://www.curiocottage.in/collections/black-friday-sale-2023/*
+
+@collections/collections-all
+url *https://www.curiocottage.in/collections/collections-all/*
+
+@collections/engagement
+url *https://www.curiocottage.in/collections/engagement/*
+
+@collections/under-3000
+url *https://www.curiocottage.in/collections/under-3000/*
+
+@collections/shop-by-occasions
+url *https://www.curiocottage.in/collections/shop-by-occasions/*
+
+@collections/festive-1
+url *https://www.curiocottage.in/collections/festive-1/*
+
+@collections/sangeet
+url *https://www.curiocottage.in/collections/sangeet/*
+
+@collections/festive-ethnic-jewellery
+url *https://www.curiocottage.in/collections/festive-ethnic-jewellery/*
+
+@collections/ethnic-accessories
+url *https://www.curiocottage.in/collections/ethnic-accessories/*
+
+@collections/ethnic
+url *https://www.curiocottage.in/collections/ethnic/*
+
+@collections/black-friday-sale-flat-35-off
+url *https://www.curiocottage.in/collections/black-friday-sale-flat-35-off/*
+
+@collections/seasonal-sale
+url *https://www.curiocottage.in/collections/seasonal-sale/*
+
+@collections/upto-20-off
+url *https://www.curiocottage.in/collections/upto-20-off/*
+
+@collections/festive
+url *https://www.curiocottage.in/collections/festive/*
+
+@collections/whats-new
+url *https://www.curiocottage.in/collections/whats-new/*
+
+@collections/the-bridal-edit-earrings
+url *https://www.curiocottage.in/collections/the-bridal-edit-earrings/*
+
+@collections/valentines-sale
+url *https://www.curiocottage.in/collections/valentines-sale/*
+
+@collections/kundan
+url *https://www.curiocottage.in/collections/kundan/*
+
+@collections/festive-gifting
+url *https://www.curiocottage.in/collections/festive-gifting/*
+
+@collections/under-2000
+url *https://www.curiocottage.in/collections/under-2000/*
+
+@collections/gifts-for-her
+url *https://www.curiocottage.in/collections/gifts-for-her/*
+
+@collections/kundan-jewellery
+url *https://www.curiocottage.in/collections/kundan-jewellery/*
+
+@collections/freedom-sale
+url *https://www.curiocottage.in/collections/freedom-sale/*
+
+@collections/floral-jewellery
+url *https://www.curiocottage.in/collections/floral-jewellery/*
+
+@collections/festive-shop-by-occasion
+url *https://www.curiocottage.in/collections/festive-shop-by-occasion/*
+
+@collections/baisakhi-sale
+url *https://www.curiocottage.in/collections/baisakhi-sale/*
+
+@collections/birthday-bash-sale
+url *https://www.curiocottage.in/collections/birthday-bash-sale/*
+
+@collections/holi-special-jewelry
+url *https://www.curiocottage.in/collections/holi-special-jewelry/*
+
+@collections/under-5000
+url *https://www.curiocottage.in/collections/under-5000/*
+
+@collections/the-bridal-edit-rings
+url *https://www.curiocottage.in/collections/the-bridal-edit-rings/*
+
+@collections/cocktail
+url *https://www.curiocottage.in/collections/cocktail/*
+
+@collections/wedding
+url *https://www.curiocottage.in/collections/wedding/*
+
+@collections/earrings
+url *https://www.curiocottage.in/collections/earrings/*
+
+@collections/bridal
+url *https://www.curiocottage.in/collections/bridal/*
+
+@collections/new-year
+url *https://www.curiocottage.in/collections/new-year/*
+
+@collections/the-bridal-edit
+url *https://www.curiocottage.in/collections/the-bridal-edit/*
+
+@collections/shop-over-5000
+url *https://www.curiocottage.in/collections/shop-over-5000/*
+
+@collections/for-the-bride
+url *https://www.curiocottage.in/collections/for-the-bride/*
+
+@collections/the-bridal-edit-accessories
+url *https://www.curiocottage.in/collections/the-bridal-edit-accessories/*
+
+@collections/vivaah-1
+url *https://www.curiocottage.in/collections/vivaah-1/*
+
+@collections/haldi
+url *https://www.curiocottage.in/collections/haldi/*
+
+@collections/baisakhi-edit
+url *https://www.curiocottage.in/collections/baisakhi-edit/*
+
+@collections/party-wear-jewelry
+url *https://www.curiocottage.in/collections/party-wear-jewelry/*
+
+@collections/coloured-stones
+url *https://www.curiocottage.in/collections/coloured-stones/*
+
+@collections/diamante
+url *https://www.curiocottage.in/collections/diamante/*
+
+@collections/contemporary
+url *https://www.curiocottage.in/collections/contemporary/*
+
+@collections/bridal-favors-and-mehendi-gifts
+url *https://www.curiocottage.in/collections/bridal-favors-and-mehendi-gifts/*
+
+@collections/shine-on
+url *https://www.curiocottage.in/collections/shine-on/*
+
+@collections/anniversary-gifts
+url *https://www.curiocottage.in/collections/anniversary-gifts/*
+
+@collections/shimmer-and-shine
+url *https://www.curiocottage.in/collections/shimmer-and-shine/*
+
+@collections/summer-wedding
+url *https://www.curiocottage.in/collections/summer-wedding/*
+
+@collections/under-10000
+url *https://www.curiocottage.in/collections/under-10000/*
+
+@collections/brides-mom
+url *https://www.curiocottage.in/collections/brides-mom/*
+
+@collections/silver-finery
+url *https://www.curiocottage.in/collections/silver-finery/*
+
+@collections/honeymoon
+url *https://www.curiocottage.in/collections/honeymoon/*
+
+@collections/bridesmaid
+url *https://www.curiocottage.in/collections/bridesmaid/*
+
+@collections/kundan-jewellery-1
+url *https://www.curiocottage.in/collections/kundan-jewellery-1/*
+
+@collections/meira-accessories
+url *https://www.curiocottage.in/collections/meira-accessories/*
+
+@collections/meira
+url *https://www.curiocottage.in/collections/meira/*
+
+@collections/jet-set-vacay
+url *https://www.curiocottage.in/collections/jet-set-vacay/*
+
+@collections/everyday-essential
+url *https://www.curiocottage.in/collections/everyday-essential/*
+
+@collections/9-5-edit
+url *https://www.curiocottage.in/collections/9-5-edit/*
+
+@collections/ganesh-chaturthi-special
+url *https://www.curiocottage.in/collections/ganesh-chaturthi-special/*
+
+@collections/clearance-sale
+url *https://www.curiocottage.in/collections/clearance-sale/*
+
+@collections/sale-collection
+url *https://www.curiocottage.in/collections/sale-collection/*
+
+@collections/ethnic-earrings
+url *https://www.curiocottage.in/collections/ethnic-earrings/*
+
+@collections/92-5-silver
+url *https://www.curiocottage.in/collections/92-5-silver/*
+
+@collections/9-to-9
+url *https://www.curiocottage.in/collections/9-to-9/*
+
+@collections/silver
+url *https://www.curiocottage.in/collections/silver/*
+
+@collections/bridal-favours
+url *https://www.curiocottage.in/collections/bridal-favours/*
+
+@collections/everyday-necklaces
+url *https://www.curiocottage.in/collections/everyday-necklaces/*
+
+@collections/flat20
+url *https://www.curiocottage.in/collections/flat20/*
+
+@collections/studs
+url *https://www.curiocottage.in/collections/studs/*
+
+@collections/bangles-bracelets
+url *https://www.curiocottage.in/collections/bangles-bracelets/*
+
+@collections/necklaces
+url *https://www.curiocottage.in/collections/necklaces/*
+
+@collections/necklace-sets
+url *https://www.curiocottage.in/collections/necklace-sets/*
+
+@collections/jewelry-sets
+url *https://www.curiocottage.in/collections/jewelry-sets/*
+
+@collections/christmas
+url *https://www.curiocottage.in/collections/christmas/*
+
+@collections/gypsy
+url *https://www.curiocottage.in/collections/gypsy/*
+
+@collections/black-friday-sale-flat-60-off
+url *https://www.curiocottage.in/collections/black-friday-sale-flat-60-off/*
+
+@collections/aria
+url *https://www.curiocottage.in/collections/aria/*
+
+@collections/two-toned-jewellery
+url *https://www.curiocottage.in/collections/two-toned-jewellery/*
+
+@collections/aria-new
+url *https://www.curiocottage.in/collections/aria-new/*
+
+@collections/oxidised-jewellery
+url *https://www.curiocottage.in/collections/oxidised-jewellery/*
+
+@collections/oxidised
+url *https://www.curiocottage.in/collections/oxidised/*
+
+@collections/aria-shop-all
+url *https://www.curiocottage.in/collections/aria-shop-all/*
+
+@collections/navratri-special-jewelry
+url *https://www.curiocottage.in/collections/navratri-special-jewelry/*
+
+@collections/floral-jewellery-1
+url *https://www.curiocottage.in/collections/floral-jewellery-1/*
+
+@collections/silver-akshaya-tritiya
+url *https://www.curiocottage.in/collections/silver-akshaya-tritiya/*
+
+@collections/drops-danglers
+url *https://www.curiocottage.in/collections/drops-danglers/*
+
+@collections/the-zoya
+url *https://www.curiocottage.in/collections/the-zoya/*
+
+@collections/spring-bling
+url *https://www.curiocottage.in/collections/spring-bling/*
+
+@collections/friendship-day-gifting
+url *https://www.curiocottage.in/collections/friendship-day-gifting/*
+
+@collections/chokers
+url *https://www.curiocottage.in/collections/chokers/*
+
+@collections/just-like-diamonds
+url *https://www.curiocottage.in/collections/just-like-diamonds/*
+
+@collections/eid-special-jewelry
+url *https://www.curiocottage.in/collections/eid-special-jewelry/*
+
+@collections/maang-tikka
+url *https://www.curiocottage.in/collections/maang-tikka/*
+
+@collections/work
+url *https://www.curiocottage.in/collections/work/*
+
+@collections/our-picks-for-eid
+url *https://www.curiocottage.in/collections/our-picks-for-eid/*
+
+@collections/head-accessories
+url *https://www.curiocottage.in/collections/head-accessories/*
+
+@collections/pearl-sets
+url *https://www.curiocottage.in/collections/pearl-sets/*
+
+@collections/shop-under-1000
+url *https://www.curiocottage.in/collections/shop-under-1000/*
+
+@collections/silver-earrings
+url *https://www.curiocottage.in/collections/silver-earrings/*
+
+@collections/rings
+url *https://www.curiocottage.in/collections/rings/*
+
+@collections/bangles
+url *https://www.curiocottage.in/collections/bangles/*
+
+@collections/summer-ready-jewels
+url *https://www.curiocottage.in/collections/summer-ready-jewels/*
+
+@collections/trending-now-1
+url *https://www.curiocottage.in/collections/trending-now-1/*
+
+@collections/silver-necklaces
+url *https://www.curiocottage.in/collections/silver-necklaces/*
+
+@collections/bridal-earrings
+url *https://www.curiocottage.in/collections/bridal-earrings/*
+
+@collections/silver-necklaces-1
+url *https://www.curiocottage.in/collections/silver-necklaces-1/*
+
+@collections/the-bridal-edit-jewelry-sets
+url *https://www.curiocottage.in/collections/the-bridal-edit-jewelry-sets/*
+
+@collections/shop-over-10000
+url *https://www.curiocottage.in/collections/shop-over-10000/*
+
+@collections/colour-splash
+url *https://www.curiocottage.in/collections/colour-splash/*
+
+@collections/coloured-stone-necklaces
+url *https://www.curiocottage.in/collections/coloured-stone-necklaces/*
+
+@collections/black-friday-sale-flat-30-off
+url *https://www.curiocottage.in/collections/black-friday-sale-flat-30-off/*
+
+@collections/aina
+url *https://www.curiocottage.in/collections/aina/*
+
+@collections/diamante-earrings
+url *https://www.curiocottage.in/collections/diamante-earrings/*
+
+@collections/necklaces-and-pendants
+url *https://www.curiocottage.in/collections/necklaces-and-pendants/*
+
+@collections/chains
+url *https://www.curiocottage.in/collections/chains/*
+
+@~Other
+path /*
+# ----End of level2Folders Segment----
+
+# ----Folder URL analysis----
+# --https://www.curiocottage.in/collections/best-sellers (URLs found: 749)
+# --https://www.curiocottage.in/collections/wedding-gift (URLs found: 749)
+# --https://www.curiocottage.in/collections/birthday-gifts (URLs found: 749)
+# --https://www.curiocottage.in/collections/all-products (URLs found: 749)
+# --https://www.curiocottage.in/collections/lohri (URLs found: 749)
+# --https://www.curiocottage.in/collections/rakhi-gifting (URLs found: 749)
+# --https://www.curiocottage.in/collections/valentines-day-special (URLs found: 749)
+# --https://www.curiocottage.in/collections/eoss (URLs found: 749)
+# --https://www.curiocottage.in/collections/womens-day (URLs found: 749)
+# --https://www.curiocottage.in/collections/monsoon-sale (URLs found: 749)
+# --https://www.curiocottage.in/collections/black-friday-sale (URLs found: 747)
+# --https://www.curiocottage.in/collections/all (URLs found: 746)
+# --https://www.curiocottage.in/collections/shop-all-republic-sale (URLs found: 702)
+# --https://www.curiocottage.in/collections/shop-all (URLs found: 595)
+# --https://www.curiocottage.in/collections/diwali (URLs found: 486)
+# --https://www.curiocottage.in/collections/black-friday-sale-2023 (URLs found: 461)
+# --https://www.curiocottage.in/collections/collections-all (URLs found: 423)
+# --https://www.curiocottage.in/collections/engagement (URLs found: 418)
+# --https://www.curiocottage.in/collections/under-3000 (URLs found: 410)
+# --https://www.curiocottage.in/collections/shop-by-occasions (URLs found: 387)
+# --https://www.curiocottage.in/collections/festive-1 (URLs found: 359)
+# --https://www.curiocottage.in/collections/sangeet (URLs found: 346)
+# --https://www.curiocottage.in/collections/festive-ethnic-jewellery (URLs found: 328)
+# --https://www.curiocottage.in/collections/ethnic-accessories (URLs found: 326)
+# --https://www.curiocottage.in/collections/ethnic (URLs found: 326)
+# --https://www.curiocottage.in/collections/black-friday-sale-flat-35-off (URLs found: 300)
+# --https://www.curiocottage.in/collections/seasonal-sale (URLs found: 298)
+# --https://www.curiocottage.in/collections/upto-20-off (URLs found: 292)
+# --https://www.curiocottage.in/collections/festive (URLs found: 288)
+# --https://www.curiocottage.in/collections/whats-new (URLs found: 288)
+# --https://www.curiocottage.in/collections/the-bridal-edit-earrings (URLs found: 284)
+# --https://www.curiocottage.in/collections/valentines-sale (URLs found: 261)
+# --https://www.curiocottage.in/collections/kundan (URLs found: 255)
+# --https://www.curiocottage.in/collections/festive-gifting (URLs found: 240)
+# --https://www.curiocottage.in/collections/under-2000 (URLs found: 238)
+# --https://www.curiocottage.in/collections/gifts-for-her (URLs found: 237)
+# --https://www.curiocottage.in/collections/kundan-jewellery (URLs found: 227)
+# --https://www.curiocottage.in/collections/freedom-sale (URLs found: 217)
+# --https://www.curiocottage.in/collections/floral-jewellery (URLs found: 216)
+# --https://www.curiocottage.in/collections/festive-shop-by-occasion (URLs found: 212)
+# --https://www.curiocottage.in/collections/baisakhi-sale (URLs found: 205)
+# --https://www.curiocottage.in/collections/birthday-bash-sale (URLs found: 205)
+# --https://www.curiocottage.in/collections/holi-special-jewelry (URLs found: 193)
+# --https://www.curiocottage.in/collections/under-5000 (URLs found: 192)
+# --https://www.curiocottage.in/collections/the-bridal-edit-rings (URLs found: 188)
+# --https://www.curiocottage.in/collections/cocktail (URLs found: 187)
+# --https://www.curiocottage.in/collections/wedding (URLs found: 186)
+# --https://www.curiocottage.in/collections/earrings (URLs found: 171)
+# --https://www.curiocottage.in/collections/bridal (URLs found: 169)
+# --https://www.curiocottage.in/collections/new-year (URLs found: 167)
+# --https://www.curiocottage.in/collections/the-bridal-edit (URLs found: 164)
+# --https://www.curiocottage.in/collections/shop-over-5000 (URLs found: 164)
+# --https://www.curiocottage.in/collections/for-the-bride (URLs found: 163)
+# --https://www.curiocottage.in/collections/the-bridal-edit-accessories (URLs found: 163)
+# --https://www.curiocottage.in/collections/vivaah-1 (URLs found: 163)
+# --https://www.curiocottage.in/collections/haldi (URLs found: 158)
+# --https://www.curiocottage.in/collections/baisakhi-edit (URLs found: 156)
+# --https://www.curiocottage.in/collections/party-wear-jewelry (URLs found: 151)
+# --https://www.curiocottage.in/collections/coloured-stones (URLs found: 149)
+# --https://www.curiocottage.in/collections/diamante (URLs found: 147)
+# --https://www.curiocottage.in/collections/contemporary (URLs found: 147)
+# --https://www.curiocottage.in/collections/bridal-favors-and-mehendi-gifts (URLs found: 147)
+# --https://www.curiocottage.in/collections/shine-on (URLs found: 147)
+# --https://www.curiocottage.in/collections/anniversary-gifts (URLs found: 145)
+# --https://www.curiocottage.in/collections/shimmer-and-shine (URLs found: 145)
+# --https://www.curiocottage.in/collections/summer-wedding (URLs found: 137)
+# --https://www.curiocottage.in/collections/under-10000 (URLs found: 129)
+# --https://www.curiocottage.in/collections/brides-mom (URLs found: 129)
+# --https://www.curiocottage.in/collections/silver-finery (URLs found: 127)
+# --https://www.curiocottage.in/collections/honeymoon (URLs found: 127)
+# --https://www.curiocottage.in/collections/bridesmaid (URLs found: 125)
+# --https://www.curiocottage.in/collections/kundan-jewellery-1 (URLs found: 125)
+# --https://www.curiocottage.in/collections/meira-accessories (URLs found: 125)
+# --https://www.curiocottage.in/collections/meira (URLs found: 125)
+# --https://www.curiocottage.in/collections/jet-set-vacay (URLs found: 124)
+# --https://www.curiocottage.in/collections/everyday-essential (URLs found: 123)
+# --https://www.curiocottage.in/collections/9-5-edit (URLs found: 123)
+# --https://www.curiocottage.in/collections/ganesh-chaturthi-special (URLs found: 123)
+# --https://www.curiocottage.in/collections/clearance-sale (URLs found: 112)
+# --https://www.curiocottage.in/collections/sale-collection (URLs found: 106)
+# --https://www.curiocottage.in/collections/ethnic-earrings (URLs found: 104)
+# --https://www.curiocottage.in/collections/92-5-silver (URLs found: 101)
+# --https://www.curiocottage.in/collections/9-to-9 (URLs found: 101)
+# --https://www.curiocottage.in/collections/silver (URLs found: 101)
+# --https://www.curiocottage.in/collections/bridal-favours (URLs found: 101)
+# --https://www.curiocottage.in/collections/everyday-necklaces (URLs found: 101)
+# --https://www.curiocottage.in/collections/flat20 (URLs found: 99)
+# --https://www.curiocottage.in/collections/studs (URLs found: 85)
+# --https://www.curiocottage.in/collections/bangles-bracelets (URLs found: 85)
+# --https://www.curiocottage.in/collections/necklaces (URLs found: 84)
+# --https://www.curiocottage.in/collections/necklace-sets (URLs found: 81)
+# --https://www.curiocottage.in/collections/jewelry-sets (URLs found: 79)
+# --https://www.curiocottage.in/collections/christmas (URLs found: 78)
+# --https://www.curiocottage.in/collections/gypsy (URLs found: 77)
+# --https://www.curiocottage.in/collections/black-friday-sale-flat-60-off (URLs found: 77)
+# --https://www.curiocottage.in/collections/aria (URLs found: 76)
+# --https://www.curiocottage.in/collections/two-toned-jewellery (URLs found: 74)
+# --https://www.curiocottage.in/collections/aria-new (URLs found: 74)
+# --https://www.curiocottage.in/collections/oxidised-jewellery (URLs found: 74)
+# --https://www.curiocottage.in/collections/oxidised (URLs found: 74)
+# --https://www.curiocottage.in/collections/aria-shop-all (URLs found: 74)
+# --https://www.curiocottage.in/collections/navratri-special-jewelry (URLs found: 74)
+# --https://www.curiocottage.in/collections/floral-jewellery-1 (URLs found: 69)
+# --https://www.curiocottage.in/collections/silver-akshaya-tritiya (URLs found: 63)
+# --https://www.curiocottage.in/collections/drops-danglers (URLs found: 58)
+# --https://www.curiocottage.in/collections/the-zoya (URLs found: 56)
+# --https://www.curiocottage.in/collections/spring-bling (URLs found: 56)
+# --https://www.curiocottage.in/collections/friendship-day-gifting (URLs found: 56)
+# --https://www.curiocottage.in/collections/chokers (URLs found: 56)
+# --https://www.curiocottage.in/collections/just-like-diamonds (URLs found: 54)
+# --https://www.curiocottage.in/collections/eid-special-jewelry (URLs found: 54)
+# --https://www.curiocottage.in/collections/maang-tikka (URLs found: 54)
+# --https://www.curiocottage.in/collections/work (URLs found: 54)
+# --https://www.curiocottage.in/collections/our-picks-for-eid (URLs found: 54)
+# --https://www.curiocottage.in/collections/head-accessories (URLs found: 53)
+# --https://www.curiocottage.in/collections/pearl-sets (URLs found: 52)
+# --https://www.curiocottage.in/collections/shop-under-1000 (URLs found: 51)
+# --https://www.curiocottage.in/collections/silver-earrings (URLs found: 50)
+# --https://www.curiocottage.in/collections/rings (URLs found: 50)
+# --https://www.curiocottage.in/collections/bangles (URLs found: 49)
+# --https://www.curiocottage.in/collections/summer-ready-jewels (URLs found: 49)
+# --https://www.curiocottage.in/collections/trending-now-1 (URLs found: 48)
+# --https://www.curiocottage.in/collections/silver-necklaces (URLs found: 47)
+# --https://www.curiocottage.in/collections/bridal-earrings (URLs found: 47)
+# --https://www.curiocottage.in/collections/silver-necklaces-1 (URLs found: 47)
+# --https://www.curiocottage.in/collections/the-bridal-edit-jewelry-sets (URLs found: 44)
+# --https://www.curiocottage.in/collections/shop-over-10000 (URLs found: 44)
+# --https://www.curiocottage.in/collections/colour-splash (URLs found: 44)
+# --https://www.curiocottage.in/collections/coloured-stone-necklaces (URLs found: 44)
+# --https://www.curiocottage.in/collections/black-friday-sale-flat-30-off (URLs found: 43)
+# --https://www.curiocottage.in/collections/aina (URLs found: 41)
+# --https://www.curiocottage.in/collections/diamante-earrings (URLs found: 40)
+# --https://www.curiocottage.in/collections/necklaces-and-pendants (URLs found: 40)
+# --https://www.curiocottage.in/collections/chains (URLs found: 39)
+
+
+[segment:sl_subdomains]
+@Home
+path /
+
+@www.curiocottage.in
+url *https://www.curiocottage.in/*
+
+@~Other
+path /*
+# ----End of subDomains Segment----
+
+# ----subDomains Folder URL analysis----
+# --https://www.curiocottage.in (URLs found: 31981)
+
+
+[segment:sl_parameter_keys]
+@page
+query *page=*
+
+@_pos
+query *_pos=*
+
+@pr_prod_strat
+query *pr_prod_strat=*
+
+@~Other
+path /*
+# ----End of parameterKeys Segment----
+
+# ----parameterKeys URL analysis----
+# --page (URLs found: 1204)
+# --_pos (URLs found: 11)
+# --pr_prod_strat (URLs found: 2)
+
+
+[segment:sl_parameter_usage]
+@Parameters
+query *=*
+
+@Clean
+path /*
+
+# ----End of sl_parameter_usage----
+
+
+[segment:sl_no_of_parameters]
+@Home
+path /
+
+@5_Parameters
+query rx:=(.)+=(.)+=(.)+(.)+(.)+
+
+@4_Parameters
+query rx:=(.)+=(.)+=(.)+(.)+
+
+@3_Parameters
+query rx:=(.)+=(.)+=(.)+
+
+@2_Parameters
+query rx:=(.)+=(.)+
+
+@1_Parameter
+query rx:=(.)+
+
+@~Other
+path /*
+
+# ----End of sl_no_of_parameters----
+
+
+[segment:sl_no_of_folders]
+@Home
+path /
+
+@Folders/5
+path rx:^/[^/]+/[^/]+/[^/]+/[^/]+/[^/]+
+
+@Folders/4
+path rx:^/[^/]+/[^/]+/[^/]+/[^/]+
+
+@Folders/3
+path rx:^/[^/]+/[^/]+/[^/]+
+
+@Folders/2
+path rx:^/[^/]+/[^/]+
+
+@Folders/1
+path rx:^/[^/]+
+
+@~Other
+path /*
+
+# ----End of sl_no_of_folders----
+
+
+[segment:sl_shopify]
+@Home
+path /
+
+@PDP/Products/Variants
+path */products/*
+URL *variant=*
+
+@PDP/Products
+path */products/*
+
+@PLP/Collections
+path */collections/*
+
+@Pages
+path */pages/*
+
+@~Other
+path /*
+# ----End of sl_shopify----
+
+
+[segment:s_Static_Resources]  
+@true  
+or (  
+path *.bmp
+path *.css
+path *.doc
+path *.gif
+path *.ief
+path *.jpe
+path *.jpeg
+path *.jpg
+path *.js
+path *.m1v
+path *.mov
+path *.mp2
+path *.mp3
+path *.mp4
+path *.mpa
+path *.mpe
+path *.mpeg
+path *.mpg
+path *.pbm
+path *.pdf
+path *.pgm
+path *.png
+path *.pnm
+path *.ppm
+path *.pps
+path *.ppt
+path *.ps
+path *.qt
+path *.ras
+path *.rgb
+path *.swf
+path *.tif
+path *.tiff
+path *.tsv
+path *.txt
+path *.vcf
+path *.wav
+path *.xbm
+path *.xls
+path *.xml
+path *.xpdl
+path *.xpm
+path *.xwd
+path */api/*
+)
+
+@~Other
+path /*
+
+# ----End of sl_static_resources----
