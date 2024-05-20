@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // Used to get the latest slug
@@ -30,6 +31,13 @@ type basicKPIs struct {
 	Results []struct {
 		KPI []int `json:"metrics"`
 	} `json:"results"`
+}
+
+// DateRanges struct used to hold the monthly date ranges and the YTD date range
+// Used for revenue and visits data
+type DateRanges struct {
+	MonthlyRanges [][2]time.Time
+	YTDRange      [2]time.Time
 }
 
 // Version
@@ -84,8 +92,12 @@ func main() {
 	// Basic KPIs
 	seoFunnel()
 
+	displaySeparator()
+
 	// Revenue for the last 12 months
-	//seoRevenue()
+	seoRevenue()
+
+	displaySeparator()
 
 	// Visits for the last 12 months
 	//seoVisits()
@@ -105,14 +117,14 @@ func checkCredentials() {
 
 		credentialsInput = true
 
-		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit apiTester" +
+		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit bqlTester" +
 			"\n")
 
 		fmt.Print(purple + "\nEnter organisation name: " + reset)
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using bqlTester. Goodbye!\n")
 			os.Exit(0)
 		}
 
@@ -120,7 +132,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using bqlTester. Goodbye!\n")
 			os.Exit(0)
 		}
 	}
@@ -128,7 +140,7 @@ func checkCredentials() {
 
 // Basic KPIs
 func seoFunnel() {
-	fmt.Println(purple + "\nGetting the latest funnel insights." + reset)
+	fmt.Println(purple + bold + "\nGetting the site crawler insights\n" + reset)
 
 	// Get the latest analysis slug
 	var latestSlug = getLatestSlug()
@@ -799,18 +811,18 @@ func seoFunnel() {
 	fmt.Println(bold+"Slow URLs (1000-1999ms):"+reset, slowSpeedURLs)
 	fmt.Println(bold+"Slowest URLs (>2000ms):"+reset, slowestURLs)
 	fmt.Println(green + "\nURLs By Depth for text/HTML content" + reset)
-	fmt.Println(bold+"Depth 0 URLs:"+reset, depth0URLs)
-	fmt.Println(bold+"Depth 1 URLs:"+reset, depth1URLs)
-	fmt.Println(bold+"Depth 2 URLs:"+reset, depth2URLs)
-	fmt.Println(bold+"Depth 3 URLs:"+reset, depth3URLs)
-	fmt.Println(bold+"Depth 4 URLs:"+reset, depth4URLs)
-	fmt.Println(bold+"Depth 5 URLs:"+reset, depth5URLs)
-	fmt.Println(bold+"Depth 6 URLs:"+reset, depth6URLs)
-	fmt.Println(bold+"Depth 7 URLs:"+reset, depth7URLs)
-	fmt.Println(bold+"Depth 8 URLs:"+reset, depth8URLs)
-	fmt.Println(bold+"Depth 9 URLs:"+reset, depth9URLs)
-	fmt.Println(bold+"Depth 10+ URLs:"+reset, depth10PlusURLs)
-	fmt.Println(green + "\nURLs Distribution In Sitemaps" + reset)
+	fmt.Println(bold+"Depth 0:"+reset, depth0URLs)
+	fmt.Println(bold+"Depth 1:"+reset, depth1URLs)
+	fmt.Println(bold+"Depth 2:"+reset, depth2URLs)
+	fmt.Println(bold+"Depth 3:"+reset, depth3URLs)
+	fmt.Println(bold+"Depth 4:"+reset, depth4URLs)
+	fmt.Println(bold+"Depth 5:"+reset, depth5URLs)
+	fmt.Println(bold+"Depth 6:"+reset, depth6URLs)
+	fmt.Println(bold+"Depth 7:"+reset, depth7URLs)
+	fmt.Println(bold+"Depth 8:"+reset, depth8URLs)
+	fmt.Println(bold+"Depth 9:"+reset, depth9URLs)
+	fmt.Println(bold+"Depth 10+:"+reset, depth10PlusURLs)
+	fmt.Println(green + "\nURL Distribution In Sitemaps" + reset)
 	fmt.Println(bold+"Indexable URLs in sitemap:"+reset, indexableInSitemap)
 	fmt.Println(bold+"Non indexable URLs in sitemap:"+reset, nonIndexableInSitemap)
 
@@ -885,6 +897,64 @@ func getLatestSlug() string {
 	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
 
 	return (responseObject.Results[0].Slug)
+}
+
+func seoRevenue() {
+
+	fmt.Println(purple + bold + "\nGetting revenue insights" + reset)
+
+	// Get the date ranges
+	dateRanges := calculateDateRanges()
+
+	// Print the monthly date ranges
+	fmt.Println(bold + "\nMonthly Date Ranges:" + reset)
+	for _, dateRange := range dateRanges.MonthlyRanges {
+		fmt.Printf("Start: %s, End: %s\n", dateRange[0].Format("2006-01-02"), dateRange[1].Format("2006-01-02"))
+	}
+
+	// Print the year-to-date range
+	fmt.Println(bold + "\nYear-to-Date Range:" + reset)
+	fmt.Printf("Start: %s, End: %s\n", dateRanges.YTDRange[0].Format("2006-01-02"), dateRanges.YTDRange[1].Format("2006-01-02"))
+}
+
+// Get the date ranges for the revenue and visits
+func calculateDateRanges() DateRanges {
+	currentTime := time.Now()
+	dateRanges := make([][2]time.Time, 12)
+
+	// Calculate the YTD date range
+	year, _, _ := currentTime.Date()
+	loc := currentTime.Location()
+	startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, loc)
+	endOfYTD := currentTime
+	yearToDateRange := [2]time.Time{startOfYear, endOfYTD}
+
+	// Calculate the date ranges for the last 12 months
+	for i := 0; i < 12; i++ {
+		// Calculate the start and end dates for the current range
+		year, month, _ := currentTime.Date()
+		loc := currentTime.Location()
+
+		// Start of the current month range
+		startDate := time.Date(year, month, 1, 0, 0, 0, 0, loc)
+
+		var endDate time.Time
+		if i == 0 {
+			// End of the current month range (up to the current date)
+			endDate = currentTime
+		} else {
+			// End of the previous month range
+			endDate = startDate.AddDate(0, 1, -1)
+		}
+
+		// Store the range
+		dateRanges[11-i] = [2]time.Time{startDate, endDate}
+
+		// Move to the previous month
+		currentTime = startDate.AddDate(0, -1, 0)
+	}
+
+	return DateRanges{MonthlyRanges: dateRanges, YTDRange: yearToDateRange}
 }
 
 func bqlTesterDone() {
