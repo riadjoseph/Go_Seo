@@ -40,6 +40,17 @@ type DateRanges struct {
 	YTDRange      [2]time.Time
 }
 
+// Used to identify which analytics tool is in use
+type AnalyticsID struct {
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Date        string      `json:"date"`
+	Timestamped bool        `json:"timestamped"`
+	DateStart   string      `json:"date_start"`
+	DateEnd     string      `json:"date_end"`
+	GenericName interface{} `json:"generic_name"`
+}
+
 // Version
 var version = "v0.1"
 
@@ -89,8 +100,8 @@ func main() {
 
 	displaySeparator()
 
-	// Basic KPIs
-	seoFunnel()
+	// Crawl stats KPIs
+	crawlStats()
 
 	displaySeparator()
 
@@ -101,9 +112,6 @@ func main() {
 
 	// Visits for the last 12 months
 	//seoVisits()
-
-	// ActionBoard actions for the last crawl
-	//seoActionBoard()
 
 	bqlTesterDone()
 }
@@ -139,7 +147,7 @@ func checkCredentials() {
 }
 
 // Basic KPIs
-func seoFunnel() {
+func crawlStats() {
 	fmt.Println(purple + bold + "\nGetting the site crawler insights\n" + reset)
 
 	// Get the latest analysis slug
@@ -632,6 +640,14 @@ func seoFunnel() {
         }
 }`, latestSlug, latestSlug, latestSlug)
 
+	// URLs crawled by Botify (aka Known pages)
+	bqlCrawlByBotifyURLs := fmt.Sprintf(`
+{
+					"field": "crawl.%s.count_urls_crawl"
+}`, latestSlug)
+
+	// END OF BQL GENERATION
+
 	// Array of BQL fragments used to construct the final BQL
 	metrics := []string{
 		bqlIndexableUrls,
@@ -670,6 +686,7 @@ func seoFunnel() {
 		bqlQueriesDepth[10],
 		bqlIndexableInSitemapURLs,
 		bqlNonIndexableInSitemapURLs,
+		bqlCrawlByBotifyURLs,
 	}
 
 	// Join the metrics BQL fragments together
@@ -723,7 +740,9 @@ func seoFunnel() {
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
 	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
 		log.Fatal("Error. seoFunnel. Error: ", errorCheck)
@@ -781,8 +800,10 @@ func seoFunnel() {
 	depth10PlusURLs := firstResult.KPI[33]
 	indexableInSitemap := firstResult.KPI[34]
 	nonIndexableInSitemap := firstResult.KPI[35]
+	crawledByBotify := firstResult.KPI[36]
 
 	// Print the results
+	fmt.Println(bold+"Total crawled by Botify:"+reset, crawledByBotify)
 	fmt.Println(bold+"Indexable:"+reset, indexableURLs)
 	fmt.Println(bold+"Non indexable:"+reset, nonIndexableURLs)
 	fmt.Println(green + "\nKPIs for Indexable pages" + reset)
@@ -825,7 +846,6 @@ func seoFunnel() {
 	fmt.Println(green + "\nURL Distribution In Sitemaps" + reset)
 	fmt.Println(bold+"Indexable URLs in sitemap:"+reset, indexableInSitemap)
 	fmt.Println(bold+"Non indexable URLs in sitemap:"+reset, nonIndexableInSitemap)
-
 }
 
 // Function to generate the query for a given depth
@@ -863,8 +883,11 @@ func getLatestSlug() string {
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. seoFunnel. Cannot create request: "+reset, errorCheck)
 	}
+
+	// Define the headers
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Content-Type", "application/json")
 
 	res, errorCheck := http.DefaultClient.Do(req)
 	if errorCheck != nil {
@@ -896,7 +919,7 @@ func getLatestSlug() string {
 	fmt.Println("Project name:", projectName)
 	fmt.Println("Latest analysis Slug:", responseObject.Results[0].Slug)
 
-	return (responseObject.Results[0].Slug)
+	return responseObject.Results[0].Slug
 }
 
 func seoRevenue() {
@@ -906,15 +929,99 @@ func seoRevenue() {
 	// Get the date ranges
 	dateRanges := calculateDateRanges()
 
+	// Identify which analytics tool is used
+	analyticsID := getAnalyticsID()
+	fmt.Println("Analytics identified:", analyticsID)
+
+	// Get the revenue data
+	getRevenueData(analyticsID)
+
 	// Print the monthly date ranges
 	fmt.Println(bold + "\nMonthly Date Ranges:" + reset)
 	for _, dateRange := range dateRanges.MonthlyRanges {
-		fmt.Printf("Start: %s, End: %s\n", dateRange[0].Format("2006-01-02"), dateRange[1].Format("2006-01-02"))
+		fmt.Printf("From %s to %s\n", dateRange[0].Format("2006-01-02"), dateRange[1].Format("2006-01-02"))
 	}
-
 	// Print the year-to-date range
 	fmt.Println(bold + "\nYear-to-Date Range:" + reset)
 	fmt.Printf("Start: %s, End: %s\n", dateRanges.YTDRange[0].Format("2006-01-02"), dateRanges.YTDRange[1].Format("2006-01-02"))
+}
+
+// Get the analytics ID
+func getRevenueData(analyticsID string) {
+	// Define the revenue endpoint
+	var urlAPIRevenueData string
+	if analyticsID == "visits.dip" {
+		urlAPIRevenueData = "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections/conversion.dip"
+	} else {
+		urlAPIRevenueData = "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections/conversion"
+	}
+
+	fmt.Println("\nRevenue data end point:", urlAPIRevenueData)
+	req, errorCheck := http.NewRequest("GET", urlAPIRevenueData, nil)
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Content-Type", "application/json")
+
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. getRevenueData. Cannot create request: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+}
+
+// Get the analytics ID
+func getAnalyticsID() string {
+	// First identify which analytics tool is integrated
+	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
+	fmt.Println("\nAnalytics ID end point:", urlAPIAnalyticsID)
+	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Content-Type", "application/json")
+
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. seoRevenue. Cannot create request: "+reset, errorCheck)
+		os.Exit(1)
+	}
+	// Create HTTP client and execute the request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, errorCheck := client.Do(req)
+	if errorCheck != nil {
+		log.Fatal("Error. seoFunnel. Error: ", errorCheck)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. seoRevenue. Cannot read response body: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+	// Unmarshal the JSON data into the struct
+	var analyticsIDs []AnalyticsID
+	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
+		log.Fatal(red+"Error. seoRevenue. Cannot unmarshall the JSON: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+	// Find and print the name value when the ID contains the word "visit"
+	// Assume the first instance of "visit" contains the analytics ID
+	for _, analyticsID := range analyticsIDs {
+		if strings.Contains(analyticsID.ID, "visit") {
+			return analyticsID.ID
+		}
+	}
+
+	return "noAnalyticsdFound"
+
 }
 
 // Get the date ranges for the revenue and visits
@@ -991,7 +1098,6 @@ func displayBanner() {
 	fmt.Println(checkmark + green + bold + " Site crawler insights (examples of site crawler KPI retrieval)" + reset)
 	fmt.Println(checkmark + green + bold + " Revenue" + reset)
 	fmt.Println(checkmark + green + bold + " Visits" + reset)
-	fmt.Println(checkmark + green + bold + " ActionBoard\n" + reset)
 }
 
 // Display the seperator
