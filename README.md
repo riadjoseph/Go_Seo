@@ -16,11 +16,9 @@ Usage: ./apiTester org_name project_name
 
 ## bqlTester (work in progress)
 Demonstartion of using BQL in Go. Included in this version are BQL queries for: 
-- Crawl stats
+- Site crawler stats
 - Revenue
-- Vists
-- ActionBoard recommendations  
-   
+- Vists   
 ```
 Usage: ./bqlTester (organisation and project name will be prompted for)    
 Usage: ./bqlTester org_name project_name    
