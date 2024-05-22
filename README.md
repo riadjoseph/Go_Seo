@@ -48,6 +48,14 @@ Usage: ./segmentifyLite org_name project_name
 ```
 **Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
 
+## botiftBotLite   
+Generate Botify crawls en-masse  
+**Note:** Populate a file called crawlme.txt with the start page URL for each of the sites you want to crawl.  
+```
+Usage: ./botifyBotLite (organisation and project name will be prompted for)    
+Usage: ./botifyBotLite project-prefix no_urls_to_crawl    
+```
+
 ## folderCount
 folderCount is used to identify and count all first level folders.  
 Up to 1MM URLs maximum are used to produce the analysis.  
