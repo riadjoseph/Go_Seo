@@ -212,7 +212,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using segmentifyLite. Goodbye!\n")
 			os.Exit(0)
 		}
 	}

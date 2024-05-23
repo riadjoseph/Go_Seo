@@ -19,12 +19,13 @@ echo - building bqlTester.go
 go build bqlTester.go
 echo
 echo "** Building Go_SEO utilities - Done!"
-echo
-echo "** Packaging binaries"
-tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite apiTester bqlTester
-echo
-echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
-echo
+#echo
+#echo "** Packaging binaries"
+#tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite apiTester bqlTester
+#echo
+#echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
+#echo
+echo "** Binaries tar file has NOT been generated"
 
 
 

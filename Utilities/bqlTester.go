@@ -51,6 +51,49 @@ type AnalyticsID struct {
 	GenericName interface{} `json:"generic_name"`
 }
 
+type transRevID struct {
+	ID       string        `json:"id"`
+	Name     string        `json:"name"`
+	Multiple bool          `json:"multiple"`
+	Fields   []field       `json:"fields"`
+	Groups   []interface{} `json:"groups"`
+	Category []interface{} `json:"category"`
+}
+
+type field struct {
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	Type           string      `json:"type"`
+	Subtype        string      `json:"subtype"`
+	Multiple       bool        `json:"multiple"`
+	Permissions    []string    `json:"permissions"`
+	Optional       bool        `json:"optional"`
+	Kind           string      `json:"kind"`
+	GlobalField    string      `json:"global_field"`
+	DiffReturnType interface{} `json:"diff_return_type"`
+	ApiOnly        bool        `json:"api_only"`
+	Meta           meta        `json:"meta"`
+	Suggestion     bool        `json:"suggestion"`
+}
+
+type meta struct {
+	RequiredFields []string `json:"required_fields"`
+}
+
+// Used to store the revenue, transactions and visits
+type Result struct {
+	Dimensions []interface{} `json:"dimensions"`
+	Metrics    []float64     `json:"metrics"`
+}
+
+type Response struct {
+	Results  []Result    `json:"results"`
+	Previous interface{} `json:"previous"`
+	Next     string      `json:"next"`
+	Page     int         `json:"page"`
+	Size     int         `json:"size"`
+}
+
 // Version
 var version = "v0.1"
 
@@ -706,15 +749,6 @@ func crawlStats() {
 	}
 }`, latestSlug, metricsString)
 
-	// Copy the BQL to the clipboard for pasting into Postman
-	cmd := exec.Command("pbcopy")
-	cmd.Stdin = strings.NewReader(bqlFunnelBody)
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("Error copying to clipboard:", err)
-		return
-	}
-
 	// Define the URL
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
 	fmt.Println("End point:", url, "\n")
@@ -964,9 +998,134 @@ func getRevenueData(analyticsID string) {
 	req.Header.Add("Authorization", "token "+botify_api_token)
 	req.Header.Add("Content-Type", "application/json")
 
+	// Create HTTP client and execute the request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. getRevenueData. Cannot create request: "+reset, errorCheck)
 		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. getRevenueData. Cannot read response body: "+reset, errorCheck)
+		os.Exit(1)
+	}
+
+	// Unmarshal the JSON data into the struct
+	var transRevIDs transRevID
+	if err := json.Unmarshal(responseData, &transRevIDs); err != nil {
+		log.Fatal(red+"Error. getRevenueData. Cannot unmarshall the JSON: "+reset, err)
+		os.Exit(1)
+	}
+
+	//fmt.Println("\ndata:", transRevIDs)
+
+	// Get the revenue, no. transactions and visits
+	bqlRevTrans := fmt.Sprintf(`
+	{
+    "collections": [
+                    "conversion.dip",
+                    "visits.dip"
+    ],
+    "periods": [
+        [
+                    "20240501",
+                    "20240521"
+        ]
+    ],
+    "query": {
+        "dimensions": [],
+        "metrics": [
+                    "conversion.dip.period_0.transactions",
+                    "conversion.dip.period_0.revenue",    
+                    "visits.dip.period_0.nb"
+        ],
+        "filters": {
+            "and": [
+                {
+                    "field": "conversion.dip.period_0.medium",
+                    "predicate": "eq",
+                    "value": "organic"
+                },
+                {
+                    "field": "visits.dip.period_0.medium",
+                    "predicate": "eq",
+                    "value": "organic"
+           	     }
+      	      ]
+    	    }
+ 	   }
+	}`)
+
+	// Define the URL
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
+	fmt.Println("End point:", url, "\n")
+
+	// GET the HTTP request
+	req, errorCheck = http.NewRequest("GET", url, nil)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. getDataRevenue. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
+	}
+
+	// Define the body
+	httpBody := []byte(bqlRevTrans)
+
+	// Create the POST request
+	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
+	if errorCheck != nil {
+		log.Fatal("Error. getDataRevenue. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
+	}
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Content-Type", "application/json")
+
+	// Create HTTP client and execute the request
+	client = &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, errorCheck = client.Do(req)
+	if errorCheck != nil {
+		log.Fatal("Error. getDataRevenue. Error: ", errorCheck)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck = ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. seoFunnel. Cannot read response body: "+reset, errorCheck)
+		return
+	}
+
+	// Unmarshal the JSON data into the struct
+	var response Response
+	err := json.Unmarshal(responseData, &response)
+	if err != nil {
+		log.Fatalf("Error. Cannot unmarshal the JSON: %v", err)
+	}
+
+	// Cast the float64 values as ints.
+	metricsTransactions := int(response.Results[0].Metrics[0])
+	metricsRevenue := int(response.Results[0].Metrics[1])
+	metricsVisits := int(response.Results[0].Metrics[2])
+	fmt.Println("Metrics")
+	fmt.Println("Transactions", metricsTransactions)
+	fmt.Println("Revenue", metricsRevenue)
+	fmt.Println("Visits", metricsVisits)
+
+	// Copy the BQL to the clipboard for pasting into Postman
+	cmd := exec.Command("pbcopy")
+	cmd.Stdin = strings.NewReader(bqlRevTrans)
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("Error copying to clipboard:", err)
+		return
 	}
 
 }
@@ -984,7 +1143,7 @@ func getAnalyticsID() string {
 	req.Header.Add("Content-Type", "application/json")
 
 	if errorCheck != nil {
-		log.Fatal(red+"\nError. seoRevenue. Cannot create request: "+reset, errorCheck)
+		log.Fatal(red+"\nError. getAnalyticsID. Cannot create request: "+reset, errorCheck)
 		os.Exit(1)
 	}
 	// Create HTTP client and execute the request
@@ -993,7 +1152,7 @@ func getAnalyticsID() string {
 	}
 	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
-		log.Fatal("Error. seoFunnel. Error: ", errorCheck)
+		log.Fatal("Error. getAnalyticsID. Error: ", errorCheck)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
@@ -1001,14 +1160,14 @@ func getAnalyticsID() string {
 	// Read the response body
 	responseData, errorCheck := ioutil.ReadAll(resp.Body)
 	if errorCheck != nil {
-		log.Fatal(red+"Error. seoRevenue. Cannot read response body: "+reset, errorCheck)
+		log.Fatal(red+"Error. getAnalyticsID. Cannot read response body: "+reset, errorCheck)
 		os.Exit(1)
 	}
 
 	// Unmarshal the JSON data into the struct
 	var analyticsIDs []AnalyticsID
 	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
-		log.Fatal(red+"Error. seoRevenue. Cannot unmarshall the JSON: "+reset, errorCheck)
+		log.Fatal(red+"Error. getAnalyticsID. Cannot unmarshall the JSON: "+reset, err)
 		os.Exit(1)
 	}
 
