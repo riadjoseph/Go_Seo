@@ -36,6 +36,8 @@ var urlCountInput int
 // Boolean to signal if the project credentials have been entered by the user
 var configInput = false
 
+var noCrawlsToGenerate = 0
+
 var err error
 
 func main() {
@@ -65,21 +67,19 @@ func main() {
 	fmt.Println(purple + "\nGenerating crawls" + reset)
 	fmt.Println("Project prefix name:", projectPrefix)
 	fmt.Println("No. URLs to crawl:", urlCount)
-	fmt.Println("\n")
 
 	// Write a CSV file
 	writeCSVContent()
 
 	// Execute the bot.py script
-
-	// Done
+	executeBotPY()
 
 }
 
 // Check of crawlme.txt exists. If not exit.
 func checkCrawlmeTxt() {
 	if _, err := os.Stat("crawlme.txt"); os.IsNotExist(err) {
-		fmt.Printf(red + "\nError. botifyBotLite. No " + bold + "crawlme.txt" + reset + red + " found. Crawls cannot be generated.\n" + reset)
+		fmt.Printf(red + "\nError. checkCrawlmeTxt. No " + bold + "crawlme.txt" + reset + red + " found. Crawls cannot be generated.\n" + reset)
 		os.Exit(1)
 	}
 }
@@ -110,72 +110,75 @@ PASSWORD = "BotifyParis75!"
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 
-			switch input {
-			case "1":
-				fmt.Println("RevOps selected. Project:" + bold + " https://app.botify.com/revopsspeedworkers/")
-				organizationLine = `ORGANIZATION = "revopsspeedworkers"`
-				break
-			case "2":
-				fmt.Println("North EMEA selected. Project:" + bold + " https://app.botify.com/uk-crawl-prospect/")
-				organizationLine = `ORGANIZATION = "uk-crawl-prospect"`
-				break
-			case "3":
-				fmt.Println("South EMEA selected. Project:" + bold + " https://app.botify.com/crawl-prospect/")
-				organizationLine = `ORGANIZATION = "crawl-prospect"`
-				break
-			case "4":
-				fmt.Println("USA selected. Project:" + bold + " https://app.botify.com/us-crawl-prospect/")
-				organizationLine = `ORGANIZATION = "us-crawl-prospect"`
-				break
-			default:
-				fmt.Println("Invalid input. Please enter 1, 2, 3 or 4")
-				continue
-			}
+		switch input {
+		case "1":
+			fmt.Println("\nRevOps selected. Project:" + bold + " https://app.botify.com/revopsspeedworkers/")
+			organizationLine = `ORGANIZATION = "revopsspeedworkers"`
 			break
+		case "2":
+			fmt.Println("\nNorth EMEA selected. Project:" + bold + " https://app.botify.com/uk-crawl-prospect/")
+			organizationLine = `ORGANIZATION = "uk-crawl-prospect"`
+			break
+		case "3":
+			fmt.Println("\nSouth EMEA selected. Project:" + bold + " https://app.botify.com/crawl-prospect/")
+			organizationLine = `ORGANIZATION = "crawl-prospect"`
+			break
+		case "4":
+			fmt.Println("\nUSA selected. Project:" + bold + " https://app.botify.com/us-crawl-prospect/")
+			organizationLine = `ORGANIZATION = "us-crawl-prospect"`
+			break
+		default:
+			fmt.Println("Invalid input. Please enter 1, 2, 3 or 4")
+			continue
 		}
+		break
+	}
 
-		// Ask the user if they want to continue
-		for {
-			fmt.Print("Are you ready to generate the crawl now? (Y/N): ")
-			contInput, _ := reader.ReadString('\n')
-			contInput = strings.TrimSpace(strings.ToUpper(contInput))
+	// Ask the user if they want to continue
+	for {
+		fmt.Print("\nAre you ready to generate the crawl now? (Y/N): ")
+		contInput, _ := reader.ReadString('\n')
+		contInput = strings.TrimSpace(strings.ToUpper(contInput))
 
-			if contInput == "Y" {
-				fmt.Println(bold + "Let's go!" + reset)
-				break
-			} else if contInput == "N" {
-				fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
-				os.Exit(0)
-			} else {
-				fmt.Println("Invalid input. Please enter Y or N.")
-			}
+		if contInput == "Y" {
+			clearScreen()
+			displayBanner()
+
+			fmt.Println(green + bold + "\nLet's go!" + reset)
+			break
+		} else if contInput == "N" {
+			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
+			os.Exit(0)
+		} else {
+			fmt.Println("Invalid input. Please enter Y or N.")
 		}
+	}
 
-		// Generate the env file
-		content := baseContent + organizationLine + "\n"
+	// Generate the env file
+	content := baseContent + organizationLine + "\n"
 
-		// Create a file called env.py
-		file, err := os.Create("env.py")
-		if err != nil {
-			fmt.Printf("Failed to create file: %s\n", err)
-			return
-		}
-		defer file.Close()
+	// Create a file called env.py
+	file, err := os.Create("env.py")
+	if err != nil {
+		fmt.Printf("Failed to create file: %s\n", err)
+		return
+	}
+	defer file.Close()
 
-		// Write the content to the file
-		_, err = file.WriteString(content)
-		if err != nil {
-			fmt.Printf("Failed to write to file: %s\n", err)
-			return
-		}
+	// Write the content to the file
+	_, err = file.WriteString(content)
+	if err != nil {
+		fmt.Printf("Failed to write to file: %s\n", err)
+		return
 	}
 }
 
 // Write the content in the CSV file
 func writeCSVContent() {
+
 	file, err := os.OpenFile("crawlme.csv", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		fmt.Printf(red+"Error. botifyBotLite. Failed to open file: %s\n"+reset, err)
+		fmt.Printf(red+"Error. writeCSVContent. Failed to open file: %s\n"+reset, err)
 		os.Exit(1)
 	}
 
@@ -194,28 +197,17 @@ func writeCSVContent() {
 		return
 	}
 
-	/*
-		// Write the content
-		// Create a new scanner for the file
-		scanner := bufio.NewScanner(file)
-		// Read each line and print it
-		for scanner.Scan() {
-			record := scanner.Text()
-			fmt.Println(record)
-		}
-	*/
-
 	// Open the input file
 	inputFile, err := os.Open("crawlme.txt")
 	if err != nil {
-		log.Fatalf("failed to open input file: %s", err)
+		log.Fatalf(red+"Error. writeCSVContent. Failed to open crawlme.txt: %s"+reset, err)
 	}
 	defer inputFile.Close()
 
 	// Create the output file
 	outputFile, err := os.Create("crawlme.csv")
 	if err != nil {
-		log.Fatalf("failed to create output file: %s", err)
+		log.Fatalf(red+"Error. writeCSVContent. Failed to create crawlme.csv: %s"+reset, err)
 	}
 	defer outputFile.Close()
 
@@ -229,17 +221,25 @@ func writeCSVContent() {
 	// Read each line from the input file and write to the CSV file
 	for scanner.Scan() {
 		record := scanner.Text()
-		fmt.Printf(record + "\n")
-		newRecord := []string{record, projectPrefix + "_lbb", fmt.Sprintf("%d", urlCount)}
+		// Ensure the record ends with a "/", if it does not end with a "/" add one
+		if !strings.HasSuffix(record, "/") {
+			record += "/"
+		}
+		// Extract the domain from the record
+		domain := extractDomain(record)
+		newRecord := []string{record, projectPrefix + "_" + domain + "__bbl", fmt.Sprintf("%d", urlCount)}
 		err := writer.Write(newRecord)
+
+		noCrawlsToGenerate += 1
+
 		if err != nil {
-			log.Fatalf("failed to write to CSV file: %s", err)
+			log.Fatalf(red+"Error. writeCSVContent. Failed to write to crawlme.csv: %s"+reset, err)
 		}
 	}
 
 	// Check for errors during the scan
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("error reading input file: %s", err)
+		log.Fatalf(red+"Error. writeCSVContent. Cannot read crawlme.txt: %s"+reset, err)
 	}
 
 	// Check for errors during the scan
@@ -250,6 +250,17 @@ func writeCSVContent() {
 	writer.Flush()
 	defer file.Close()
 
+	fmt.Println("No. crawls to generate:"+reset, noCrawlsToGenerate)
+	fmt.Println("\n")
+}
+
+// Used to extract the domain from the record
+func extractDomain(url string) string {
+	parts := strings.Split(url, "/")
+	if len(parts) >= 4 {
+		return parts[2]
+	}
+	return ""
 }
 
 // Check that the crawl settings have been specified as command line arguments
@@ -283,6 +294,19 @@ func checkCredentials() {
 			urlCountInput = 100000
 		}
 	}
+}
+
+// Execute the python script bot.py
+func executeBotPY() {
+	//cmd := exec.Command("python3 bot.py -i crawlme.csv")
+	cmd := exec.Command("pwd")
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf(red+"Error. executeBotPY. Cannot execute bot.py: %s\n"+reset, err)
+		return
+	}
+	fmt.Printf("Output of bot.py:\n%s\n", string(output))
 }
 
 // Display the welcome banner
