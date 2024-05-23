@@ -283,9 +283,10 @@ func writeCSVContent() {
 	// Each crawl should take approx. 30 seconds to complete
 	estimatedRunTime := float64(noCrawlsToGenerate) * 30 / 60
 	roundedRunTime := math.Ceil(estimatedRunTime)
-	fmt.Printf("Estimated time to generated all crawls is %.0f minutes\n", roundedRunTime)
+	fmt.Printf("Estimated time to generate all crawls is %.0f minutes\n", roundedRunTime)
 	fmt.Println("\n")
-	fmt.Printf(bold + "The crawls are currently being generated. Information concerning the progress of crawl generation will be displayed in a moment.\n" + reset)
+	fmt.Printf(bold + "The crawls are currently being generated. Information indicating the progress of crawl generation will be displayed in a moment.\n" + reset)
+	fmt.Println("\n")
 }
 
 // Used to extract the domain from the record
