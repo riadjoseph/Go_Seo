@@ -16,11 +16,9 @@ Usage: ./apiTester org_name project_name
 
 ## bqlTester (work in progress)
 Demonstartion of using BQL in Go. Included in this version are BQL queries for: 
-- Crawl stats
+- Site crawler stats
 - Revenue
-- Vists
-- ActionBoard recommendations  
-   
+- Vists   
 ```
 Usage: ./bqlTester (organisation and project name will be prompted for)    
 Usage: ./bqlTester org_name project_name    
@@ -47,6 +45,14 @@ Usage: ./segmentifyLite (organisation and project name will be prompted for)
 Usage: ./segmentifyLite org_name project_name    
 ```
 **Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
+
+## botiftBotLite   
+Generate Botify crawls en-masse.    
+**Note:** Populate a file called crawlme.txt with the start page URL for each of the sites you want to crawl.  
+```
+Usage: ./botifyBotLite (organisation and project name will be prompted for)    
+Usage: ./botifyBotLite project-prefix no_urls_to_crawl    
+```
 
 ## folderCount
 folderCount is used to identify and count all first level folders.  
