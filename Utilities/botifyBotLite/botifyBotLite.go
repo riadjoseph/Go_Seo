@@ -147,7 +147,7 @@ PASSWORD = "BotifyParis75!"
 
 	// Ask the user if they want to continue
 	for {
-		fmt.Print("\nAre you ready to generate the crawl now? (Y/N): ")
+		fmt.Print("\nAre you ready to generate the crawls now? (Y/N): ")
 		contInput, _ := reader.ReadString('\n')
 		contInput = strings.TrimSpace(strings.ToUpper(contInput))
 
@@ -280,10 +280,13 @@ func writeCSVContent() {
 	// Calculate the approx. run duration of the script
 	noCrawlsToGenerate = noCrawlsToGenerate - 1
 	fmt.Println("No. crawls to generate:"+reset, noCrawlsToGenerate)
+	fmt.Printf("Your crawls will be available in the following project: https://app.botify.com/%s\n", projectSlug)
+
 	// Each crawl should take approx. 30 seconds to complete
 	estimatedRunTime := float64(noCrawlsToGenerate) * 30 / 60
 	roundedRunTime := math.Ceil(estimatedRunTime)
 	fmt.Printf("Estimated time to generate all crawls is %.0f minutes\n", roundedRunTime)
+
 	fmt.Println("\n")
 	fmt.Printf(bold + "The crawls are currently being generated. Information indicating the progress of crawl generation will be displayed in a moment.\n" + reset)
 	fmt.Println("\n")
