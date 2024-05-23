@@ -8,8 +8,10 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -37,6 +39,8 @@ var urlCountInput int
 var configInput = false
 
 var noCrawlsToGenerate = 0
+
+var projectSlug = ""
 
 var err error
 
@@ -114,18 +118,25 @@ PASSWORD = "BotifyParis75!"
 		case "1":
 			fmt.Println("\nRevOps selected. Project:" + bold + " https://app.botify.com/revopsspeedworkers/")
 			organizationLine = `ORGANIZATION = "revopsspeedworkers"`
+			projectSlug = "revopsspeedworkers"
+
 			break
 		case "2":
 			fmt.Println("\nNorth EMEA selected. Project:" + bold + " https://app.botify.com/uk-crawl-prospect/")
 			organizationLine = `ORGANIZATION = "uk-crawl-prospect"`
+			projectSlug = "uk-crawl-prospect"
+
 			break
 		case "3":
 			fmt.Println("\nSouth EMEA selected. Project:" + bold + " https://app.botify.com/crawl-prospect/")
 			organizationLine = `ORGANIZATION = "crawl-prospect"`
+			projectSlug = "crawl-prospect"
+
 			break
 		case "4":
 			fmt.Println("\nUSA selected. Project:" + bold + " https://app.botify.com/us-crawl-prospect/")
 			organizationLine = `ORGANIZATION = "us-crawl-prospect"`
+			projectSlug = "us-crawl-prospect"
 			break
 		default:
 			fmt.Println("Invalid input. Please enter 1, 2, 3 or 4")
@@ -154,7 +165,7 @@ PASSWORD = "BotifyParis75!"
 		}
 	}
 
-	// Generate the env file
+	// Generate the env.py file
 	content := baseContent + organizationLine + "\n"
 
 	// Create a file called env.py
@@ -176,11 +187,19 @@ PASSWORD = "BotifyParis75!"
 // Write the content in the CSV file
 func writeCSVContent() {
 
+	// crawlme.csv
 	file, err := os.OpenFile("crawlme.csv", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Printf(red+"Error. writeCSVContent. Failed to open file: %s\n"+reset, err)
 		os.Exit(1)
 	}
+
+	// project_list.txt file
+	projectListFile, err := os.OpenFile("project_list.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatalf(red+"Error. writeCSVContent. Failed to open or create project_list.txt: %s"+reset, err)
+	}
+	defer projectListFile.Close()
 
 	// Open the file
 	file, err = os.Open("crawlme.txt")
@@ -196,6 +215,10 @@ func writeCSVContent() {
 		fmt.Printf(red+"Error. writeCSVContent. Failed to write record to file: %s\n", err)
 		return
 	}
+
+	// Create a writer for project_list.txt
+	projectListWriter := bufio.NewWriter(projectListFile)
+	defer projectListWriter.Flush()
 
 	// Open the input file
 	inputFile, err := os.Open("crawlme.txt")
@@ -227,8 +250,19 @@ func writeCSVContent() {
 		}
 		// Extract the domain from the record
 		domain := extractDomain(record)
+
+		// Combine the fragments to make the record in the CSV
 		newRecord := []string{record, projectPrefix + "_" + domain + "__bbl", fmt.Sprintf("%d", urlCount)}
 		err := writer.Write(newRecord)
+
+		// Write the record to project_list.txt
+		_, err = projectListWriter.WriteString(record + "," + "https://app.botify.com/" + projectSlug + "/" + projectPrefix + "_" + domain + "__bbl" + "\n")
+		if err != nil {
+			log.Fatalf(red+"Error. writeCSVContent. Failed to write to project_list.txt: %s"+reset, err)
+		}
+
+		writer.Flush()
+		projectListWriter.Flush()
 
 		noCrawlsToGenerate += 1
 
@@ -242,16 +276,17 @@ func writeCSVContent() {
 		log.Fatalf(red+"Error. writeCSVContent. Cannot read crawlme.txt: %s"+reset, err)
 	}
 
-	// Check for errors during the scan
-	if err := scanner.Err(); err != nil {
-		log.Fatalf(red+"Error. Cannot read crawlme.txt: %s"+reset, err)
-	}
-
-	writer.Flush()
 	defer file.Close()
 
+	// Calculate the approx. run duration of the script
+	noCrawlsToGenerate = noCrawlsToGenerate - 1
 	fmt.Println("No. crawls to generate:"+reset, noCrawlsToGenerate)
+	// Each crawl should take approx. 30 seconds to complete
+	estimatedRunTime := float64(noCrawlsToGenerate) * 30 / 60
+	roundedRunTime := math.Ceil(estimatedRunTime)
+	fmt.Printf("Estimated time to generated all crawls is %.0f minutes\n", roundedRunTime)
 	fmt.Println("\n")
+	fmt.Printf(bold + "The crawls are currently being generated. Information concerning the progress of crawl generation will be displayed in a moment.\n" + reset)
 }
 
 // Used to extract the domain from the record
@@ -298,15 +333,34 @@ func checkCredentials() {
 
 // Execute the python script bot.py
 func executeBotPY() {
-	//cmd := exec.Command("python3 bot.py -i crawlme.csv")
-	cmd := exec.Command("pwd")
 
-	output, err := cmd.CombinedOutput()
+	// Get the current directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error getting current directory:", err)
+		return
+	}
+
+	// Construct the path to bot.py
+	botPath := filepath.Join(currentDir, "bot.py")
+
+	// Create the command with the full path to bot.py
+	cmd := exec.Command("python3", botPath, "-i", "crawlme.csv")
+
+	// Set the command's stdout and stderr to the program's stdout and stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Run the command
+	err = cmd.Run()
 	if err != nil {
 		fmt.Printf(red+"Error. executeBotPY. Cannot execute bot.py: %s\n"+reset, err)
 		return
 	}
-	fmt.Printf("Output of bot.py:\n%s\n", string(output))
+
+	fmt.Println(green + "\nThe crawls have been generated" + reset)
+	fmt.Println(green + "\nThe start pages crawled and the generated Botify project URL can be found in" + bold + " projects_list.txt" + reset)
+	fmt.Println(bold + green + "\nThank you for using botifyBotLite. Goodbye!\n" + reset)
 }
 
 // Display the welcome banner
