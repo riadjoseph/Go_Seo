@@ -186,7 +186,6 @@ PASSWORD = "BotifyParis75!"
 
 // Write the content in the CSV file
 func writeCSVContent() {
-
 	// crawlme.csv
 	file, err := os.OpenFile("crawlme.csv", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -302,12 +301,10 @@ func extractDomain(url string) string {
 // if not prompt for them
 // Pressing Enter exits
 func checkCredentials() {
-
 	if len(os.Args) < 3 {
 		configInput = true
 		fmt.Print("\nEnter your crawl settings. Press" + green + " Enter " + reset + "to exit botifyBotLite" +
 			"\n")
-
 		fmt.Print(purple + "\nEnter the project prefix: " + reset)
 		fmt.Scanln(&projectPrefixInput)
 		// Check if input is empty if so exit
@@ -318,6 +315,7 @@ func checkCredentials() {
 
 		fmt.Print(purple + "Enter the no. of URLs to crawl: " + reset)
 		fmt.Scanln(&urlCountInput)
+
 		// Check if input is 0 if so exit
 		if urlCountInput == 0 {
 			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
@@ -333,7 +331,6 @@ func checkCredentials() {
 
 // Execute the python script bot.py
 func executeBotPY() {
-
 	// Get the current directory
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -365,7 +362,6 @@ func executeBotPY() {
 
 // Display the welcome banner
 func displayBanner() {
-
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
