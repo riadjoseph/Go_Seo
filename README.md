@@ -29,7 +29,7 @@ Generate Botify crawls en-masse.
 **Note:** When botifyBotLite has complete a list of the crawled start pages and the generated Botify project URLs can be found in **project_list.txt**.  
 
 ```
-Usage: ./botifyBotLite (organisation and project name will be prompted for)    
+Usage: ./botifyBotLite (project prefix and no. urls to crawl will be prompted for)    
 Usage: ./botifyBotLite project_prefix no_urls_to_crawl    
 ```
 
