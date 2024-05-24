@@ -24,12 +24,13 @@ Usage: ./segmentifyLite org_name project_name
 
 ## botifyBotLite   
 Generate Botify crawls en-masse.    
+
 **Note:** Populate the file crawlme.txt with the start page URL for each of the sites you want to crawl.  
 **Note:** When botifyBotLite has complete a list of the crawled start pages and the generated Botify project URLs can be found in **project_list.txt**.  
 
 ```
-Usage: ./botifyBotLite (organisation and project name will be prompted for)    
-Usage: ./botifyBotLite project-prefix no_urls_to_crawl    
+Usage: ./botifyBotLite (project prefix and no. urls to crawl will be prompted for)    
+Usage: ./botifyBotLite project_prefix no_urls_to_crawl    
 ```
 
 ## apiTester   
