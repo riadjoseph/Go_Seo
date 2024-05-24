@@ -1,4 +1,8 @@
-#line1
-https://www.fazer.com
-https://www.hollandandbarrett.com/
+# Enter the URLs to crawl here. Remember to specify the full URL i.e. https://www.domain.com/
 https://www.botify.com/
+https://www.brightedge.com/
+https://www.semrush.com/
+https://www.conductor.com/
+https://www.jetoctopus.com/
+https://www.screamingfrog.co.uk/
+https://www.ahrefs.com/

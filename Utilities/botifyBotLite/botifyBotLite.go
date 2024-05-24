@@ -38,10 +38,13 @@ var urlCountInput int
 // Boolean to signal if the project credentials have been entered by the user
 var configInput = false
 
+// Counter for the number of crawls to generate
 var noCrawlsToGenerate = 0
 
+// Used to store the project slug (region) based on the user selection
 var projectSlug = ""
 
+// Error detection
 var err error
 
 func main() {
@@ -54,7 +57,7 @@ func main() {
 	checkCrawlmeTxt()
 
 	// Get the crawl settings if they have not been specified on the command line
-	checkCredentials()
+	checkCrawlParameters()
 
 	// If the crawl settings have been provided on the command line use them
 	if !configInput {
@@ -109,7 +112,7 @@ PASSWORD = "BotifyParis75!"
 		fmt.Println("2. North EMEA")
 		fmt.Println("3. South EMEA")
 		fmt.Println("4. USA")
-		fmt.Print("\nEnter the number corresponding to your choice: ")
+		fmt.Print("\nSelect your regional project: ")
 
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
@@ -119,19 +122,16 @@ PASSWORD = "BotifyParis75!"
 			fmt.Println("\nRevOps selected. Project:" + bold + " https://app.botify.com/revopsspeedworkers/")
 			organizationLine = `ORGANIZATION = "revopsspeedworkers"`
 			projectSlug = "revopsspeedworkers"
-
 			break
 		case "2":
 			fmt.Println("\nNorth EMEA selected. Project:" + bold + " https://app.botify.com/uk-crawl-prospect/")
 			organizationLine = `ORGANIZATION = "uk-crawl-prospect"`
 			projectSlug = "uk-crawl-prospect"
-
 			break
 		case "3":
 			fmt.Println("\nSouth EMEA selected. Project:" + bold + " https://app.botify.com/crawl-prospect/")
 			organizationLine = `ORGANIZATION = "crawl-prospect"`
 			projectSlug = "crawl-prospect"
-
 			break
 		case "4":
 			fmt.Println("\nUSA selected. Project:" + bold + " https://app.botify.com/us-crawl-prospect/")
@@ -148,16 +148,15 @@ PASSWORD = "BotifyParis75!"
 	// Ask the user if they want to continue
 	for {
 		fmt.Print("\nAre you ready to generate the crawls now? (Y/N): ")
-		contInput, _ := reader.ReadString('\n')
-		contInput = strings.TrimSpace(strings.ToUpper(contInput))
+		generateCrawlsYN, _ := reader.ReadString('\n')
+		generateCrawlsYN = strings.TrimSpace(strings.ToUpper(generateCrawlsYN))
 
-		if contInput == "Y" {
+		if generateCrawlsYN == "Y" {
 			clearScreen()
 			displayBanner()
-
 			fmt.Println(green + bold + "\nLet's go!" + reset)
 			break
-		} else if contInput == "N" {
+		} else if generateCrawlsYN == "N" {
 			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
 			os.Exit(0)
 		} else {
@@ -167,8 +166,6 @@ PASSWORD = "BotifyParis75!"
 
 	// Generate the env.py file
 	content := baseContent + organizationLine + "\n"
-
-	// Create a file called env.py
 	file, err := os.Create("env.py")
 	if err != nil {
 		fmt.Printf("Failed to create file: %s\n", err)
@@ -186,27 +183,27 @@ PASSWORD = "BotifyParis75!"
 
 // Write the content in the CSV file
 func writeCSVContent() {
-	// crawlme.csv
+	// Create crawlme.csv
 	file, err := os.OpenFile("crawlme.csv", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Printf(red+"Error. writeCSVContent. Failed to open file: %s\n"+reset, err)
 		os.Exit(1)
 	}
 
-	// project_list.txt file
+	// Create project_list.txt
 	projectListFile, err := os.OpenFile("project_list.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatalf(red+"Error. writeCSVContent. Failed to open or create project_list.txt: %s"+reset, err)
 	}
 	defer projectListFile.Close()
 
-	// Open the file
+	// Open crawlme.txt
 	file, err = os.Open("crawlme.txt")
 	if err != nil {
 		fmt.Printf(red+"Error. writeCSVContent. Failed to open crawlme.txt: %s"+reset, err)
 	}
 
-	// Create a new writer and write the header
+	// Create a new writer and write the header in crawlme.csv
 	writer := csv.NewWriter(file)
 	record := []string{"URL", "Project Name", "Max URLs"}
 	err = writer.Write(record)
@@ -233,28 +230,35 @@ func writeCSVContent() {
 	}
 	defer outputFile.Close()
 
-	// Create a CSV writer
+	// Create a writer for the CSV file
 	writer = csv.NewWriter(outputFile)
 	defer writer.Flush()
 
-	// Create a new scanner for the input file
+	// Create a new scanner for crawlme.txt
 	scanner := bufio.NewScanner(inputFile)
 
-	// Read each line from the input file and write to the CSV file
+	// Read each line from crawlme.txt and write to crawlme.csv
 	for scanner.Scan() {
 		record := scanner.Text()
+
+		// Skip lines starting with # (comments)
+		if strings.HasPrefix(record, "#") {
+			continue
+		}
+
 		// Ensure the record ends with a "/", if it does not end with a "/" add one
 		if !strings.HasSuffix(record, "/") {
 			record += "/"
 		}
+
 		// Extract the domain from the record
 		domain := extractDomain(record)
 
-		// Combine the fragments to make the record in the CSV
+		// Combine the fragments to make the record in crawlme.csv
 		newRecord := []string{record, projectPrefix + "_" + domain + "__bbl", fmt.Sprintf("%d", urlCount)}
 		err := writer.Write(newRecord)
 
-		// Write the record to project_list.txt
+		// Build and write the record to project_list.txt
 		_, err = projectListWriter.WriteString(record + "," + "https://app.botify.com/" + projectSlug + "/" + projectPrefix + "_" + domain + "__bbl" + "\n")
 		if err != nil {
 			log.Fatalf(red+"Error. writeCSVContent. Failed to write to project_list.txt: %s"+reset, err)
@@ -270,25 +274,21 @@ func writeCSVContent() {
 		}
 	}
 
-	// Check for errors during the scan
-	if err := scanner.Err(); err != nil {
-		log.Fatalf(red+"Error. writeCSVContent. Cannot read crawlme.txt: %s"+reset, err)
-	}
-
 	defer file.Close()
 
-	// Calculate the approx. run duration of the script
+	// Calculate the run duration of the script and round it up
 	noCrawlsToGenerate = noCrawlsToGenerate - 1
 	fmt.Println("No. crawls to generate:"+reset, noCrawlsToGenerate)
 	fmt.Printf("Your crawls will be available in the following project: https://app.botify.com/%s\n", projectSlug)
 
-	// Each crawl should take approx. 30 seconds to complete
-	estimatedRunTime := float64(noCrawlsToGenerate) * 30 / 60
+	// Each crawl should take approx. 25 seconds to complete
+	estimatedRunTime := float64(noCrawlsToGenerate) * 25 / 60
 	roundedRunTime := math.Ceil(estimatedRunTime)
 	fmt.Printf("Estimated time to generate all crawls is %.0f minutes\n", roundedRunTime)
 
 	fmt.Println("\n")
 	fmt.Printf(bold + "The crawls are currently being generated. Information indicating the progress of crawl generation will be displayed in a moment.\n" + reset)
+	fmt.Printf(bold + "Please stand-by.\n" + reset)
 	fmt.Println("\n")
 }
 
@@ -304,7 +304,7 @@ func extractDomain(url string) string {
 // Check that the crawl settings have been specified as command line arguments
 // if not prompt for them
 // Pressing Enter exits
-func checkCredentials() {
+func checkCrawlParameters() {
 	if len(os.Args) < 3 {
 		configInput = true
 		fmt.Print("\nEnter your crawl settings. Press" + green + " Enter " + reset + "to exit botifyBotLite" +
@@ -317,7 +317,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 
-		fmt.Print(purple + "Enter the no. of URLs to crawl: " + reset)
+		fmt.Print(purple + "Enter the No. of URLs to crawl: " + reset)
 		fmt.Scanln(&urlCountInput)
 
 		// Check if input is 0 if so exit
@@ -326,7 +326,7 @@ func checkCredentials() {
 			os.Exit(0)
 		}
 		// Default to 100000 if the entered number of urls is than 100000
-		// This is to ensure all crawls are are 100k URLs maximum
+		// This is to ensure all crawls are 100k URLs maximum
 		if urlCountInput > 100000 {
 			urlCountInput = 100000
 		}
@@ -335,10 +335,10 @@ func checkCredentials() {
 
 // Execute the python script bot.py
 func executeBotPY() {
-	// Get the current directory
+	// Get the current directory, tis is done to ensure that the scripts do not have to be in the PATH
 	currentDir, err := os.Getwd()
 	if err != nil {
-		fmt.Println("Error getting current directory:", err)
+		fmt.Println(red+"Error. executeBotPY. Cannot determine current directory:"+reset, err)
 		return
 	}
 
@@ -348,18 +348,23 @@ func executeBotPY() {
 	// Create the command with the full path to bot.py
 	cmd := exec.Command("python3", botPath, "-i", "crawlme.csv")
 
-	// Set the command's stdout and stderr to the program's stdout and stderr
+	// Set the command's stdout and stderr to the program's stdout and stderr to ensure that the script output is displayed in real time
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// Run the command
+	// Launch the bot!
 	err = cmd.Run()
 	if err != nil {
 		fmt.Printf(red+"Error. executeBotPY. Cannot execute bot.py: %s\n"+reset, err)
 		return
 	}
 
-	fmt.Println(green + "\nThe crawls have been generated" + reset)
+	// For security reasons delete env.py
+	os.Remove("env.py")
+	// Keep things tidy. Delete crawlme.csv
+	os.Remove("crawlme.csv")
+
+	fmt.Println(green + "\nCrawl generation process complete!" + reset)
 	fmt.Println(green + "\nThe start pages crawled and the generated Botify project URL can be found in" + bold + " projects_list.txt" + reset)
 	fmt.Println(bold + green + "\nThank you for using botifyBotLite. Goodbye!\n" + reset)
 }

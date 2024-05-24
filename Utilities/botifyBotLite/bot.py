@@ -29,7 +29,7 @@ with open(args.input) as file:
 
         if res.status_code != 201:
             error_display(
-                message="Error. bot.py. Cannot create the crawl.", status_code=res.status_code
+                message="Error. bot.py. Cannot create the crawl. You may have provided a duplicate project prefix. Try again and use a different one.", status_code=res.status_code
             )
             continue
 
@@ -38,6 +38,7 @@ with open(args.input) as file:
 
         # Launching a crawl
         launch_res = launch_crawl(create_res["slug"])
+
         if launch_res.status_code != 201:
             error_display(
                 message="Error. bot.py. Cannot launch the crawl.", status_code=launch_res.status_code
