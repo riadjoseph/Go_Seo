@@ -30,7 +30,7 @@ Generate Botify crawls en-masse.
 
 ```
 Usage: ./botifyBotLite (organisation and project name will be prompted for)    
-Usage: ./botifyBotLite project-prefix no_urls_to_crawl    
+Usage: ./botifyBotLite project_prefix no_urls_to_crawl    
 ```
 
 ## apiTester   
