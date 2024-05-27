@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Version
@@ -285,10 +286,14 @@ func writeCSVContent() {
 	estimatedRunTime := float64(noCrawlsToGenerate) * 25 / 60
 	roundedRunTime := math.Ceil(estimatedRunTime)
 	fmt.Printf("Estimated time to generate all crawls is %.0f minutes\n", roundedRunTime)
+	// Display the current time
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("15:04")
+	fmt.Println("Started at:", formattedTime+"\n")
 
 	fmt.Println("\n")
 	fmt.Printf(bold + "The crawls are currently being generated. Information indicating the progress of crawl generation will be displayed in a moment.\n" + reset)
-	fmt.Printf(bold + "Please stand-by.\n" + reset)
+	fmt.Printf(bold + "\nPlease stand-by.\n" + reset)
 	fmt.Println("\n")
 }
 

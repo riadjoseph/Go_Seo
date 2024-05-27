@@ -994,7 +994,7 @@ func seoRevenue() {
 	getRevenueData(analyticsID, startYTDDate, endYTDDate, startMthDates, endMthDates)
 }
 
-// Get the analytics ID
+// Get the revenue, transactions and visits data
 func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, startMthDates []string, endMthDates []string) {
 	// Define the revenue endpoint
 	var urlAPIRevenueData string
@@ -1004,7 +1004,7 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		urlAPIRevenueData = "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections/conversion"
 	}
 
-	fmt.Println(bold+"\nRevenue data end point:"+reset, urlAPIRevenueData)
+	//fmt.Println(bold+"\nRevenue data end point:"+reset, urlAPIRevenueData)
 	req, errorCheck := http.NewRequest("GET", urlAPIRevenueData, nil)
 
 	// Define the headers
@@ -1037,130 +1037,22 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		os.Exit(1)
 	}
 
-	//bloo
+	// Get YTD insights
+	fmt.Println(bold + "\nYTD organic insights" + reset)
+	executeRevenueBQL(analyticsID, startYTDDate, endYTDDate)
 
-	// Get the revenue, no. transactions and visits - YTD
-	bqlRevTrans := fmt.Sprintf(`
-	{
-    "collections": [
-                    "conversion.dip",
-                    "visits.dip"
-    ],
-    "periods": [
-        [
-                    "%s",
-                    "%s"
-        ]
-    ],
-    "query": {
-        "dimensions": [],
-        "metrics": [
-                    "conversion.dip.period_0.transactions",
-                    "conversion.dip.period_0.revenue",    
-                    "visits.dip.period_0.nb"
-        ],
-        "filters": {
-            "and": [
-                {
-                    "field": "conversion.dip.period_0.medium",
-                    "predicate": "eq",
-                    "value": "organic"
-                },
-                {
-                    "field": "visits.dip.period_0.medium",
-                    "predicate": "eq",
-                    "value": "organic"
-           	     }
-      	      ]
-    	    }
- 	   }
-	}`, startYTDDate, endYTDDate)
-
-	// Define the URL
-	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-	fmt.Println("End point:", url, "\n")
-
-	// GET the HTTP request
-	req, errorCheck = http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. getDataRevenue. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
+	// Get monthly insights
+	fmt.Println(bold + "\nMonthly organic insights" + reset)
+	for i := range startMthDates {
+		executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 	}
-
-	// Define the body
-	httpBody := []byte(bqlRevTrans)
-
-	// Create the POST request
-	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
-	if errorCheck != nil {
-		log.Fatal("Error. getDataRevenue. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
-	}
-
-	// Define the headers
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
-	req.Header.Add("Content-Type", "application/json")
-
-	// Create HTTP client and execute the request
-	client = &http.Client{
-		Timeout: 20 * time.Second,
-	}
-	resp, errorCheck = client.Do(req)
-	if errorCheck != nil {
-		log.Fatal("Error. getDataRevenue. Error: ", errorCheck)
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	responseData, errorCheck = ioutil.ReadAll(resp.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"Error. seoFunnel. Cannot read response body: "+reset, errorCheck)
-		return
-	}
-
-	// Unmarshal the JSON data into the struct
-	var response Response
-	err := json.Unmarshal(responseData, &response)
-	if err != nil {
-		log.Fatalf("Error. Cannot unmarshal the JSON: %v", err)
-	}
-
-	// Check if any data has been returned from the API. Count the number of elements in the Results array
-	responseCount := len(response.Results)
-
-	if responseCount == 0 {
-		fmt.Println(red + "Error. Cannot get Revenue & Visits data." + reset)
-	} else {
-		// Cast the float64 values as ints
-		ytdMetricsTransactions := int(response.Results[0].Metrics[0])
-		ytdMetricsRevenue := int(response.Results[0].Metrics[1])
-		ytdMetricsVisits := int(response.Results[0].Metrics[2])
-		fmt.Println(bold + "YTD organic insights" + reset)
-		fmt.Printf("Start: %s End: %s\n", startYTDDate, endYTDDate)
-		// Include commas in the display integer
-		formattedTransactions := formatWithCommas(ytdMetricsTransactions)
-		fmt.Println("No. transactions", formattedTransactions)
-		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
-		fmt.Println("Total revenue", formattedRevenue)
-		formattedVisits := formatWithCommas(ytdMetricsVisits)
-		fmt.Println("No. of visits", formattedVisits)
-	}
-
-	// Copy the BQL to the clipboard for pasting into Postman
-	cmd := exec.Command("pbcopy")
-	cmd.Stdin = strings.NewReader(bqlRevTrans)
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Error copying to clipboard:", err)
-		return
-	}
-
 }
 
 // Get the analytics ID
 func getAnalyticsID() string {
 	// First identify which analytics tool is integrated
 	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
-	fmt.Println(bold+"\nAnalytics ID end point:"+reset, urlAPIAnalyticsID)
+	//fmt.Println(bold+"\nAnalytics ID end point:"+reset, urlAPIAnalyticsID)
 	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
 
 	// Define the headers
@@ -1204,9 +1096,7 @@ func getAnalyticsID() string {
 			return analyticsID.ID
 		}
 	}
-
 	return "noAnalyticsdFound"
-
 }
 
 // Get the date ranges for the revenue and visits
@@ -1247,6 +1137,126 @@ func calculateDateRanges() DateRanges {
 	}
 
 	return DateRanges{MonthlyRanges: dateRanges, YTDRange: yearToDateRange}
+}
+
+func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate string) {
+
+	// Get the revenue, no. transactions and visits - YTD
+	bqlRevTrans := fmt.Sprintf(`
+	{
+    "collections": [
+                    "conversion.dip",
+                    "%s"
+    ],
+    "periods": [
+        [
+                    "%s",
+                    "%s"
+        ]
+    ],
+    "query": {
+        "dimensions": [],
+        "metrics": [
+                    "conversion.dip.period_0.transactions",
+                    "conversion.dip.period_0.revenue",    
+                    "visits.dip.period_0.nb"
+        ],
+        "filters": {
+            "and": [
+                {
+                    "field": "conversion.dip.period_0.medium",
+                    "predicate": "eq",
+                    "value": "organic"
+                },
+                {
+                    "field": "visits.dip.period_0.medium",
+                    "predicate": "eq",
+                    "value": "organic"
+           	     }
+      	      ]
+    	    }
+ 	   }
+	}`, analyticsID, startYTDDate, endYTDDate)
+
+	// Define the URL
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
+	//fmt.Println("End point:", url, "\n")
+
+	// GET the HTTP request
+	req, errorCheck := http.NewRequest("GET", url, nil)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. executeRevenueBQL. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
+	}
+
+	// Define the body
+	httpBody := []byte(bqlRevTrans)
+
+	// Create the POST request
+	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
+	if errorCheck != nil {
+		log.Fatal("Error. executeRevenueBQL. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
+	}
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Content-Type", "application/json")
+
+	// Create HTTP client and execute the request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, errorCheck := client.Do(req)
+	if errorCheck != nil {
+		log.Fatal("Error. executeRevenueBQL. Error: ", errorCheck)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. executeRevenueBQL. Cannot read response body: "+reset, errorCheck)
+		return
+	}
+
+	// Unmarshal the JSON data into the struct
+	var response Response
+	err := json.Unmarshal(responseData, &response)
+	if err != nil {
+		log.Fatalf("Error. executeRevenueBQL. Cannot unmarshal the JSON: %v", err)
+	}
+
+	// Check if any data has been returned from the API. Count the number of elements in the Results array
+	responseCount := len(response.Results)
+
+	if responseCount == 0 {
+		fmt.Println(red + "Error. executeRevenueBQL. Cannot get Revenue & Visits data. Ensure the selected project is using GA4." + reset)
+	} else {
+		// Cast the float64 values as ints
+		ytdMetricsTransactions := int(response.Results[0].Metrics[0])
+		ytdMetricsRevenue := int(response.Results[0].Metrics[1])
+		ytdMetricsVisits := int(response.Results[0].Metrics[2])
+		fmt.Printf(green+"Start: %s End: %s\n"+reset, startYTDDate, endYTDDate)
+		// Include commas in the display integer
+		formattedTransactions := formatWithCommas(ytdMetricsTransactions)
+		fmt.Println("No. transactions", formattedTransactions)
+		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
+		fmt.Println("Total revenue", formattedRevenue)
+		formattedVisits := formatWithCommas(ytdMetricsVisits)
+		fmt.Println("No. of visits", formattedVisits+"\n")
+	}
+
+	/*
+		// Copy the BQL to the clipboard for pasting into Postman
+		cmd := exec.Command("pbcopy")
+		cmd.Stdin = strings.NewReader(bqlRevTrans)
+		err = cmd.Run()
+		if err != nil {
+			fmt.Println("Error. executeRevenueBQL. Cannot copy BQL to clipboard:", err)
+			return
+		}
+	*/
+
 }
 
 func bqlTesterDone() {
