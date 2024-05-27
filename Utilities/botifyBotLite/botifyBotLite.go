@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
-	"io"
 	"log"
 	"math"
 	"os"
@@ -351,24 +350,12 @@ func executeBotPY() {
 	// Construct the path to bot.py
 	botPath := filepath.Join(currentDir, "bot.py")
 
-	// File to store the botifyBotLog
-	bblLog := "botifyBotLite.log"
-	outputFile, err := os.Create(bblLog)
-	if err != nil {
-		fmt.Printf(red+"Error. executeBotPY. Cannot create botoifyBotLite log file: %s\n"+reset, err)
-		return
-	}
-	defer outputFile.Close()
-
-	// Create a multi-writer to write to both the file and stdout
-	multiWriter := io.MultiWriter(os.Stdout, outputFile)
-
 	// Create the command with the full path to bot.py
 	cmd := exec.Command("python3", botPath, "-i", "crawlme.csv")
 
 	// Set the command's stdout and stderr to the program's stdout and stderr to ensure that the script output is displayed in real time
-	cmd.Stdout = multiWriter
-	cmd.Stderr = multiWriter
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	// Launch the bot!
 	err = cmd.Run()
@@ -424,24 +411,4 @@ func clearScreen() {
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Run()
-}
-
-// Display the welcome banner
-func deleteme() {
-	//Banner
-	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
-	fmt.Println(green + `
-
-██████╗  ██████╗ ████████╗██╗███████╗██╗   ██╗██████╗  ██████╗ ████████╗██╗     ██╗████████╗███████╗
-██╔══██╗██╔═══██╗╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██╔══██╗██╔═══██╗╚══██╔══╝██║     ██║╚══██╔══╝██╔════╝
-██████╔╝██║   ██║   ██║   ██║█████╗   ╚████╔╝ ██████╔╝██║   ██║   ██║   ██║     ██║   ██║   █████╗  
-██╔══██╗██║   ██║   ██║   ██║██╔══╝    ╚██╔╝  ██╔══██╗██║   ██║   ██║   ██║     ██║   ██║   ██╔══╝  
-██████╔╝╚██████╔╝   ██║   ██║██║        ██║   ██████╔╝╚██████╔╝   ██║   ███████╗██║   ██║   ███████╗
-╚═════╝  ╚═════╝    ╚═╝   ╚═╝╚═╝        ╚═╝   ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
-
-`)
-
-	//Display welcome message
-	fmt.Println(purple + "botifyBotLite: Generate and launch Botify crawls, en masse!\n" + reset)
-	fmt.Println(purple+"Version:"+reset, version)
 }
