@@ -1242,8 +1242,18 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 		fmt.Println("No. transactions", formattedTransactions)
 		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
 		fmt.Println("Total revenue", formattedRevenue)
+		// Calculate the average transaction value
+		avgTransactionValue := ytdMetricsRevenue / ytdMetricsTransactions
+		fmt.Println("Average transaction value", avgTransactionValue)
 		formattedVisits := formatWithCommas(ytdMetricsVisits)
-		fmt.Println("No. of visits", formattedVisits+"\n")
+		fmt.Println("No. of visits", formattedVisits)
+
+		// Calculate the average visit value - not used at the moment
+		//var avgVisitValue float64 = 0.0 // example value
+		//avgVisitValue = float64(ytdMetricsRevenue) / float64(ytdMetricsVisits)
+		//fmt.Printf("Average visit value: %.3f\n", avgVisitValue)
+		fmt.Println("\n")
+
 	}
 
 	/*
