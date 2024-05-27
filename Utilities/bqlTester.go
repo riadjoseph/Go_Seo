@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -967,21 +968,22 @@ func seoRevenue() {
 	analyticsID := getAnalyticsID()
 	fmt.Println("Analytics identified:", analyticsID)
 
-	// Get the revenue data
-	getRevenueData(analyticsID)
-
 	// Print the monthly date ranges
 	fmt.Println(bold + "\nMonthly Date Ranges:" + reset)
 	for _, dateRange := range dateRanges.MonthlyRanges {
 		fmt.Printf("From %s to %s\n", dateRange[0].Format("2006-01-02"), dateRange[1].Format("2006-01-02"))
 	}
-	// Print the year-to-date range
-	fmt.Println(bold + "\nYear-to-Date Range:" + reset)
-	fmt.Printf("Start: %s, End: %s\n", dateRanges.YTDRange[0].Format("2006-01-02"), dateRanges.YTDRange[1].Format("2006-01-02"))
+
+	// Format the YTD range ready for use in the BQL
+	startYTDDate := dateRanges.YTDRange[0].Format("20060102")
+	endYTDDate := dateRanges.YTDRange[1].Format("20060102")
+
+	// Get the revenue data
+	getRevenueData(analyticsID, startYTDDate, endYTDDate)
 }
 
 // Get the analytics ID
-func getRevenueData(analyticsID string) {
+func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string) {
 	// Define the revenue endpoint
 	var urlAPIRevenueData string
 	if analyticsID == "visits.dip" {
@@ -990,7 +992,7 @@ func getRevenueData(analyticsID string) {
 		urlAPIRevenueData = "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections/conversion"
 	}
 
-	fmt.Println("\nRevenue data end point:", urlAPIRevenueData)
+	fmt.Println(bold+"\nRevenue data end point:"+reset, urlAPIRevenueData)
 	req, errorCheck := http.NewRequest("GET", urlAPIRevenueData, nil)
 
 	// Define the headers
@@ -1023,9 +1025,9 @@ func getRevenueData(analyticsID string) {
 		os.Exit(1)
 	}
 
-	//fmt.Println("\ndata:", transRevIDs)
+	//bloo
 
-	// Get the revenue, no. transactions and visits
+	// Get the revenue, no. transactions and visits - YTD
 	bqlRevTrans := fmt.Sprintf(`
 	{
     "collections": [
@@ -1034,8 +1036,8 @@ func getRevenueData(analyticsID string) {
     ],
     "periods": [
         [
-                    "20240501",
-                    "20240521"
+                    "%s",
+                    "%s"
         ]
     ],
     "query": {
@@ -1060,7 +1062,7 @@ func getRevenueData(analyticsID string) {
       	      ]
     	    }
  	   }
-	}`)
+	}`, startYTDDate, endYTDDate)
 
 	// Define the URL
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
@@ -1110,14 +1112,26 @@ func getRevenueData(analyticsID string) {
 		log.Fatalf("Error. Cannot unmarshal the JSON: %v", err)
 	}
 
-	// Cast the float64 values as ints.
-	metricsTransactions := int(response.Results[0].Metrics[0])
-	metricsRevenue := int(response.Results[0].Metrics[1])
-	metricsVisits := int(response.Results[0].Metrics[2])
-	fmt.Println("Metrics")
-	fmt.Println("Transactions", metricsTransactions)
-	fmt.Println("Revenue", metricsRevenue)
-	fmt.Println("Visits", metricsVisits)
+	// Check if any data has been returned from the API. Count the number of elements in the Results array
+	responseCount := len(response.Results)
+
+	if responseCount == 0 {
+		fmt.Println(red + "Error. Cannot get Revenue & Visits data." + reset)
+	} else {
+		// Cast the float64 values as ints
+		ytdMetricsTransactions := int(response.Results[0].Metrics[0])
+		ytdMetricsRevenue := int(response.Results[0].Metrics[1])
+		ytdMetricsVisits := int(response.Results[0].Metrics[2])
+		fmt.Println(bold + "YTD organic insights" + reset)
+		fmt.Printf("Start: %s End: %s\n", startYTDDate, endYTDDate)
+		// Include commas in the display integer
+		formattedTransactions := formatWithCommas(ytdMetricsTransactions)
+		fmt.Println("No. transactions", formattedTransactions)
+		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
+		fmt.Println("Total revenue", formattedRevenue)
+		formattedVisits := formatWithCommas(ytdMetricsVisits)
+		fmt.Println("No. of visits", formattedVisits)
+	}
 
 	// Copy the BQL to the clipboard for pasting into Postman
 	cmd := exec.Command("pbcopy")
@@ -1134,7 +1148,7 @@ func getRevenueData(analyticsID string) {
 func getAnalyticsID() string {
 	// First identify which analytics tool is integrated
 	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
-	fmt.Println("\nAnalytics ID end point:", urlAPIAnalyticsID)
+	fmt.Println(bold+"\nAnalytics ID end point:"+reset, urlAPIAnalyticsID)
 	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
 
 	// Define the headers
@@ -1270,6 +1284,33 @@ func displaySeparator() {
 	}
 
 	fmt.Println()
+}
+
+// Function to format an integer with comma separation
+func formatWithCommas(n int) string {
+	s := strconv.Itoa(n)
+	nLen := len(s)
+	if nLen <= 3 {
+		return s
+	}
+
+	var result strings.Builder
+	commaOffset := nLen % 3
+	if commaOffset > 0 {
+		result.WriteString(s[:commaOffset])
+		if nLen > commaOffset {
+			result.WriteString(",")
+		}
+	}
+
+	for i := commaOffset; i < nLen; i += 3 {
+		result.WriteString(s[i : i+3])
+		if i+3 < nLen {
+			result.WriteString(",")
+		}
+	}
+
+	return result.String()
 }
 
 // Function to clear the screen
