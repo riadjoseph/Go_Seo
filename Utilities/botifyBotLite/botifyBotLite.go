@@ -369,7 +369,13 @@ func executeBotPY() {
 	// Keep things tidy. Delete crawlme.csv
 	os.Remove("crawlme.csv")
 
-	fmt.Println(green + "\nCrawl generation process complete!" + reset)
+	fmt.Println(green + "\nCrawl generation process complete!\n" + reset)
+
+	// Display the current time
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("15:04")
+	fmt.Println(green+"botifyBotLite finished at:"+reset, formattedTime+"\n")
+
 	fmt.Println(green + "\nThe start pages crawled and the generated Botify project URL can be found in" + bold + " projects_list.txt" + reset)
 	fmt.Println(bold + green + "\nThank you for using botifyBotLite. Goodbye!\n" + reset)
 }
