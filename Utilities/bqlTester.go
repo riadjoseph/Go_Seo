@@ -41,6 +41,12 @@ type DateRanges struct {
 	YTDRange      [2]time.Time
 }
 
+// monthDate structs used to store string values of the calculated start/end month dates for BQL use
+type monthDates struct {
+	StartMthDate string
+	EndMthDate   string
+}
+
 // Used to identify which analytics tool is in use
 type AnalyticsID struct {
 	ID          string      `json:"id"`
@@ -968,10 +974,16 @@ func seoRevenue() {
 	analyticsID := getAnalyticsID()
 	fmt.Println("Analytics identified:", analyticsID)
 
-	// Print the monthly date ranges
-	fmt.Println(bold + "\nMonthly Date Ranges:" + reset)
+	// Prepare the monthly dates ranges ready for use in the BQL
+	// Define array to store startMthDate and endMthDate separately
+	startMthDates := make([]string, 0)
+	endMthDates := make([]string, 0)
+	// Populate the array with string versions of the date ready for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
-		fmt.Printf("From %s to %s\n", dateRange[0].Format("2006-01-02"), dateRange[1].Format("2006-01-02"))
+		startMthDate := dateRange[0].Format("20060102")
+		endMthDate := dateRange[1].Format("20060102")
+		startMthDates = append(startMthDates, startMthDate)
+		endMthDates = append(endMthDates, endMthDate)
 	}
 
 	// Format the YTD range ready for use in the BQL
@@ -979,11 +991,11 @@ func seoRevenue() {
 	endYTDDate := dateRanges.YTDRange[1].Format("20060102")
 
 	// Get the revenue data
-	getRevenueData(analyticsID, startYTDDate, endYTDDate)
+	getRevenueData(analyticsID, startYTDDate, endYTDDate, startMthDates, endMthDates)
 }
 
 // Get the analytics ID
-func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string) {
+func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, startMthDates []string, endMthDates []string) {
 	// Define the revenue endpoint
 	var urlAPIRevenueData string
 	if analyticsID == "visits.dip" {
