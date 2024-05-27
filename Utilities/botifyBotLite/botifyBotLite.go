@@ -425,3 +425,23 @@ func clearScreen() {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
+
+// Display the welcome banner
+func deleteme() {
+	//Banner
+	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+	fmt.Println(green + `
+
+██████╗  ██████╗ ████████╗██╗███████╗██╗   ██╗██████╗  ██████╗ ████████╗██╗     ██╗████████╗███████╗
+██╔══██╗██╔═══██╗╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██╔══██╗██╔═══██╗╚══██╔══╝██║     ██║╚══██╔══╝██╔════╝
+██████╔╝██║   ██║   ██║   ██║█████╗   ╚████╔╝ ██████╔╝██║   ██║   ██║   ██║     ██║   ██║   █████╗  
+██╔══██╗██║   ██║   ██║   ██║██╔══╝    ╚██╔╝  ██╔══██╗██║   ██║   ██║   ██║     ██║   ██║   ██╔══╝  
+██████╔╝╚██████╔╝   ██║   ██║██║        ██║   ██████╔╝╚██████╔╝   ██║   ███████╗██║   ██║   ███████╗
+╚═════╝  ╚═════╝    ╚═╝   ╚═╝╚═╝        ╚═╝   ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
+
+`)
+
+	//Display welcome message
+	fmt.Println(purple + "botifyBotLite: Generate and launch Botify crawls, en masse!\n" + reset)
+	fmt.Println(purple+"Version:"+reset, version)
+}
