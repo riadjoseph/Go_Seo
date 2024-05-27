@@ -1,21 +1,2 @@
 # Enter the URLs to crawl here. Remember to specify the full URL i.e. https://www.domain.com/
-https://www.cetelem.fr/
-https://www.findomestic.it/
-https://www.kotsovolos.gr/
-https://www.galderma.com/
-https://www.claritin.com
-https://www.beroccagamme.fr
-https://www.aspirin.de
-https://www.bepanthengamme.fr
-https://www.redoxon.ch
-https://www.rennie.ch
-https://us.bic.com/
-https://fr.bic.com/frwww.sportx.ch/fr
-https://www.micasa.ch/fr
-https://www.doitgarden.ch
-https://www.melectronics.ch
-https://www.bikeworld.ch/fr
-https://www.migros-service.ch
-https://www.bestsecret.fr/
-https://alessi.com/fr
-https://www.salsajeans.com
+https://www.evaneos.fr

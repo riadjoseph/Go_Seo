@@ -57,6 +57,9 @@ func main() {
 	// Check to see if crawlme.txt exists. If not exit with an error
 	checkCrawlmeTxt()
 
+	// Check the formatting of the URLs in crawlme.txt
+	validateCrawlmeTxt()
+
 	// Get the crawl settings if they have not been specified on the command line
 	checkCrawlParameters()
 
@@ -89,6 +92,48 @@ func checkCrawlmeTxt() {
 	if _, err := os.Stat("crawlme.txt"); os.IsNotExist(err) {
 		fmt.Printf(red + "\nError. checkCrawlmeTxt. No " + bold + "crawlme.txt" + reset + red + " found. Crawls cannot be generated.\n" + reset)
 		os.Exit(1)
+	}
+}
+
+func validateCrawlmeTxt() {
+	// Open the file
+	file, err := os.Open("crawlme.txt")
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	// Create a new scanner
+	scanner := bufio.NewScanner(file)
+
+	// Flag to track if there are any invalid lines
+	foundInvalid := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Ignore lines that start with # (comments)
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		if !strings.HasPrefix(line, "https://www.") {
+			// If a line does not start with "https://www."
+			foundInvalid = true
+			fmt.Println("URL incorrectly formatted:", line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(red+"Error. validateCrawlmeTxt. Cannot read crawlme.txt:"+reset, err)
+		os.Exit(1)
+	}
+
+	// Exit with error code 0 if any invalid lines were found
+	if foundInvalid {
+		fmt.Println(red + "\nCorrect the formatting of the URLs above and try again. Remember all URLs must start with " + bold + "https://www." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "\ncrawlme.txt validated successfully\n" + reset)
 	}
 }
 
@@ -243,9 +288,9 @@ func writeCSVContent() {
 		record := scanner.Text()
 
 		// Skip lines starting with # (comments)
-		if strings.HasPrefix(record, "#") {
-			continue
-		}
+		//if strings.HasPrefix(record, "#") {
+		//	continue
+		//}
 
 		// Ensure the record ends with a "/", if it does not end with a "/" add one
 		if !strings.HasSuffix(record, "/") {
@@ -260,9 +305,11 @@ func writeCSVContent() {
 		err := writer.Write(newRecord)
 
 		// Build and write the record to project_list.txt
-		_, err = projectListWriter.WriteString(record + "," + "https://app.botify.com/" + projectSlug + "/" + projectPrefix + "_" + domain + "__bbl" + "\n")
-		if err != nil {
-			log.Fatalf(red+"Error. writeCSVContent. Failed to write to project_list.txt: %s"+reset, err)
+		if !strings.HasPrefix(record, "#") {
+			_, err := projectListWriter.WriteString(record + "," + "https://app.botify.com/" + projectSlug + "/" + projectPrefix + "_" + domain + "__bbl" + "\n")
+			if err != nil {
+				log.Fatalf(red+"Error. writeCSVContent. Failed to write to project_list.txt: %s"+reset, err)
+			}
 		}
 
 		writer.Flush()
@@ -282,8 +329,8 @@ func writeCSVContent() {
 	fmt.Println("No. crawls to generate:"+reset, noCrawlsToGenerate)
 	fmt.Printf("Your crawls will be available in the following project: https://app.botify.com/%s\n", projectSlug)
 
-	// Each crawl should take approx. 25 seconds to complete
-	estimatedRunTime := float64(noCrawlsToGenerate) * 25 / 60
+	// Each crawl should take approx. 40 seconds to complete
+	estimatedRunTime := float64(noCrawlsToGenerate) * 40 / 60
 	roundedRunTime := math.Ceil(estimatedRunTime)
 	fmt.Printf("Estimated time to generate all crawls is %.0f minutes\n", roundedRunTime)
 	// Display the current time
@@ -367,7 +414,7 @@ func executeBotPY() {
 	// For security reasons delete env.py
 	os.Remove("env.py")
 	// Keep things tidy. Delete crawlme.csv
-	os.Remove("crawlme.csv")
+	os.Remove("crawlme.csv") //bloo
 
 	fmt.Println(green + "\nCrawl generation process complete!\n" + reset)
 
@@ -376,8 +423,8 @@ func executeBotPY() {
 	formattedTime := currentTime.Format("15:04")
 	fmt.Println(green+"botifyBotLite finished at:"+reset, formattedTime+"\n")
 
-	fmt.Println(green + "\nThe start pages crawled and the generated Botify project URL can be found in" + bold + " projects_list.txt" + reset)
-	fmt.Println(bold + green + "\nThank you for using botifyBotLite. Goodbye!\n" + reset)
+	fmt.Println("\nThe start pages crawled and the generated Botify project URL can be found in" + bold + " projects_list.txt" + reset)
+	fmt.Println(bold + "\nThank you for using botifyBotLite. Goodbye!\n" + reset)
 }
 
 // Display the welcome banner
@@ -397,7 +444,7 @@ func displayBanner() {
 
 	//Display welcome message
 	fmt.Println(purple + "botifyBotLite: Generate and launch Botify crawls, en masse!\n" + reset)
-	fmt.Println(purple+"Version:"+reset, version)
+	fmt.Println(purple+"Version:"+reset, version+"\n")
 }
 
 // Function to clear the screen
