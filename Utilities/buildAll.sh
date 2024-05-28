@@ -19,18 +19,18 @@ echo - building bqlTester.go
 go build bqlTester.go
 echo - building chartRevenue.go
 go build chartRevenue.go
+cd botifyBotLite
 echo - building botifyBotLite.go
-go build ./botifyBotLite/botifyBotLite.go
+go build botifyBotLite.go
 echo
 echo "** Building Go_SEO utilities - Done!"
 #echo
 #echo "** Packaging binaries"
-#tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite apiTester bqlTester chartRevenue
+cd /Users/jason/documents/go/go_seo/utilities
+tar -cvf Go_Seo_macOS.tar ./folderCount ./paramCount ./listAnalysis ./listURLs ./segmentifyLite ./apiTester ./bqlTester ./chartRevenue botifyBotLite
 #echo
 #echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
 #echo
-echo "** Binaries tar file has NOT been generated"
-
 
 
 
