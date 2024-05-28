@@ -839,6 +839,7 @@ func displayBanner() {
 	fmt.Println(checkmark + green + bold + " Visits (YTD/monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " Transactions (YTD/monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) Average transaction value" + reset)
+	fmt.Println(checkmark + green + bold + " (Computed) Average visit value" + reset)
 }
 
 // Display the seperator
