@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -32,15 +34,22 @@ type monthDates struct {
 	EndMthDate   string
 }
 
+// Slice used to store the name of the month
+var startMthNames []string
+
+// Define the slice to store startMthDate and endMthDate separately
+var startMthDates = make([]string, 0)
+var endMthDates = make([]string, 0)
+
+// Slices used to store the SEO metrics
+var seoMetricsTransactions []int
+var seoMetricsRevenue []int
+var seoMetricsVisits []int
+var seoTransactionValue []int
+
 // Used to identify which analytics tool is in use
 type AnalyticsID struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Date        string      `json:"date"`
-	Timestamped bool        `json:"timestamped"`
-	DateStart   string      `json:"date_start"`
-	DateEnd     string      `json:"date_end"`
-	GenericName interface{} `json:"generic_name"`
+	ID string `json:"id"`
 }
 
 type transRevID struct {
@@ -53,19 +62,7 @@ type transRevID struct {
 }
 
 type field struct {
-	ID             string      `json:"id"`
-	Name           string      `json:"name"`
-	Type           string      `json:"type"`
-	Subtype        string      `json:"subtype"`
-	Multiple       bool        `json:"multiple"`
-	Permissions    []string    `json:"permissions"`
-	Optional       bool        `json:"optional"`
-	Kind           string      `json:"kind"`
-	GlobalField    string      `json:"global_field"`
-	DiffReturnType interface{} `json:"diff_return_type"`
-	ApiOnly        bool        `json:"api_only"`
-	Meta           meta        `json:"meta"`
-	Suggestion     bool        `json:"suggestion"`
+	ID string `json:"id"`
 }
 
 type meta struct {
@@ -79,11 +76,7 @@ type Result struct {
 }
 
 type Response struct {
-	Results  []Result    `json:"results"`
-	Previous interface{} `json:"previous"`
-	Next     string      `json:"next"`
-	Page     int         `json:"page"`
-	Size     int         `json:"size"`
+	Results []Result `json:"results"`
 }
 
 // Version
@@ -138,10 +131,10 @@ func main() {
 	// Revenue for the last 12 months
 	seoRevenue()
 
-	displaySeparator()
+	// Make the barchart()
+	barChart()
 
-	// Visits for the last 12 months
-	//seoVisits()
+	displaySeparator()
 
 	chartRevenueDone()
 }
@@ -188,15 +181,17 @@ func seoRevenue() {
 	fmt.Println("Analytics identified:", analyticsID)
 
 	// Prepare the monthly dates ranges ready for use in the BQL
-	// Define array to store startMthDate and endMthDate separately
-	startMthDates := make([]string, 0)
-	endMthDates := make([]string, 0)
-	// Populate the array with string versions of the date ready for use in the BQL
+	// Populate the slice with string versions of the date ready for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
 		startMthDate := dateRange[0].Format("20060102")
 		endMthDate := dateRange[1].Format("20060102")
 		startMthDates = append(startMthDates, startMthDate)
 		endMthDates = append(endMthDates, endMthDate)
+
+		// Get the month name
+		startDate, _ := time.Parse("20060102", startMthDate)
+		startMthName := startDate.Format("January 2006")
+		startMthNames = append(startMthNames, startMthName)
 	}
 
 	// Format the YTD range ready for use in the BQL
@@ -209,55 +204,33 @@ func seoRevenue() {
 
 // Get the revenue, transactions and visits data
 func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, startMthDates []string, endMthDates []string) {
-	// Define the revenue endpoint
-	var urlAPIRevenueData string
-	if analyticsID == "visits.dip" {
-		urlAPIRevenueData = "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections/conversion.dip"
-	} else {
-		urlAPIRevenueData = "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections/conversion"
-	}
 
-	//fmt.Println(bold+"\nRevenue data end point:"+reset, urlAPIRevenueData)
-	req, errorCheck := http.NewRequest("GET", urlAPIRevenueData, nil)
-
-	// Define the headers
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
-	req.Header.Add("Content-Type", "application/json")
-
-	// Create HTTP client and execute the request
-	client := &http.Client{
-		Timeout: 20 * time.Second,
-	}
-	resp, errorCheck := client.Do(req)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. getRevenueData. Cannot create request: "+reset, errorCheck)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"Error. getRevenueData. Cannot read response body: "+reset, errorCheck)
-		os.Exit(1)
-	}
-
-	// Unmarshal the JSON data into the struct
-	var transRevIDs transRevID
-	if err := json.Unmarshal(responseData, &transRevIDs); err != nil {
-		log.Fatal(red+"Error. getRevenueData. Cannot unmarshall the JSON: "+reset, err)
-		os.Exit(1)
-	}
-
-	// Get YTD insights
-	fmt.Println(bold + "\nYTD organic insights" + reset)
-	executeRevenueBQL(analyticsID, startYTDDate, endYTDDate)
+	var ytdMetricsTransactions = 0
+	var ytdMetricsRevenue = 0
+	var ytdMetricsVisits = 0
+	var avgTransactionValue = 0
 
 	// Get monthly insights
 	fmt.Println(bold + "\nMonthly organic insights" + reset)
 	for i := range startMthDates {
-		executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+		ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+
+		// Display the metrics (formatted)
+		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
+		formattedTransactions := formatWithCommas(ytdMetricsTransactions)
+		fmt.Println("No. transactions", formattedTransactions)
+		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
+		fmt.Println("Total revenue", formattedRevenue)
+		fmt.Println("Average transaction value", avgTransactionValue)
+		formattedVisits := formatWithCommas(ytdMetricsVisits)
+		fmt.Println("No. of visits", formattedVisits)
+		fmt.Println("\n")
+
+		// Append the metrics to the slices
+		seoMetricsTransactions = append(seoMetricsTransactions, ytdMetricsTransactions)
+		seoMetricsRevenue = append(seoMetricsRevenue, ytdMetricsRevenue)
+		seoTransactionValue = append(seoTransactionValue, avgTransactionValue)
+		seoMetricsVisits = append(seoMetricsVisits, ytdMetricsVisits)
 	}
 }
 
@@ -352,7 +325,9 @@ func calculateDateRanges() DateRanges {
 	return DateRanges{MonthlyRanges: dateRanges, YTDRange: yearToDateRange}
 }
 
-func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate string) {
+// Execute the BQL for the specified date range
+// func executeRevenueBQL(analyticsID string, startDate string, endDate string) {
+func executeRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int) {
 
 	// Get the revenue, no. transactions and visits - YTD
 	bqlRevTrans := fmt.Sprintf(`
@@ -389,11 +364,10 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
       	      ]
     	    }
  	   }
-	}`, analyticsID, startYTDDate, endYTDDate)
+	}`, analyticsID, startDate, endDate)
 
 	// Define the URL
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-	//fmt.Println("End point:", url, "\n")
 
 	// GET the HTTP request
 	req, errorCheck := http.NewRequest("GET", url, nil)
@@ -429,7 +403,7 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 	responseData, errorCheck := ioutil.ReadAll(resp.Body)
 	if errorCheck != nil {
 		log.Fatal(red+"Error. executeRevenueBQL. Cannot read response body: "+reset, errorCheck)
-		return
+		os.Exit(1)
 	}
 
 	// Unmarshal the JSON data into the struct
@@ -439,43 +413,91 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 		log.Fatalf("Error. executeRevenueBQL. Cannot unmarshal the JSON: %v", err)
 	}
 
-	// Check if any data has been returned from the API. Count the number of elements in the Results array
+	var ytdMetricsTransactions = 0
+	var ytdMetricsRevenue = 0
+	var ytdMetricsVisits = 0
+	var avgTransactionValue = 0
+
+	// Check if any data has been returned from the API. Count the number of elements in the response.Results slice
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
 		fmt.Println(red + "Error. executeRevenueBQL. Cannot get Revenue & Visits data. Ensure the selected project is using GA4." + reset)
 	} else {
-		// Cast the float64 values as ints
-		ytdMetricsTransactions := int(response.Results[0].Metrics[0])
-		ytdMetricsRevenue := int(response.Results[0].Metrics[1])
-		ytdMetricsVisits := int(response.Results[0].Metrics[2])
-		fmt.Printf(green+"Start: %s End: %s\n"+reset, startYTDDate, endYTDDate)
-		// Include commas in the display integer
-		formattedTransactions := formatWithCommas(ytdMetricsTransactions)
-		fmt.Println("No. transactions", formattedTransactions)
-		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
-		fmt.Println("Total revenue", formattedRevenue)
-		// Calculate the average transaction value
-		avgTransactionValue := ytdMetricsRevenue / ytdMetricsTransactions
-		fmt.Println("Average transaction value", avgTransactionValue)
-		formattedVisits := formatWithCommas(ytdMetricsVisits)
-		fmt.Println("No. of visits", formattedVisits)
-
-		fmt.Println("\n")
-
+		ytdMetricsTransactions = int(response.Results[0].Metrics[0])
+		ytdMetricsRevenue = int(response.Results[0].Metrics[1])
+		ytdMetricsVisits = int(response.Results[0].Metrics[2])
+		// Compute the average transaction value
+		avgTransactionValue = ytdMetricsRevenue / ytdMetricsTransactions
 	}
+	return ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue
+}
+
+func barChart() {
+
+	//fmt.Println("seoMetricsTransactions:", seoMetricsTransactions)
+	//fmt.Println("seoMetricsRevenue:", seoMetricsRevenue)
+	//fmt.Println("seoMetricsVisits:", seoMetricsVisits)
+	//fmt.Println("seoTransactionValue:", seoTransactionValue)
+	//fmt.Println("startdates:", startMthDates)
+	//fmt.Println("enddates:", endMthDates)
+	fmt.Println("month names:", startMthNames)
+
+	// create a new bar instance
+	bar := charts.NewBar()
+	// set some global options like Title/Legend/ToolTip or anything else
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    "Go_Seo project",
+		Subtitle: "Revenue & visits",
+		Link:     "https://github.com/go-echarts/go-echarts",
+	}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 1,
+			End:   100,
+		}),
+
+		// Change bar colours
+		//charts.WithColorsOpts(opts.Colors{"green", "purple"}),
+	)
+
+	barDataRevenue := generateBarItems(seoMetricsRevenue)
+	barDataVisits := generateBarItems(seoMetricsVisits)
+	//barDataTransactions := generateBarItems(seoMetricsTransactions)
+
+	bar.SetXAxis(startMthNames).
+		AddSeries("Revenue", barDataRevenue).
+		AddSeries("Visits", barDataVisits)
 
 	/*
-		// Copy the BQL to the clipboard for pasting into Postman
-		cmd := exec.Command("pbcopy")
-		cmd.Stdin = strings.NewReader(bqlRevTrans)
-		err = cmd.Run()
-		if err != nil {
-			fmt.Println("Error. executeRevenueBQL. Cannot copy BQL to clipboard:", err)
-			return
-		}
+		AddSeries("Revenue", barDataRevenue, charts.WithMarkPointNameCoordItemOpts(opts.MarkPointNameCoordItem{
+			Name:       "special mark",
+			Coordinate: []interface{}{"Mon", 100},
+			Label: &opts.Label{
+				Show:     Label.Bool(true),
+				Color:    "pink",
+				Position: "inside",
+			},
+		})).
+
 	*/
 
+	//AddSeries("Transactions", barDataTransactions)
+
+	// Where the magic happens
+	f, _ := os.Create("seoInsightsbar.html")
+	bar.Render(f)
+}
+
+//	var startMthNames []string
+
+// Function to generate BarData items from an array of integers
+func generateBarItems(revenue []int) []opts.BarData {
+	items := make([]opts.BarData, len(revenue))
+	for i, val := range revenue {
+		items[i] = opts.BarData{Value: val}
+	}
+	return items
 }
 
 func chartRevenueDone() {
