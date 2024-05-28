@@ -23,14 +23,17 @@ cd botifyBotLite
 echo - building botifyBotLite.go
 go build botifyBotLite.go
 echo
-echo "** Building Go_SEO utilities - Done!"
+echo "** Building Go_Seo utilities - Done!"
 #echo
 #echo "** Packaging binaries"
 cd /Users/jason/documents/go/go_seo/utilities
+rm ./botifyBotLite/project_list.txt
+rm ./botifyBotLite/.DS_Store
 tar -cvf Go_Seo_macOS.tar ./folderCount ./paramCount ./listAnalysis ./listURLs ./segmentifyLite ./apiTester ./bqlTester ./chartRevenue botifyBotLite
-#echo
-#echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
-#echo
+mv ./Go_Seo_macOS.tar /Users/jason/onedrive/Go_Seo_Package
+echo
+echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
+echo
 
 
 
