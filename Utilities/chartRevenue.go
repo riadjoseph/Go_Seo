@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -46,6 +48,7 @@ var seoMetricsTransactions []int
 var seoMetricsRevenue []int
 var seoMetricsVisits []int
 var seoTransactionValue []int
+var seoVisitValue []int
 
 // Used to identify which analytics tool is in use
 type AnalyticsID struct {
@@ -78,6 +81,9 @@ type Result struct {
 type Response struct {
 	Results []Result `json:"results"`
 }
+
+// Project URL
+var projectURL = ""
 
 // Version
 var version = "v0.1"
@@ -126,13 +132,25 @@ func main() {
 	fmt.Println(bold+"Project name:", projectName+reset)
 	fmt.Println()
 
+	// Generate the link to the project
+	projectURL = "https://app.botify.com/" + orgName + "/" + projectName
+
 	displaySeparator()
 
 	// Revenue for the last 12 months
 	seoRevenue()
 
-	// Make the barchart()
-	barChart()
+	// Revenue & visits bar chart
+	barChartRevenueVisits()
+
+	// No. of transactions bar chart
+	barChartTransactions()
+
+	// Transaction value barchart
+	barChartTransactionValue()
+
+	// Theme river
+	//themeRiverTime()
 
 	displaySeparator()
 
@@ -209,11 +227,12 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 	var ytdMetricsRevenue = 0
 	var ytdMetricsVisits = 0
 	var avgTransactionValue = 0
+	var avgVisitValue = 0
 
 	// Get monthly insights
 	fmt.Println(bold + "\nMonthly organic insights" + reset)
 	for i := range startMthDates {
-		ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+		ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 
 		// Display the metrics (formatted)
 		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
@@ -224,6 +243,7 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		fmt.Println("Average transaction value", avgTransactionValue)
 		formattedVisits := formatWithCommas(ytdMetricsVisits)
 		fmt.Println("No. of visits", formattedVisits)
+		fmt.Println("Average visit value", avgVisitValue)
 		fmt.Println("\n")
 
 		// Append the metrics to the slices
@@ -327,7 +347,7 @@ func calculateDateRanges() DateRanges {
 
 // Execute the BQL for the specified date range
 // func executeRevenueBQL(analyticsID string, startDate string, endDate string) {
-func executeRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int) {
+func executeRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, int) {
 
 	// Get the revenue, no. transactions and visits - YTD
 	bqlRevTrans := fmt.Sprintf(`
@@ -417,6 +437,7 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	var ytdMetricsRevenue = 0
 	var ytdMetricsVisits = 0
 	var avgTransactionValue = 0
+	var avgVisitValue = 0
 
 	// Check if any data has been returned from the API. Count the number of elements in the response.Results slice
 	responseCount := len(response.Results)
@@ -429,11 +450,13 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 		ytdMetricsVisits = int(response.Results[0].Metrics[2])
 		// Compute the average transaction value
 		avgTransactionValue = ytdMetricsRevenue / ytdMetricsTransactions
+		avgVisitValue = ytdMetricsRevenue / ytdMetricsVisits
 	}
-	return ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue
+	return ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue, avgVisitValue
 }
 
-func barChart() {
+// Bar chart. Revenue and Visits// Bar chart. No. of transactions
+func barChartRevenueVisits() {
 
 	//fmt.Println("seoMetricsTransactions:", seoMetricsTransactions)
 	//fmt.Println("seoMetricsRevenue:", seoMetricsRevenue)
@@ -441,55 +464,171 @@ func barChart() {
 	//fmt.Println("seoTransactionValue:", seoTransactionValue)
 	//fmt.Println("startdates:", startMthDates)
 	//fmt.Println("enddates:", endMthDates)
-	fmt.Println("month names:", startMthNames)
+	//fmt.Println("month names:", startMthNames)
 
 	// create a new bar instance
 	bar := charts.NewBar()
 	// set some global options like Title/Legend/ToolTip or anything else
+
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Go_Seo project",
+		Title:    projectURL,
 		Subtitle: "Revenue & visits",
-		Link:     "https://github.com/go-echarts/go-echarts",
+		Link:     projectURL,
 	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
 		charts.WithDataZoomOpts(opts.DataZoom{
 			Type:  "slider",
 			Start: 1,
 			End:   100,
 		}),
-
-		// Change bar colours
-		//charts.WithColorsOpts(opts.Colors{"green", "purple"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "600px",
+		}),
+		charts.WithColorsOpts(opts.Colors{"teal", "gray"}),
 	)
 
 	barDataRevenue := generateBarItems(seoMetricsRevenue)
 	barDataVisits := generateBarItems(seoMetricsVisits)
-	//barDataTransactions := generateBarItems(seoMetricsTransactions)
 
 	bar.SetXAxis(startMthNames).
-		AddSeries("Revenue", barDataRevenue).
-		AddSeries("Visits", barDataVisits)
-
-	/*
 		AddSeries("Revenue", barDataRevenue, charts.WithMarkPointNameCoordItemOpts(opts.MarkPointNameCoordItem{
 			Name:       "special mark",
-			Coordinate: []interface{}{"Mon", 100},
-			Label: &opts.Label{
-				Show:     Label.Bool(true),
-				Color:    "pink",
-				Position: "inside",
-			},
+			Coordinate: []interface{}{"March", 100},
 		})).
-
-	*/
+		AddSeries("Visits", barDataVisits).
+		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
+		))
 
 	//AddSeries("Transactions", barDataTransactions)
 
 	// Where the magic happens
-	f, _ := os.Create("seoInsightsbar.html")
+	f, _ := os.Create("seoRevenueVisitsBar.html")
 	bar.Render(f)
 }
 
-//	var startMthNames []string
+// Bar chart. Visit value
+func barChartVisitValue() {
+	// create a new bar instance
+	bar := charts.NewBar()
+
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    projectURL,
+		Subtitle: "Visit Value",
+		Link:     projectURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 1,
+			End:   100,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "600px",
+		}),
+		charts.WithColorsOpts(opts.Colors{"red"}),
+	)
+
+	barDataVisitValue := generateBarItems(seoVisitValue)
+
+	bar.SetXAxis(startMthNames).
+		AddSeries("Transaction value", barDataVisitValue, charts.WithMarkPointNameCoordItemOpts(opts.MarkPointNameCoordItem{
+			Name:       "special mark",
+			Coordinate: []interface{}{"March", 100},
+		})).
+		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
+		))
+
+	// Where the magic happens
+	f, _ := os.Create("seoVisitValueBar.html")
+	bar.Render(f)
+}
+
+// Bar chart. No. of transactions
+func barChartTransactions() {
+	// create a new bar instance
+	bar := charts.NewBar()
+
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    projectURL,
+		Subtitle: "No. of Transactions",
+		Link:     projectURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 1,
+			End:   100,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "600px",
+		}),
+		charts.WithColorsOpts(opts.Colors{"green"}),
+	)
+
+	barDataTransactions := generateBarItems(seoMetricsTransactions)
+
+	bar.SetXAxis(startMthNames).
+		AddSeries("Transactions", barDataTransactions, charts.WithMarkPointNameCoordItemOpts(opts.MarkPointNameCoordItem{
+			Name:       "special mark",
+			Coordinate: []interface{}{"March", 100},
+		})).
+		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
+		))
+
+	// Where the magic happens
+	f, _ := os.Create("seoTransactionsBar.html")
+	bar.Render(f)
+}
+
+// Bar chart. No. of transactions
+func barChartTransactionValue() {
+	// create a new bar instance
+	bar := charts.NewBar()
+	// set some global options like Title/Legend/ToolTip or anything else
+
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    projectURL,
+		Subtitle: "Transaction Value",
+		Link:     projectURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 1,
+			End:   100,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "600px",
+		}),
+		charts.WithColorsOpts(opts.Colors{"blue"}),
+	)
+
+	barDataTransactionValue := generateBarItems(seoTransactionValue)
+
+	bar.SetXAxis(startMthNames).
+		AddSeries("Transaction value", barDataTransactionValue, charts.WithMarkPointNameCoordItemOpts(opts.MarkPointNameCoordItem{
+			Name:       "special mark",
+			Coordinate: []interface{}{"March", 100},
+		})).
+		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
+		))
+
+	// Where the magic happens
+	f, _ := os.Create("seoTransactionValueBar.html")
+	bar.Render(f)
+}
 
 // Function to generate BarData items from an array of integers
 func generateBarItems(revenue []int) []opts.BarData {
@@ -500,8 +639,171 @@ func generateBarItems(revenue []int) []opts.BarData {
 	return items
 }
 
-func chartRevenueDone() {
+// Theme river chart
+func themeRiverTime() *charts.ThemeRiver {
+	tr := charts.NewThemeRiver()
+	tr.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "ThemeRiver-SingleAxis-Time",
+		}),
+		charts.WithSingleAxisOpts(opts.SingleAxis{
+			Type:   "time",
+			Bottom: "10%",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger: "axis",
+		}),
+	)
 
+	data := []opts.ThemeRiverData{
+		{"2015/11/08", 10, "DQ"},
+		{"2015/11/09", 15, "DQ"},
+		{"2015/11/10", 35, "DQ"},
+		{"2015/11/11", 38, "DQ"},
+		{"2015/11/12", 22, "DQ"},
+		{"2015/11/13", 16, "DQ"},
+		{"2015/11/14", 7, "DQ"},
+		{"2015/11/15", 2, "DQ"},
+		{"2015/11/16", 17, "DQ"},
+		{"2015/11/17", 33, "DQ"},
+		{"2015/11/18", 40, "DQ"},
+		{"2015/11/19", 32, "DQ"},
+		{"2015/11/20", 26, "DQ"},
+		{"2015/11/21", 35, "DQ"},
+		{"2015/11/22", 40, "DQ"},
+		{"2015/11/23", 32, "DQ"},
+		{"2015/11/24", 26, "DQ"},
+		{"2015/11/25", 22, "DQ"},
+		{"2015/11/26", 16, "DQ"},
+		{"2015/11/27", 22, "DQ"},
+		{"2015/11/28", 10, "DQ"},
+		{"2015/11/08", 35, "TY"},
+		{"2015/11/09", 36, "TY"},
+		{"2015/11/10", 37, "TY"},
+		{"2015/11/11", 22, "TY"},
+		{"2015/11/12", 24, "TY"},
+		{"2015/11/13", 26, "TY"},
+		{"2015/11/14", 34, "TY"},
+		{"2015/11/15", 21, "TY"},
+		{"2015/11/16", 18, "TY"},
+		{"2015/11/17", 45, "TY"},
+		{"2015/11/18", 32, "TY"},
+		{"2015/11/19", 35, "TY"},
+		{"2015/11/20", 30, "TY"},
+		{"2015/11/21", 28, "TY"},
+		{"2015/11/22", 27, "TY"},
+		{"2015/11/23", 26, "TY"},
+		{"2015/11/24", 15, "TY"},
+		{"2015/11/25", 30, "TY"},
+		{"2015/11/26", 35, "TY"},
+		{"2015/11/27", 42, "TY"},
+		{"2015/11/28", 42, "TY"},
+		{"2015/11/08", 21, "SS"},
+		{"2015/11/09", 25, "SS"},
+		{"2015/11/10", 27, "SS"},
+		{"2015/11/11", 23, "SS"},
+		{"2015/11/12", 24, "SS"},
+		{"2015/11/13", 21, "SS"},
+		{"2015/11/14", 35, "SS"},
+		{"2015/11/15", 39, "SS"},
+		{"2015/11/16", 40, "SS"},
+		{"2015/11/17", 36, "SS"},
+		{"2015/11/18", 33, "SS"},
+		{"2015/11/19", 43, "SS"},
+		{"2015/11/20", 40, "SS"},
+		{"2015/11/21", 34, "SS"},
+		{"2015/11/22", 28, "SS"},
+		{"2015/11/23", 26, "SS"},
+		{"2015/11/24", 37, "SS"},
+		{"2015/11/25", 41, "SS"},
+		{"2015/11/26", 46, "SS"},
+		{"2015/11/27", 47, "SS"},
+		{"2015/11/28", 41, "SS"},
+		{"2015/11/08", 10, "QG"},
+		{"2015/11/09", 15, "QG"},
+		{"2015/11/10", 35, "QG"},
+		{"2015/11/11", 38, "QG"},
+		{"2015/11/12", 22, "QG"},
+		{"2015/11/13", 16, "QG"},
+		{"2015/11/14", 7, "QG"},
+		{"2015/11/15", 2, "QG"},
+		{"2015/11/16", 17, "QG"},
+		{"2015/11/17", 33, "QG"},
+		{"2015/11/18", 40, "QG"},
+		{"2015/11/19", 32, "QG"},
+		{"2015/11/20", 26, "QG"},
+		{"2015/11/21", 35, "QG"},
+		{"2015/11/22", 40, "QG"},
+		{"2015/11/23", 32, "QG"},
+		{"2015/11/24", 26, "QG"},
+		{"2015/11/25", 22, "QG"},
+		{"2015/11/26", 16, "QG"},
+		{"2015/11/27", 22, "QG"},
+		{"2015/11/28", 10, "QG"},
+		{"2015/11/08", 10, "SY"},
+		{"2015/11/09", 15, "SY"},
+		{"2015/11/10", 35, "SY"},
+		{"2015/11/11", 38, "SY"},
+		{"2015/11/12", 22, "SY"},
+		{"2015/11/13", 16, "SY"},
+		{"2015/11/14", 7, "SY"},
+		{"2015/11/15", 2, "SY"},
+		{"2015/11/16", 17, "SY"},
+		{"2015/11/17", 33, "SY"},
+		{"2015/11/18", 40, "SY"},
+		{"2015/11/19", 32, "SY"},
+		{"2015/11/20", 26, "SY"},
+		{"2015/11/21", 35, "SY"},
+		{"2015/11/22", 4, "SY"},
+		{"2015/11/23", 32, "SY"},
+		{"2015/11/24", 26, "SY"},
+		{"2015/11/25", 22, "SY"},
+		{"2015/11/26", 16, "SY"},
+		{"2015/11/27", 22, "SY"},
+		{"2015/11/28", 10, "SY"},
+		{"2015/11/08", 10, "DD"},
+		{"2015/11/09", 15, "DD"},
+		{"2015/11/10", 35, "DD"},
+		{"2015/11/11", 38, "DD"},
+		{"2015/11/12", 22, "DD"},
+		{"2015/11/13", 16, "DD"},
+		{"2015/11/14", 7, "DD"},
+		{"2015/11/15", 2, "DD"},
+		{"2015/11/16", 17, "DD"},
+		{"2015/11/17", 33, "DD"},
+		{"2015/11/18", 4, "DD"},
+		{"2015/11/19", 32, "DD"},
+		{"2015/11/20", 26, "DD"},
+		{"2015/11/21", 35, "DD"},
+		{"2015/11/22", 40, "DD"},
+		{"2015/11/23", 32, "DD"},
+		{"2015/11/24", 26, "DD"},
+		{"2015/11/25", 22, "DD"},
+		{"2015/11/26", 16, "DD"},
+		{"2015/11/27", 22, "DD"},
+		{"2015/11/28", 10, "DD"},
+	}
+
+	tr.AddSeries("themeRiver", data)
+	return tr
+}
+
+type ThemeriverExamples struct{}
+
+func (ThemeriverExamples) Examples() {
+	page := components.NewPage()
+	page.AddCharts(
+		themeRiverTime(),
+	)
+
+	f, err := os.Create("themeriver.html")
+	if err != nil {
+		panic(err)
+	}
+	page.Render(io.MultiWriter(f))
+}
+
+func chartRevenueDone() {
 	// We're done
 	fmt.Println(purple + "\nchartRevenue: Done!\n")
 	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
@@ -512,7 +814,6 @@ func chartRevenueDone() {
 
 // Display the welcome banner
 func displayBanner() {
-
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
@@ -538,11 +839,9 @@ func displayBanner() {
 	fmt.Println(checkmark + green + bold + " Visits (YTD/monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " Transactions (YTD/monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) Average transaction value" + reset)
-
 }
 
 // Display the seperator
-
 func displaySeparator() {
 	block := "█"
 	fmt.Println()
@@ -583,19 +882,6 @@ func formatWithCommas(n int) string {
 
 // Function to clear the screen
 func clearScreen() {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
-}
-
-// Function to clear the screen
-func jason() {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":

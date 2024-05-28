@@ -17,11 +17,15 @@ echo - building apiTester.go
 go build apiTester.go
 echo - building bqlTester.go
 go build bqlTester.go
+echo - building chartRevenue.go
+go build chartRevenue.go
+echo - building botifyBotLite.go
+go build ./botifyBotLite/botifyBotLite.go
 echo
 echo "** Building Go_SEO utilities - Done!"
 #echo
 #echo "** Packaging binaries"
-#tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite apiTester bqlTester
+#tar -cvf Go_Seo_macOS.tar folderCount paramCount listAnalysis listURLs segmentifyLite apiTester bqlTester chartRevenue
 #echo
 #echo "** Packaging binaries - Done! - see Go_Seo_macOS.tar"
 #echo
