@@ -1,2 +1,17 @@
 # Enter the URLs to crawl here. Remember to specify the full URL i.e. https://www.domain.com/
-https://www.evaneos.fr
+https://www.asadventure.com
+https://www.bikerepublic.be
+https://www.carglass.be/
+https://www.casashops.com
+https://www.collectandgo.be
+https://www.dieteren.be
+https://www.dats24.be
+https://www.kontoorbrands.com
+https://www.krefel.be
+https://www.newpharma.be/
+https://www.odoo.com
+https://www.produpress.be
+https://www.torfs.be
+https://www.vrt.be
+https://www.whirlpoolcorp.com
+https://www.zeb.be
