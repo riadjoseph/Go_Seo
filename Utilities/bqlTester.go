@@ -1285,7 +1285,6 @@ func displayBanner() {
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
-
 ██████╗  ██████╗ ██╗  ████████╗███████╗███████╗████████╗███████╗██████╗ 
 ██╔══██╗██╔═══██╗██║  ╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝██╔════╝██╔══██╗
 ██████╔╝██║   ██║██║     ██║   █████╗  ███████╗   ██║   █████╗  ██████╔╝
