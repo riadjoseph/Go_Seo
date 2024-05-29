@@ -30,12 +30,6 @@ type DateRanges struct {
 	YTDRange      [2]time.Time
 }
 
-// monthDate structs used to store string values of the calculated start/end month dates for BQL use
-type monthDates struct {
-	StartMthDate string
-	EndMthDate   string
-}
-
 // Slice used to store the name of the month
 var startMthNames []string
 
@@ -53,15 +47,6 @@ var seoVisitValue []int
 // Used to identify which analytics tool is in use
 type AnalyticsID struct {
 	ID string `json:"id"`
-}
-
-type transRevID struct {
-	ID       string        `json:"id"`
-	Name     string        `json:"name"`
-	Multiple bool          `json:"multiple"`
-	Fields   []field       `json:"fields"`
-	Groups   []interface{} `json:"groups"`
-	Category []interface{} `json:"category"`
 }
 
 type field struct {
@@ -173,7 +158,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using chartRevenue. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using chartRevenue. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -181,7 +166,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using chartRevenue. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using chartRevenue. Goodbye!")
 			os.Exit(0)
 		}
 	}
@@ -468,7 +453,6 @@ func barChartRevenueVisits() {
 
 	// create a new bar instance
 	bar := charts.NewBar()
-	// set some global options like Title/Legend/ToolTip or anything else
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    projectURL,
@@ -593,7 +577,6 @@ func barChartTransactions() {
 func barChartTransactionValue() {
 	// create a new bar instance
 	bar := charts.NewBar()
-	// set some global options like Title/Legend/ToolTip or anything else
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    projectURL,
@@ -805,7 +788,7 @@ func (ThemeriverExamples) Examples() {
 
 func chartRevenueDone() {
 	// We're done
-	fmt.Println(purple + "\nchartRevenue: Done!\n")
+	fmt.Println(purple + "\nchartRevenue: Done!")
 	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
