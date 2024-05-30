@@ -61,7 +61,7 @@ Usage: ./apiTester org_name project_name
 ```
 **Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
 
-## bqlTester (work in progress)
+## bqlTester   
 Demonstartion of using BQL in Go. Included in this version are BQL queries for: 
 - Site crawler stats
 - Revenue
