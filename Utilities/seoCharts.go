@@ -49,6 +49,7 @@ var cmgrRevenue float64
 var cmgrVisits float64
 var cmgrVisitValue float64
 var cmgrTransactionsValue float64
+var cmgrTransactionsValueValue float64
 
 // AnalyticsID is used to identify which analytics tool is in use
 type AnalyticsID struct {
@@ -93,8 +94,6 @@ var projectNameInput string
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
 
-type LiquidExamples struct{}
-
 func main() {
 
 	clearScreen()
@@ -138,11 +137,17 @@ func main() {
 	barChartTransactionValue()
 
 	// Badges
-	liquidBadges("Revenue")
-	liquidBadges("Visits")
-	liquidBadges("VisitValue")
-	liquidBadges("Transactions")
-	liquidBadges("TransactionValue")
+	cmgrRevenue32 := float32(cmgrRevenue)                               // Cast to float32
+	cmgrVisits32 := float32(cmgrVisits)                                 // Cast to float32
+	cmgrVisitValue32 := float32(cmgrVisitValue)                         // Cast to float32
+	cmgrTransactionsValue32 := float32(cmgrTransactionsValue)           // Cast to float32
+	cmgrTransactionsValueValue32 := float32(cmgrTransactionsValueValue) // Cast to float32 //bloo
+
+	liquidBadges("Revenue", cmgrRevenue32)
+	liquidBadges("Visits", cmgrVisits32)
+	liquidBadges("VisitValue", cmgrVisitValue32)
+	liquidBadges("Transactions", cmgrTransactionsValue32)
+	liquidBadges("Transaction-	Value", cmgrTransactionsValueValue32)
 
 	// Theme river
 	//themeRiverTime()
@@ -515,6 +520,7 @@ func barChartVisitValue() {
 			Start: 0,
 			End:   100,
 		}),
+		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:  "1200px",
 			Height: "600px",
@@ -628,10 +634,10 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 	return items
 }
 
-func liquidBadges(badgeKPI string) {
+func liquidBadges(badgeKPI string, badgeKPIValue float32) {
 	page := components.NewPage()
 	page.AddCharts(
-		generateLiquidBadge(badgeKPI),
+		generateLiquidBadge(badgeKPI, badgeKPIValue),
 	)
 	badgeFileName := fmt.Sprintf("./Utilities/seoChartsWeb/seoCMGR%s.html", badgeKPI)
 	f, err := os.Create(badgeFileName)
@@ -641,16 +647,18 @@ func liquidBadges(badgeKPI string) {
 	page.Render(io.MultiWriter(f))
 }
 
-func generateLiquidBadge(badgeKPI string) *charts.Liquid {
+func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid {
 	liquid := charts.NewLiquid()
-	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{0.3, 0.4, 0.5})).
+	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})).
 		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
 				Show: opts.Bool(true),
 			}),
+
 			charts.WithLiquidChartOpts(opts.LiquidChart{
 				IsWaveAnimation: opts.Bool(true),
 				IsShowOutline:   opts.Bool(true),
+				Shape:           "diamond",
 			}),
 		)
 	return liquid
@@ -883,14 +891,20 @@ func computeCMGR(values []float64) float64 {
 	}
 
 	initialValue := values[0]
-	finalValue := values[len(values)-1]
-	numberOfPeriods := float64(len(values) - 1)
+	// The final period value us not included as it is not a full month
+	finalValue := values[len(values)-2]
+	numberOfPeriods := float64(len(values))
+
+	fmt.Printf("Start Value: %.2f\n", initialValue)
+	fmt.Printf("End Value: %.2f\n", finalValue)
+	fmt.Printf("Number of Periods: %.2f\n", numberOfPeriods)
 
 	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
 	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
 
 	// Round CMGR to 2 decimal places
 	cmgr = math.Round(cmgr*100) / 100
+	fmt.Printf("Compound Monthly Growth Rate (CMGR): %.2f%%\n", cmgr*100)
 
 	return cmgr
 }
