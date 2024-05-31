@@ -23,6 +23,9 @@ import (
 	"time"
 )
 
+// anonymous mode. When set to true the URL to the project defaults to 'http://go-seo.rf.gd/'
+var anonymousMode = true
+
 // DateRanges struct used to hold the monthly date ranges and the YTD date range
 // Used for revenue and visits data
 type DateRanges struct {
@@ -38,25 +41,33 @@ var startMthDates = make([]string, 0)
 var endMthDates = make([]string, 0)
 
 // Slices used to store the SEO metrics
-var seoMetricsTransactions []int
 var seoMetricsRevenue []int
 var seoMetricsVisits []int
-var seoTransactionValue []int
+var seoMetricsOrders []int
+var seoOrderValue []int
 var seoVisitValue []float64
 
 // Variables used to store the CMGR values
 var cmgrRevenue float64
 var cmgrVisits float64
 var cmgrVisitValue float64
-var cmgrTransactionsValue float64
-var cmgrTransactionsValueValue float64
+var cmgrOrdersValue float64
+var cmgrOrdersValueValue float64
+
+// Totals
+var totalVisits int
+var totalOrders int
+var totalVisitsPerOrder float64
+
+// Slice to store the visits per order for each month
+var visitsPerOrder []int
 
 // AnalyticsID is used to identify which analytics tool is in use
 type AnalyticsID struct {
 	ID string `json:"id"`
 }
 
-// Result is used to store the revenue, transactions and visits
+// Result is used to store the revenue, Orders and visits
 type Result struct {
 	Dimensions []interface{} `json:"dimensions"`
 	Metrics    []float64     `json:"metrics"`
@@ -80,7 +91,15 @@ var bold = "\033[1m"
 var reset = "\033[0m"
 var checkmark = "\u2713"
 
-// Specify your Botify API token here
+// KPI Specific colours
+var kpiColourRevenue = "Coral"
+var kpiColourVisits = "Green"
+var kpiColourVisitsPerOrder = "DarkGoldenRod"
+var kpiColourOrganicVisitValue = "CornflowerBlue"
+var kpiColourNoOfOrders = "IndianRed"
+var kpiColourOrderValue = "MediumSlateBlue"
+
+// Botify API token here
 var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
@@ -117,40 +136,52 @@ func main() {
 	fmt.Println()
 
 	// Generate the link to the project
-	projectURL = "https://app.botify.com/" + orgName + "/" + projectName
+	if anonymousMode {
+		projectURL = "http://go-seo.rf.gd/"
+	} else {
+		projectURL = "https://app.botify.com/" + orgName + "/" + projectName
+	}
 
 	displaySeparator()
 
-	// Get revenue, visit and transaction for the last 12 months
+	// Get revenue, visit and Order for the last 12 months
 	getSeoInsights()
 
+	// Start of charts
+
 	// Revenue & visits bar chart
-	barChartRevenueVisitsTransactions()
+	barChartRevenueVisits()
+
+	// Visits per order line chart
+	lineChartVisitsPerOrder()
 
 	// Organic visit value
 	barChartVisitValue()
 
-	// No. of transactions bar chart
-	barChartTransactions()
+	// No. of Orders bar chart
+	barChartOrders()
 
-	// Transaction value barchart
-	barChartTransactionValue()
+	// Order value barchart
+	barChartOrderValue()
 
 	// Badges
-	cmgrRevenue32 := float32(cmgrRevenue)                               // Cast to float32
-	cmgrVisits32 := float32(cmgrVisits)                                 // Cast to float32
-	cmgrVisitValue32 := float32(cmgrVisitValue)                         // Cast to float32
-	cmgrTransactionsValue32 := float32(cmgrTransactionsValue)           // Cast to float32
-	cmgrTransactionsValueValue32 := float32(cmgrTransactionsValueValue) // Cast to float32 //bloo
+	cmgrRevenue32 := float32(cmgrRevenue)                   // Cast to float32
+	cmgrVisits32 := float32(cmgrVisits)                     // Cast to float32
+	cmgrVisitValue32 := float32(cmgrVisitValue)             // Cast to float32
+	cmgrOrdersValue32 := float32(cmgrOrdersValue)           // Cast to float32
+	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue) // Cast to float32
 
 	liquidBadges("Revenue", cmgrRevenue32)
 	liquidBadges("Visits", cmgrVisits32)
 	liquidBadges("VisitValue", cmgrVisitValue32)
-	liquidBadges("Transactions", cmgrTransactionsValue32)
-	liquidBadges("Transaction-	Value", cmgrTransactionsValueValue32)
+	liquidBadges("Orders", cmgrOrdersValue32)
+	liquidBadges("OrderValue", cmgrOrdersValueValue32)
 
-	// Theme river
-	//themeRiverTime()
+	// River chart
+	riverCharRevenueVisits() // Revenue & visits
+
+	// Gauge chart
+	gaugeChartVisitsPerOrder(totalVisitsPerOrder)
 
 	displaySeparator()
 
@@ -161,7 +192,6 @@ func main() {
 // if not prompt for them
 // Pressing Enter exits
 func checkCredentials() {
-
 	if len(os.Args) < 3 {
 
 		credentialsInput = true
@@ -223,41 +253,54 @@ func getSeoInsights() {
 
 }
 
-// Get the revenue, transactions and visits data
+// Get the revenue, Orders and visits data
 func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, startMthDates []string, endMthDates []string) {
 
-	var ytdMetricsTransactions = 0
+	var ytdMetricsOrders = 0
 	var ytdMetricsRevenue = 0
 	var ytdMetricsVisits = 0
-	var avgTransactionValue = 0
+	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
 	// Get monthly insights
 	fmt.Println(bold + "\nMonthly organic insights" + reset)
 	for i := range startMthDates {
-		ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+		ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 
 		// Display the metrics (formatted)
 		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
-		formattedTransactions := formatWithCommas(ytdMetricsTransactions)
-		fmt.Println("No. transactions", formattedTransactions)
+		formattedOrders := formatWithCommas(ytdMetricsOrders)
+		fmt.Println("No. Orders:", formattedOrders)
 		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
-		fmt.Println("Total revenue", formattedRevenue)
-		fmt.Println("Average transaction value", avgTransactionValue)
+		fmt.Println("Total revenue:", formattedRevenue)
+		fmt.Println("Average order value:", avgOrderValue)
 		formattedVisits := formatWithCommas(ytdMetricsVisits)
-		fmt.Println("No. of visits", formattedVisits)
-		fmt.Println("Average visit value", avgVisitValue)
+		fmt.Println("No. of visits:", formattedVisits)
+		fmt.Println("Average visit value:", avgVisitValue)
 		fmt.Println()
 
 		// Append the metrics to the slices
-		seoMetricsTransactions = append(seoMetricsTransactions, ytdMetricsTransactions)
+		seoMetricsOrders = append(seoMetricsOrders, ytdMetricsOrders)
 		seoMetricsRevenue = append(seoMetricsRevenue, ytdMetricsRevenue)
-		seoTransactionValue = append(seoTransactionValue, avgTransactionValue)
+		seoOrderValue = append(seoOrderValue, avgOrderValue)
 		seoMetricsVisits = append(seoMetricsVisits, ytdMetricsVisits)
 		// Round avgVisitValue to 3 decimal places
 		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
+
+		// Calculate the visits per order (for the month)
+		visitsPerOrder = append(visitsPerOrder, ytdMetricsVisits/ytdMetricsOrders)
+
+		// Calculate the visits per order (average across all data)
+		totalVisits += ytdMetricsVisits
+		totalOrders += ytdMetricsOrders
+		totalVisitsPerOrder = float64(totalVisits / totalOrders)
 	}
+
+	fmt.Println(green + "Totals" + reset)
+	fmt.Println("Total visits:", totalVisits)
+	fmt.Println("Total orders:", totalOrders)
+	fmt.Println("Visits per order:", totalVisitsPerOrder)
 }
 
 // Get the analytics ID
@@ -348,10 +391,9 @@ func calculateDateRanges() DateRanges {
 }
 
 // Execute the BQL for the specified date range
-// func executeRevenueBQL(analyticsID string, startDate string, endDate string) {
 func executeRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64) {
 
-	// Get the revenue, no. transactions and visits - YTD
+	// Get the revenue, no. Orders and visits - YTD
 	bqlRevTrans := fmt.Sprintf(`
 	{
     "collections": [
@@ -434,10 +476,10 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 		log.Fatalf("Error. executeRevenueBQL. Cannot unmarshal the JSON: %v", err)
 	}
 
-	var ytdMetricsTransactions = 0
+	var ytdMetricsOrders = 0
 	var ytdMetricsRevenue = 0
 	var ytdMetricsVisits = 0
-	var avgTransactionValue = 0
+	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
 	// Check if any data has been returned from the API. Count the number of elements in the response.Results slice
@@ -446,26 +488,18 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	if responseCount == 0 {
 		fmt.Println(red + "Error. executeRevenueBQL. Cannot get Revenue & Visits data. Ensure the selected project is using GA4." + reset)
 	} else {
-		ytdMetricsTransactions = int(response.Results[0].Metrics[0])
+		ytdMetricsOrders = int(response.Results[0].Metrics[0])
 		ytdMetricsRevenue = int(response.Results[0].Metrics[1])
 		ytdMetricsVisits = int(response.Results[0].Metrics[2])
-		// Compute the average transaction value
-		avgTransactionValue = ytdMetricsRevenue / ytdMetricsTransactions
+		// Compute the average Order value
+		avgOrderValue = ytdMetricsRevenue / ytdMetricsOrders
 		avgVisitValue = float64(ytdMetricsRevenue) / float64(ytdMetricsVisits)
 	}
-	return ytdMetricsTransactions, ytdMetricsRevenue, ytdMetricsVisits, avgTransactionValue, avgVisitValue
+	return ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue
 }
 
-// Bar chart. Revenue and Visits// Bar chart. No. of transactions
-func barChartRevenueVisitsTransactions() {
-
-	//fmt.Println("seoMetricsTransactions:", seoMetricsTransactions)
-	//fmt.Println("seoMetricsRevenue:", seoMetricsRevenue)
-	//fmt.Println("seoMetricsVisits:", seoMetricsVisits)
-	//fmt.Println("seoTransactionValue:", seoTransactionValue)
-	//fmt.Println("startdates:", startMthDates)
-	//fmt.Println("enddates:", endMthDates)
-	//fmt.Println("month names:", startMthNames)
+// Bar chart. Revenue and Visits
+func barChartRevenueVisits() {
 
 	// create a new bar instance
 	bar := charts.NewBar()
@@ -485,7 +519,7 @@ func barChartRevenueVisitsTransactions() {
 			Width:  "1200px",
 			Height: "600px",
 		}),
-		charts.WithColorsOpts(opts.Colors{"teal", "gray"}),
+		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}), //bloo
 	)
 
 	barDataRevenue := generateBarItems(seoMetricsRevenue)
@@ -499,14 +533,59 @@ func barChartRevenueVisitsTransactions() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	// Where the magic happens
 	f, _ := os.Create("./Utilities/seoChartsWeb/seoRevenueVisitsBar.html")
 	bar.Render(f)
 }
 
-// Bar chart. Visit value
+func lineChartVisitsPerOrder() {
+	line := charts.NewLine()
+	line.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title:    projectURL,
+			Subtitle: "Visits per order",
+			Link:     projectURL,
+		}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 0,
+			End:   100,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "600px",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourVisitsPerOrder}),
+	)
+
+	// Pass visitsPerOrder directly to generaLineItems
+	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder)
+
+	line.SetXAxis(startMthNames).AddSeries("Month", lineVisitsPerOrderValue).SetSeriesOptions(
+		charts.WithMarkPointNameTypeItemOpts(
+			opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max"},
+			opts.MarkPointNameTypeItem{Name: "Average", Type: "average"},
+			opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min"},
+		),
+		charts.WithMarkPointStyleOpts(
+			opts.MarkPointStyle{Label: &opts.Label{Show: opts.Bool(true)}},
+		),
+	)
+	println("hello")
+	f, _ := os.Create("./Utilities/seoChartsWeb/seoVisitsPerOrderLine.html")
+	line.Render(f)
+}
+
+// Function to generate line chart items from an array of float64 values
+func generateLineItems(visitsPerOrder []int) []opts.LineData {
+	items := make([]opts.LineData, len(visitsPerOrder))
+	for i, val := range visitsPerOrder {
+		items[i] = opts.LineData{Value: val}
+	}
+	return items
+}
+
+// Visit value bar chart
 func barChartVisitValue() {
-	// create a new bar instance
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -525,7 +604,7 @@ func barChartVisitValue() {
 			Width:  "1200px",
 			Height: "600px",
 		}),
-		charts.WithColorsOpts(opts.Colors{"orange"}),
+		charts.WithColorsOpts(opts.Colors{kpiColourOrganicVisitValue}),
 	)
 
 	barDataVisitValue := generateBarItemsFloat(seoVisitValue)
@@ -537,19 +616,18 @@ func barChartVisitValue() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	// Where the magic happens
 	f, _ := os.Create("./Utilities/seoChartsWeb/seoVisitValueBar.html")
 	bar.Render(f)
 }
 
-// Bar chart. No. of transactions
-func barChartTransactions() {
-	// create a new bar instance
+// Bar chart. No. of Orders
+func barChartOrders() {
+
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    projectURL,
-		Subtitle: "No. of transactions",
+		Subtitle: "No. of Orders",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -562,31 +640,30 @@ func barChartTransactions() {
 			Width:  "1200px",
 			Height: "600px",
 		}),
-		charts.WithColorsOpts(opts.Colors{"green"}),
+		charts.WithColorsOpts(opts.Colors{kpiColourNoOfOrders}),
 	)
 
-	barDataTransactions := generateBarItems(seoMetricsTransactions)
+	barDataOrders := generateBarItems(seoMetricsOrders)
 
 	bar.SetXAxis(startMthNames).
-		AddSeries("No. of transactions", barDataTransactions).
+		AddSeries("No. of Orders", barDataOrders).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	// Where the magic happens
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoTransactionsBar.html")
+	f, _ := os.Create("./Utilities/seoChartsWeb/seoOrdersBar.html")
 	bar.Render(f)
 }
 
-// Bar chart. No. of transactions
-func barChartTransactionValue() {
+// Bar chart. No. of Orders
+func barChartOrderValue() {
 	// create a new bar instance
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    projectURL,
-		Subtitle: "Transaction value",
+		Subtitle: "Order value",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -599,25 +676,26 @@ func barChartTransactionValue() {
 			Width:  "1200px",
 			Height: "600px",
 		}),
-		charts.WithColorsOpts(opts.Colors{"blue"}),
+		charts.WithColorsOpts(opts.Colors{kpiColourOrderValue}),
 	)
 
-	barDataTransactionValue := generateBarItems(seoTransactionValue)
+	barDataOrderValue := generateBarItems(seoOrderValue)
 
 	bar.SetXAxis(startMthNames).
-		AddSeries("Transaction value", barDataTransactionValue).
+		AddSeries("Order value", barDataOrderValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
 	// Where the magic happens
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoTransactionValueBar.html")
+	f, _ := os.Create("./Utilities/seoChartsWeb/seoOrderValueBar.html")
 	bar.Render(f)
 }
 
 // Function to generate BarData items from an array of integers
 func generateBarItems(revenue []int) []opts.BarData {
+
 	items := make([]opts.BarData, len(revenue))
 	for i, val := range revenue {
 		items[i] = opts.BarData{Value: val}
@@ -627,6 +705,7 @@ func generateBarItems(revenue []int) []opts.BarData {
 
 // Function to generate BarData items from an array of float64 values
 func generateBarItemsFloat(revenue []float64) []opts.BarData {
+
 	items := make([]opts.BarData, len(revenue))
 	for i, val := range revenue {
 		items[i] = opts.BarData{Value: val}
@@ -635,6 +714,7 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 }
 
 func liquidBadges(badgeKPI string, badgeKPIValue float32) {
+
 	page := components.NewPage()
 	page.AddCharts(
 		generateLiquidBadge(badgeKPI, badgeKPIValue),
@@ -648,6 +728,7 @@ func liquidBadges(badgeKPI string, badgeKPIValue float32) {
 }
 
 func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid {
+
 	liquid := charts.NewLiquid()
 	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})).
 		SetSeriesOptions(
@@ -666,6 +747,7 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid 
 
 // Get data for the liquid badge
 func genLiquidItems(data []float32) []opts.LiquidData {
+
 	items := make([]opts.LiquidData, 0)
 	for i := 0; i < len(data); i++ {
 		items = append(items, opts.LiquidData{Value: data[i]})
@@ -673,12 +755,28 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 	return items
 }
 
+// River chart
+func riverCharRevenueVisits() {
+
+	page := components.NewPage()
+	page.AddCharts(
+		generateRiverTime(),
+	)
+	f, err := os.Create("./Utilities/seoChartsWeb/seoRiver.html")
+	if err != nil {
+
+		panic(err)
+	}
+	page.Render(io.MultiWriter(f))
+}
+
 // Theme river chart
-func themeRiverTime() *charts.ThemeRiver {
+func generateRiverTime() *charts.ThemeRiver {
+
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title: "ThemeRiver-SingleAxis-Time",
+			Title: "Revenue and Visits river",
 		}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
@@ -687,158 +785,84 @@ func themeRiverTime() *charts.ThemeRiver {
 		charts.WithTooltipOpts(opts.Tooltip{
 			Trigger: "axis",
 		}),
+		// Increase the canvas size
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "1200px",
+			Height: "600px",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}), //bloo
 	)
 
-	data := []opts.ThemeRiverData{
-		{"2015/11/08", 10, "DQ"},
-		{"2015/11/09", 15, "DQ"},
-		{"2015/11/10", 35, "DQ"},
-		{"2015/11/11", 38, "DQ"},
-		{"2015/11/12", 22, "DQ"},
-		{"2015/11/13", 16, "DQ"},
-		{"2015/11/14", 7, "DQ"},
-		{"2015/11/15", 2, "DQ"},
-		{"2015/11/16", 17, "DQ"},
-		{"2015/11/17", 33, "DQ"},
-		{"2015/11/18", 40, "DQ"},
-		{"2015/11/19", 32, "DQ"},
-		{"2015/11/20", 26, "DQ"},
-		{"2015/11/21", 35, "DQ"},
-		{"2015/11/22", 40, "DQ"},
-		{"2015/11/23", 32, "DQ"},
-		{"2015/11/24", 26, "DQ"},
-		{"2015/11/25", 22, "DQ"},
-		{"2015/11/26", 16, "DQ"},
-		{"2015/11/27", 22, "DQ"},
-		{"2015/11/28", 10, "DQ"},
-		{"2015/11/08", 35, "TY"},
-		{"2015/11/09", 36, "TY"},
-		{"2015/11/10", 37, "TY"},
-		{"2015/11/11", 22, "TY"},
-		{"2015/11/12", 24, "TY"},
-		{"2015/11/13", 26, "TY"},
-		{"2015/11/14", 34, "TY"},
-		{"2015/11/15", 21, "TY"},
-		{"2015/11/16", 18, "TY"},
-		{"2015/11/17", 45, "TY"},
-		{"2015/11/18", 32, "TY"},
-		{"2015/11/19", 35, "TY"},
-		{"2015/11/20", 30, "TY"},
-		{"2015/11/21", 28, "TY"},
-		{"2015/11/22", 27, "TY"},
-		{"2015/11/23", 26, "TY"},
-		{"2015/11/24", 15, "TY"},
-		{"2015/11/25", 30, "TY"},
-		{"2015/11/26", 35, "TY"},
-		{"2015/11/27", 42, "TY"},
-		{"2015/11/28", 42, "TY"},
-		{"2015/11/08", 21, "SS"},
-		{"2015/11/09", 25, "SS"},
-		{"2015/11/10", 27, "SS"},
-		{"2015/11/11", 23, "SS"},
-		{"2015/11/12", 24, "SS"},
-		{"2015/11/13", 21, "SS"},
-		{"2015/11/14", 35, "SS"},
-		{"2015/11/15", 39, "SS"},
-		{"2015/11/16", 40, "SS"},
-		{"2015/11/17", 36, "SS"},
-		{"2015/11/18", 33, "SS"},
-		{"2015/11/19", 43, "SS"},
-		{"2015/11/20", 40, "SS"},
-		{"2015/11/21", 34, "SS"},
-		{"2015/11/22", 28, "SS"},
-		{"2015/11/23", 26, "SS"},
-		{"2015/11/24", 37, "SS"},
-		{"2015/11/25", 41, "SS"},
-		{"2015/11/26", 46, "SS"},
-		{"2015/11/27", 47, "SS"},
-		{"2015/11/28", 41, "SS"},
-		{"2015/11/08", 10, "QG"},
-		{"2015/11/09", 15, "QG"},
-		{"2015/11/10", 35, "QG"},
-		{"2015/11/11", 38, "QG"},
-		{"2015/11/12", 22, "QG"},
-		{"2015/11/13", 16, "QG"},
-		{"2015/11/14", 7, "QG"},
-		{"2015/11/15", 2, "QG"},
-		{"2015/11/16", 17, "QG"},
-		{"2015/11/17", 33, "QG"},
-		{"2015/11/18", 40, "QG"},
-		{"2015/11/19", 32, "QG"},
-		{"2015/11/20", 26, "QG"},
-		{"2015/11/21", 35, "QG"},
-		{"2015/11/22", 40, "QG"},
-		{"2015/11/23", 32, "QG"},
-		{"2015/11/24", 26, "QG"},
-		{"2015/11/25", 22, "QG"},
-		{"2015/11/26", 16, "QG"},
-		{"2015/11/27", 22, "QG"},
-		{"2015/11/28", 10, "QG"},
-		{"2015/11/08", 10, "SY"},
-		{"2015/11/09", 15, "SY"},
-		{"2015/11/10", 35, "SY"},
-		{"2015/11/11", 38, "SY"},
-		{"2015/11/12", 22, "SY"},
-		{"2015/11/13", 16, "SY"},
-		{"2015/11/14", 7, "SY"},
-		{"2015/11/15", 2, "SY"},
-		{"2015/11/16", 17, "SY"},
-		{"2015/11/17", 33, "SY"},
-		{"2015/11/18", 40, "SY"},
-		{"2015/11/19", 32, "SY"},
-		{"2015/11/20", 26, "SY"},
-		{"2015/11/21", 35, "SY"},
-		{"2015/11/22", 4, "SY"},
-		{"2015/11/23", 32, "SY"},
-		{"2015/11/24", 26, "SY"},
-		{"2015/11/25", 22, "SY"},
-		{"2015/11/26", 16, "SY"},
-		{"2015/11/27", 22, "SY"},
-		{"2015/11/28", 10, "SY"},
-		{"2015/11/08", 10, "DD"},
-		{"2015/11/09", 15, "DD"},
-		{"2015/11/10", 35, "DD"},
-		{"2015/11/11", 38, "DD"},
-		{"2015/11/12", 22, "DD"},
-		{"2015/11/13", 16, "DD"},
-		{"2015/11/14", 7, "DD"},
-		{"2015/11/15", 2, "DD"},
-		{"2015/11/16", 17, "DD"},
-		{"2015/11/17", 33, "DD"},
-		{"2015/11/18", 4, "DD"},
-		{"2015/11/19", 32, "DD"},
-		{"2015/11/20", 26, "DD"},
-		{"2015/11/21", 35, "DD"},
-		{"2015/11/22", 40, "DD"},
-		{"2015/11/23", 32, "DD"},
-		{"2015/11/24", 26, "DD"},
-		{"2015/11/25", 22, "DD"},
-		{"2015/11/26", 16, "DD"},
-		{"2015/11/27", 22, "DD"},
-		{"2015/11/28", 10, "DD"},
+	// Populate ThemeRiverData slice
+	var themeRiverData []opts.ThemeRiverData
+
+	// Add the Revenue data
+	// The date is formatted from YYYYMMDD to YYYY/MM/DD
+	for i, date := range startMthDates {
+		parsedDate, err := time.Parse("20060102", date)
+		if err != nil {
+			fmt.Printf(red+"Error. generateRiverTime. Error parsing date: %v\n"+reset, err)
+			break
+		}
+		formattedDate := parsedDate.Format("2006/01/02")
+		themeRiverData = append(themeRiverData, opts.ThemeRiverData{
+			Date:  formattedDate,
+			Value: float64(seoMetricsRevenue[i]),
+			Name:  "Revenue",
+		})
 	}
 
-	tr.AddSeries("themeRiver", data)
+	// Add the Visits data
+	// The date is formatted from YYYYMMDD to YYYY/MM/DD
+	for i, date := range startMthDates {
+		parsedDate, err := time.Parse("20060102", date)
+		if err != nil {
+			fmt.Printf(red+"Error. generateRiverTime. Error parsing date: %v\n"+reset, err)
+			break
+		}
+		formattedDate := parsedDate.Format("2006/01/02")
+		themeRiverData = append(themeRiverData, opts.ThemeRiverData{
+			Date:  formattedDate,
+			Value: float64(seoMetricsVisits[i]),
+			Name:  "Visits",
+		})
+	}
+
+	tr.AddSeries("themeRiver", themeRiverData)
+
 	return tr
 }
 
-type ThemeRiverExamples struct{}
+// Gauge chart
+func gaugeChartVisitsPerOrder(visitsPerOrder float64) {
 
-func (ThemeRiverExamples) Examples() {
 	page := components.NewPage()
 	page.AddCharts(
-		themeRiverTime(),
+		gaugeBase(visitsPerOrder),
 	)
 
-	f, err := os.Create("seoThemeRiver.html")
+	f, err := os.Create("./Utilities/seoChartsWeb/seoGauge.html")
 	if err != nil {
 		panic(err)
 	}
 	page.Render(io.MultiWriter(f))
 }
 
+func gaugeBase(visitsPerOrder float64) *charts.Gauge {
+
+	gauge := charts.NewGauge()
+	gauge.SetGlobalOptions(
+	//  No options defined
+	)
+
+	gauge.AddSeries("Visits per order", []opts.GaugeData{{Name: "Visits per order", Value: visitsPerOrder}})
+
+	return gauge
+}
+
 // CMGR
 func getCMGR() {
+
 	// Revenue
 	// Convert slice of ints to slice of floats for CMGR compute
 	var seoMetricsRevenueFloat []float64
@@ -861,26 +885,26 @@ func getCMGR() {
 	}
 	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat)
 
-	// No. of transactions
-	var seoMetricsTransactionsFloat []float64
-	for _, v := range seoMetricsTransactions {
-		seoMetricsTransactionsFloat = append(seoMetricsTransactionsFloat, float64(v))
+	// No. of Orders
+	var seoMetricsOrdersFloat []float64
+	for _, v := range seoMetricsOrders {
+		seoMetricsOrdersFloat = append(seoMetricsOrdersFloat, float64(v))
 	}
-	cmgrTransactionsValue = computeCMGR(seoMetricsTransactionsFloat)
+	cmgrOrdersValue = computeCMGR(seoMetricsOrdersFloat)
 
-	// Transaction value
-	var seoMetricsTransactionsValueFloat []float64
-	for _, v := range seoTransactionValue {
-		seoMetricsTransactionsValueFloat = append(seoMetricsTransactionsValueFloat, float64(v))
+	// Order value
+	var seoMetricsOrdersValueFloat []float64
+	for _, v := range seoOrderValue {
+		seoMetricsOrdersValueFloat = append(seoMetricsOrdersValueFloat, float64(v))
 	}
-	cmgrTransactionsValueValue := computeCMGR(seoMetricsTransactionsValueFloat)
+	cmgrOrdersValueValue := computeCMGR(seoMetricsOrdersValueFloat)
 
-	fmt.Printf(green + "Compound Monthly Growth Rate (CMGR)\n" + reset)
+	fmt.Printf(green + "\nCompound Monthly Growth Rate (CMGR)\n" + reset)
 	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
 	fmt.Printf("Visits: %.2f\n", cmgrVisits)
 	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
-	fmt.Printf("No. of transactions: %.2f\n", cmgrTransactionsValue)
-	fmt.Printf("Transaction value: %.2f\n", cmgrTransactionsValueValue)
+	fmt.Printf("No. of Orders: %.2f\n", cmgrOrdersValue)
+	fmt.Printf("Order value: %.2f\n", cmgrOrdersValueValue)
 }
 
 // Calculate the Compound Monthly Growth Rate
@@ -895,54 +919,23 @@ func computeCMGR(values []float64) float64 {
 	finalValue := values[len(values)-2]
 	numberOfPeriods := float64(len(values))
 
-	fmt.Printf("Start Value: %.2f\n", initialValue)
-	fmt.Printf("End Value: %.2f\n", finalValue)
-	fmt.Printf("Number of Periods: %.2f\n", numberOfPeriods)
-
 	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
 	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
 
 	// Round CMGR to 2 decimal places
 	cmgr = math.Round(cmgr*100) / 100
-	fmt.Printf("Compound Monthly Growth Rate (CMGR): %.2f%%\n", cmgr*100)
 
 	return cmgr
 }
 
 func seoChartsDone() {
+
 	// We're done
 	fmt.Println(purple + "\nseoCharts: Done!")
 	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
 	os.Exit(0)
-}
-
-// Display the welcome banner
-func displayBanner() {
-	//Banner
-	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
-	fmt.Println(green + `
-███████╗███████╗ ██████╗  ██████╗██╗  ██╗ █████╗ ██████╗ ████████╗███████╗
-██╔════╝██╔════╝██╔═══██╗██╔════╝██║  ██║██╔══██╗██╔══██╗╚══██╔══╝██╔════╝
-███████╗█████╗  ██║   ██║██║     ███████║███████║██████╔╝   ██║   ███████╗
-╚════██║██╔══╝  ██║   ██║██║     ██╔══██║██╔══██║██╔══██╗   ██║   ╚════██║
-███████║███████╗╚██████╔╝╚██████╗██║  ██║██║  ██║██║  ██║   ██║   ███████║
-╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
-`)
-	//Display welcome message
-	fmt.Println(purple+"Version:"+reset, version)
-
-	fmt.Println(purple + "seoCharts: Test Botify BQL.\n" + reset)
-	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
-	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
-	fmt.Println(checkmark + green + bold + " Revenue (YTD/monthly)" + reset)
-	fmt.Println(checkmark + green + bold + " Visits (YTD/monthly)" + reset)
-	fmt.Println(checkmark + green + bold + " Transactions (YTD/monthly)" + reset)
-	fmt.Println(checkmark + green + bold + " (Computed) Average transaction value" + reset)
-	fmt.Println(checkmark + green + bold + " (Computed) Average visit value" + reset)
-	fmt.Println(checkmark + green + bold + " (Computed) CMGR for Revenue, Visits, Transactions, Transaction value, Visit value" + reset)
-
 }
 
 // Display the line break
@@ -984,8 +977,37 @@ func formatWithCommas(n int) string {
 	return result.String()
 }
 
+// Display the welcome banner
+func displayBanner() {
+
+	//Banner
+	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+	fmt.Println(green + `
+███████╗███████╗ ██████╗  ██████╗██╗  ██╗ █████╗ ██████╗ ████████╗███████╗
+██╔════╝██╔════╝██╔═══██╗██╔════╝██║  ██║██╔══██╗██╔══██╗╚══██╔══╝██╔════╝
+███████╗█████╗  ██║   ██║██║     ███████║███████║██████╔╝   ██║   ███████╗
+╚════██║██╔══╝  ██║   ██║██║     ██╔══██║██╔══██║██╔══██╗   ██║   ╚════██║
+███████║███████╗╚██████╔╝╚██████╗██║  ██║██║  ██║██║  ██║   ██║   ███████║
+╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
+`)
+	//Display welcome message
+	fmt.Println(purple+"Version:"+reset, version)
+
+	fmt.Println(purple + "seoCharts: Test Botify BQL.\n" + reset)
+	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
+	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
+	fmt.Println(checkmark + green + bold + " Revenue (YTD/monthly)" + reset)
+	fmt.Println(checkmark + green + bold + " Visits (YTD/monthly)" + reset)
+	fmt.Println(checkmark + green + bold + " Orders (YTD/monthly)" + reset)
+	fmt.Println(checkmark + green + bold + " (Computed) Average order value" + reset)
+	fmt.Println(checkmark + green + bold + " (Computed) Average visit value" + reset)
+	fmt.Println(checkmark + green + bold + " (Computed) CMGR for Revenue, Visits, Orders, Order value, Visit value" + reset)
+
+}
+
 // Function to clear the screen
 func clearScreen() {
+
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
