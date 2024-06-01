@@ -8,15 +8,16 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
+            background-color: blanchedalmond;
         }
         .banner {
-            background-color: purple;
+            background-color: DimGray;
             color: white;
             text-align: center;
             padding: 15px 0;
         }
         .banner.top {
-            font-size: 24px;
+            font-size: 22px;
         }
         .banner.middle {
             background-color: green;
@@ -26,13 +27,24 @@
         .banner.bottom {
             font-size: 12px;
         }
+        .title {
+            background-color: #4CAF50;
+            color: beige;
+            text-align: center;
+            padding: 5px;
+            margin: 20px auto;
+            font-size: 22px;
+            border-radius: 10px;
+            width: 90%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
         .iframe-container {
             display: flex;
             flex-wrap: wrap; /* Allow wrapping to avoid horizontal scrolling */
             align-items: center;
             gap: 20px;
-            margin: 20px 0;
-            width: 100%;
+            margin: 20px auto;
+            width: 90%;
         }
         .iframe-container.column {
             flex-direction: column;
@@ -47,6 +59,8 @@
             width: 1200px;
             height: 300px; /* Default height */
             border: 2px solid white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         .column iframe {
             height: 700px; /* Increased height for column layout */
@@ -65,44 +79,59 @@
 
 <!-- Top Banner -->
 <div class="banner top">
-    Go_Seo
+    <span style="font-size: 24px;">Go_Seo</span><br>
+    <span style="font-size: 12px;">Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO">https://github.com/flaneur7508/Go_SEO</a></span>
 </div>
 
-<!-- Middle Banner -->
-<div class="banner middle">
-    ORGANIC CMGR GROWTH <br>
-    <span style="font-size: small;">Based on full month data only</span>
-
-</div>
+<!-- Title -->
+<div class="title">Organic visits' impact on your business</div>
 
 <!-- Row Iframes Container -->
 <div class="iframe-container row">
     <iframe src="seoCMGRRevenue.html" title="CMGR Revenue"></iframe>
     <iframe src="seoCMGRVisits.html" title="CMGR Visits"></iframe>
+    <iframe src="seoGauge.html"></iframe>
 </div>
+
+<!-- Title -->
+<div class="title">Compound growth rate for your key performance indicators</div>
 
 <!-- Row Iframes Container -->
 <div class="iframe-container row">
     <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value"></iframe>
     <iframe src="seoCMGROrders.html" title="CMGR Orders"></iframe>
     <iframe src="seoCMGROrderValue.html" title="CMGR Order Value"></iframe>
-    <iframe src="seoGauge.html"></iframe>
-
 </div>
 
-<!-- Middle Banner -->
-<div class="banner middle">
-    YOUR ORGANIC INSIGHTS EVOLUTION YTD
-</div>
-
-<!-- Column Iframes Container -->
-<div class="iframe-container column">
+<!-- Title -->
+<div class="title">Revenue & visit contribution over time</div>
+<!-- Row Iframes Container -->
+<div class="iframe-container row">
     <iframe src="seoRevenueVisitsBar.html" title="Revenue & visits"></iframe>
     <iframe src="seoVisitsPerOrderLine.html" title="Visits per order"></iframe>
-    <iframe src="seoVisitValueBar.html" title="Organic visit value"></iframe>
+</div>
+
+<!-- Title -->
+<div class="title">Revenue & visit trend</div>
+<!-- Row Iframes Container -->
+<div class="iframe-container row">
     <iframe src="seoOrdersBar.html" title="No. of orders"></iframe>
     <iframe src="seoOrderValueBar.html" title="Order value"></iframe>
+</div>
+
+<!-- Title -->
+<div class="title">Organic visit</div>
+<!-- Row Iframes Container -->
+<div class="iframe-container row">
     <iframe src="seoRiver.html" title="Revenue & visits"></iframe>
+    <iframe src="seoVisitValueBar.html" title="Organic visit value"></iframe>
+</div>
+
+<!-- Title -->
+<div class="title">Detailed insights</div>
+<!-- Row Iframes Container -->
+<div class="iframe-container row">
+    <iframe src="dataInsightDetailKPIs.html" title="KPIs"></iframe>
 </div>
 
 <!-- Bottom Banner -->

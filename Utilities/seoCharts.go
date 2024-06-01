@@ -164,6 +164,9 @@ func main() {
 	// Order value barchart
 	barChartOrderValue()
 
+	// Generate the charts for the insights detail
+	dataInsightsDetail()
+
 	// Badges
 	cmgrRevenue32 := float32(cmgrRevenue)                   // Cast to float32
 	cmgrVisits32 := float32(cmgrVisits)                     // Cast to float32
@@ -173,9 +176,9 @@ func main() {
 
 	liquidBadges("Revenue", cmgrRevenue32)
 	liquidBadges("Visits", cmgrVisits32)
-	liquidBadges("VisitValue", cmgrVisitValue32)
+	liquidBadges("Visit Value", cmgrVisitValue32)
 	liquidBadges("Orders", cmgrOrdersValue32)
-	liquidBadges("OrderValue", cmgrOrdersValueValue32)
+	liquidBadges("Order Value", cmgrOrdersValueValue32)
 
 	// River chart
 	riverCharRevenueVisits() // Revenue & visits
@@ -266,6 +269,16 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 	fmt.Println(bold + "\nMonthly organic insights" + reset)
 	for i := range startMthDates {
 		ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+
+		if ytdMetricsVisits == 0 {
+			ytdMetricsVisits = 1
+			avgOrderValue = 1
+			avgOrderValue = 1
+			avgVisitValue = 1
+			ytdMetricsOrders = 1
+			ytdMetricsRevenue = 1
+
+		}
 
 		// Display the metrics (formatted)
 		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
@@ -505,8 +518,8 @@ func barChartRevenueVisits() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    projectURL,
-		Subtitle: "Revenue & visits",
+		Title:    "Revenue & visits",
+		Subtitle: "Understand your organic visit performance and how much revenue those visits are generating.",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -516,10 +529,10 @@ func barChartRevenueVisits() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "600px",
+			Width:  "600px",
+			Height: "480px",
 		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}), //bloo
+		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 	)
 
 	barDataRevenue := generateBarItems(seoMetricsRevenue)
@@ -541,8 +554,8 @@ func lineChartVisitsPerOrder() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    projectURL,
-			Subtitle: "Visits per order",
+			Title:    "Visits per order",
+			Subtitle: "On average, how many organic visits are needed to generate each order?",
 			Link:     projectURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -551,8 +564,8 @@ func lineChartVisitsPerOrder() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "600px",
+			Width:  "600px",
+			Height: "480px",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisitsPerOrder}),
 	)
@@ -570,7 +583,7 @@ func lineChartVisitsPerOrder() {
 			opts.MarkPointStyle{Label: &opts.Label{Show: opts.Bool(true)}},
 		),
 	)
-	println("hello")
+
 	f, _ := os.Create("./Utilities/seoChartsWeb/seoVisitsPerOrderLine.html")
 	line.Render(f)
 }
@@ -589,8 +602,8 @@ func barChartVisitValue() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    projectURL,
-		Subtitle: "Organic visit Value",
+		Title:    "Organic visit value",
+		Subtitle: "What is the value of a single organic visit to the site?",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -601,8 +614,8 @@ func barChartVisitValue() {
 		}),
 		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "600px",
+			Width:  "600px",
+			Height: "480px",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourOrganicVisitValue}),
 	)
@@ -626,8 +639,8 @@ func barChartOrders() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    projectURL,
-		Subtitle: "No. of Orders",
+		Title:    "No. of orders",
+		Subtitle: "How many orders are placed by organic visitors to your site?",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -637,8 +650,8 @@ func barChartOrders() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "600px",
+			Width:  "600px",
+			Height: "480px",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourNoOfOrders}),
 	)
@@ -662,8 +675,8 @@ func barChartOrderValue() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    projectURL,
-		Subtitle: "Order value",
+		Title:    "Average order value",
+		Subtitle: "What is the average value of an order placed by an organic visitor to your site?",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -673,8 +686,8 @@ func barChartOrderValue() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "600px",
+			Width:  "600px",
+			Height: "480px",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourOrderValue}),
 	)
@@ -688,7 +701,6 @@ func barChartOrderValue() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	// Where the magic happens
 	f, _ := os.Create("./Utilities/seoChartsWeb/seoOrderValueBar.html")
 	bar.Render(f)
 }
@@ -719,6 +731,9 @@ func liquidBadges(badgeKPI string, badgeKPIValue float32) {
 	page.AddCharts(
 		generateLiquidBadge(badgeKPI, badgeKPIValue),
 	)
+
+	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
+	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
 	badgeFileName := fmt.Sprintf("./Utilities/seoChartsWeb/seoCMGR%s.html", badgeKPI)
 	f, err := os.Create(badgeFileName)
 	if err != nil {
@@ -738,8 +753,8 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid 
 
 			charts.WithLiquidChartOpts(opts.LiquidChart{
 				IsWaveAnimation: opts.Bool(true),
-				IsShowOutline:   opts.Bool(true),
-				Shape:           "diamond",
+				//IsShowOutline:   opts.Bool(true),
+				Shape: "diamond",
 			}),
 		)
 	return liquid
@@ -776,8 +791,9 @@ func generateRiverTime() *charts.ThemeRiver {
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title: "Revenue and Visits river",
-		}),
+			Title:    "Revenue & visits",
+			Subtitle: "Gain an insight into the fluctuations in organic visitors to a site and the corresponding revenue generation.",
+			Link:     projectURL}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
 			Bottom: "10%",
@@ -787,8 +803,8 @@ func generateRiverTime() *charts.ThemeRiver {
 		}),
 		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "1200px",
-			Height: "600px",
+			Width:  "600px",
+			Height: "480px",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}), //bloo
 	)
@@ -855,7 +871,7 @@ func gaugeBase(visitsPerOrder float64) *charts.Gauge {
 	//  No options defined
 	)
 
-	gauge.AddSeries("Visits per order", []opts.GaugeData{{Name: "Visits per order", Value: visitsPerOrder}})
+	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits per order", Value: visitsPerOrder}})
 
 	return gauge
 }
@@ -936,6 +952,134 @@ func seoChartsDone() {
 	var input string
 	fmt.Scanln(&input)
 	os.Exit(0)
+}
+
+// Generate an HTML table containing the detailed KPI insights
+func dataInsightsDetail() {
+	var detailedKPIstableData [][]string
+
+	for i := 0; i < len(startMthDates); i++ {
+		formattedDate := formatDate(startMthDates[i])
+		row := []string{
+			//startMthDates[i],
+			formattedDate,
+			formatInt(seoMetricsOrders[i]),
+			formatInt(seoMetricsRevenue[i]),
+			formatInt(seoOrderValue[i]),
+			formatInt(seoMetricsVisits[i]),
+			formatFloat(seoVisitValue[i]),
+		}
+		detailedKPIstableData = append(detailedKPIstableData, row)
+	}
+
+	// Generate the table
+	detailedKPIInsightsTable := generateHTML(detailedKPIstableData)
+
+	// Write the HTML content
+	file, err := os.Create("./Utilities/seoChartsWeb/dataInsightDetailKPIs.html")
+	if err != nil {
+		fmt.Println(red+"Error. dataInsightsDetail. Cannot create KPI detail table:"+reset, err)
+		return
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(detailedKPIInsightsTable)
+	if err != nil {
+		fmt.Println(red+"Error. dataInsightsDetail. Cannot write KPI detail table:"+reset, err)
+		return
+	}
+}
+
+// formatInt formats integer values with comma separator
+func formatInt(num int) string {
+	return formatIntWithCommas(int64(num))
+}
+
+// formatIntWithCommas formats an integer with commas as thousand separators
+func formatIntWithCommas(num int64) string {
+	in := strconv.FormatInt(num, 10)
+	n := len(in)
+	if n <= 3 {
+		return in
+	}
+
+	var sb strings.Builder
+	pre := n % 3
+	if pre > 0 {
+		sb.WriteString(in[:pre])
+		if n > pre {
+			sb.WriteString(",")
+		}
+	}
+
+	for i := pre; i < n; i += 3 {
+		sb.WriteString(in[i : i+3])
+		if i+3 < n {
+			sb.WriteString(",")
+		}
+	}
+
+	return sb.String()
+}
+
+// formatFloat formats float values with 2 decimal places
+func formatFloat(num float64) string {
+	return strconv.FormatFloat(num, 'f', 2, 64)
+}
+
+// formatDate converts date from YYYYMMDD to Month-Year format
+func formatDate(dateStr string) string {
+	date, err := time.Parse("20060102", dateStr)
+	if err != nil {
+		fmt.Println(red+"Error. formatDate. Cannot parse date:"+reset, err)
+		return dateStr // return the original string in case of error
+	}
+	return date.Format("January 2006")
+}
+
+// generateHTML generates the HTML content for the table
+func generateHTML(data [][]string) string {
+	html := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 18px; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        th.title { color: Gray; font-weight: bold; }
+        td { color: DimGray; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: HoneyDew; }
+    </style>
+</head>
+<body style="min-height: 10vh;">
+    <table>
+        <thead>
+            <tr>
+                <th class="title">Date</th>
+                <th class="title">No. of Orders</th>
+                <th class="title">Revenue</th>
+                <th class="title">Order Value</th>
+                <th class="title">No. of Visits</th>
+                <th class="title">Visit Value</th>
+            </tr>
+        </thead>
+        <tbody>`
+	for _, row := range data {
+		html += "<tr>"
+		for _, cell := range row {
+			html += "<td>" + cell + "</td>"
+		}
+		html += "</tr>"
+	}
+	html += `
+        </tbody>
+    </table>
+</body>
+</html>`
+	return html
 }
 
 // Display the line break
