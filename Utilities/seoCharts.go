@@ -56,6 +56,7 @@ var cmgrOrdersValueValue float64
 
 // Totals
 var totalVisits int
+var totalRevenue int
 var totalOrders int
 var totalVisitsPerOrder float64
 
@@ -87,6 +88,7 @@ var version = "v0.1"
 var purple = "\033[0;35m"
 var green = "\033[0;32m"
 var red = "\033[0;31m"
+var yellow = "\033[33m"
 var bold = "\033[1m"
 var reset = "\033[0m"
 var checkmark = "\u2713"
@@ -148,6 +150,9 @@ func main() {
 	getSeoInsights()
 
 	// Start of charts
+
+	// Total vales
+	tableTotalsVisitsOrdersRevenue()
 
 	// Revenue & visits bar chart
 	barChartRevenueVisits()
@@ -268,16 +273,25 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 	// Get monthly insights
 	fmt.Println(bold + "\nMonthly organic insights" + reset)
 	for i := range startMthDates {
+
 		ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 
+		// A little hack
+		// If any of the returned values is zero default them to 1 in order to avoid divide by zero issues later.
 		if ytdMetricsVisits == 0 {
 			ytdMetricsVisits = 1
+		}
+		if avgOrderValue == 0 {
 			avgOrderValue = 1
-			avgOrderValue = 1
+		}
+		if avgVisitValue == 0 {
 			avgVisitValue = 1
+		}
+		if ytdMetricsOrders == 0 {
 			ytdMetricsOrders = 1
+		}
+		if ytdMetricsRevenue == 0 {
 			ytdMetricsRevenue = 1
-
 		}
 
 		// Display the metrics (formatted)
@@ -304,6 +318,8 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		// Calculate the visits per order (for the month)
 		visitsPerOrder = append(visitsPerOrder, ytdMetricsVisits/ytdMetricsOrders)
 
+		// Calculate the total revenue
+		totalRevenue += ytdMetricsRevenue
 		// Calculate the visits per order (average across all data)
 		totalVisits += ytdMetricsVisits
 		totalOrders += ytdMetricsOrders
@@ -312,6 +328,7 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 
 	fmt.Println(green + "Totals" + reset)
 	fmt.Println("Total visits:", totalVisits)
+	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
 	fmt.Println("Visits per order:", totalVisitsPerOrder)
 }
@@ -499,7 +516,7 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
-		fmt.Println(red + "Error. executeRevenueBQL. Cannot get Revenue & Visits data. Ensure the selected project is using GA4." + reset)
+		fmt.Println(yellow + "Warning. executeRevenueBQL. Some data may default to 1 if it's the first day of the month." + reset)
 	} else {
 		ytdMetricsOrders = int(response.Results[0].Metrics[0])
 		ytdMetricsRevenue = int(response.Results[0].Metrics[1])
@@ -509,6 +526,110 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 		avgVisitValue = float64(ytdMetricsRevenue) / float64(ytdMetricsVisits)
 	}
 	return ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue
+}
+
+// Table for total Visits, Orders & Revenue
+func tableTotalsVisitsOrdersRevenue() {
+
+	// Generate HTML content
+	htmlContent := generateTableTotalsHTML(totalVisits, totalOrders, totalRevenue)
+
+	// Write HTML content to a file
+	file, err := os.Create("./Utilities/seoChartsWeb/tableTotalsVisitsOrdersRevenue.html")
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(htmlContent)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	fmt.Println("HTML file generated successfully.")
+}
+
+func generateTableTotalsHTML(totalVisits, totalOrders int, totalRevenue int) string {
+
+	//bloo
+	totalVisitsFormatted := formatInt(totalVisits)
+	totalOrdersFormatted := formatInt(totalOrders)
+	totalRevenueFormatted := formatInt(totalRevenue)
+
+	html := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+	body {
+    font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+     .wrapper {
+            display: flex;
+            justify-content: space-between; /* Distribute space between columns */
+            width: 80%; /* Adjust the width as needed */
+        }
+        .column {
+            flex: 1;
+            text-align: center;
+            margin: 0 130px; /* Increase margin for more space between columns */
+        }
+        th, td {
+            padding: 4px; /* Adjust padding here */
+            font-size: 30px; /* Double the font size */
+        }
+        th {
+            color: DimGray;
+        }
+        td {
+            color: LightSeaGreen;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <div class="wrapper">
+
+        <div class="column">
+            <table>
+                    <th>Visits</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
+                </tr>
+            </table>
+        </div>
+        <div class="column">
+            <table>
+                <tr>
+                    <th>Orders</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
+                </tr>
+            </table>
+        </div>
+        <div class="column">
+            <table>
+                <tr>
+                    <th>Revenue</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", totalRevenueFormatted) + `</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    </div>
+</body>
+</html>`
+	return html
 }
 
 // Bar chart. Revenue and Visits
