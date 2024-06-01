@@ -115,6 +115,9 @@ var projectNameInput string
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
 
+// Boolean to signal if the last month should be ignored due to lack of data
+var ignoreLastMonth = false
+
 func main() {
 
 	clearScreen()
@@ -280,18 +283,23 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		// If any of the returned values is zero default them to 1 in order to avoid divide by zero issues later.
 		if ytdMetricsVisits == 0 {
 			ytdMetricsVisits = 1
+			ignoreLastMonth = true
 		}
 		if avgOrderValue == 0 {
 			avgOrderValue = 1
+			ignoreLastMonth = true
 		}
 		if avgVisitValue == 0 {
 			avgVisitValue = 1
+			ignoreLastMonth = true
 		}
 		if ytdMetricsOrders == 0 {
 			ytdMetricsOrders = 1
+			ignoreLastMonth = true
 		}
 		if ytdMetricsRevenue == 0 {
 			ytdMetricsRevenue = 1
+			ignoreLastMonth = true
 		}
 
 		// Display the metrics (formatted)
@@ -532,28 +540,15 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 func tableTotalsVisitsOrdersRevenue() {
 
 	// Generate HTML content
-	htmlContent := generateTableTotalsHTML(totalVisits, totalOrders, totalRevenue)
+	htmlContent := generateTableTotalsVisitsOrdersRevenue(totalVisits, totalOrders, totalRevenue)
 
-	// Write HTML content to a file
-	file, err := os.Create("./Utilities/seoChartsWeb/tableTotalsVisitsOrdersRevenue.html")
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		return
-	}
-	defer file.Close()
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/tableTotalsVisitsOrdersRevenue.html")
 
-	_, err = file.WriteString(htmlContent)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-
-	fmt.Println("HTML file generated successfully.")
 }
 
-func generateTableTotalsHTML(totalVisits, totalOrders int, totalRevenue int) string {
+func generateTableTotalsVisitsOrdersRevenue(totalVisits, totalOrders int, totalRevenue int) string {
 
-	//bloo
 	totalVisitsFormatted := formatInt(totalVisits)
 	totalOrdersFormatted := formatInt(totalOrders)
 	totalRevenueFormatted := formatInt(totalRevenue)
@@ -1081,34 +1076,38 @@ func dataInsightsDetail() {
 
 	for i := 0; i < len(startMthDates); i++ {
 		formattedDate := formatDate(startMthDates[i])
+		orders := formatInt(seoMetricsOrders[i])
+		revenue := formatInt(seoMetricsRevenue[i])
+		orderValue := formatInt(seoOrderValue[i])
+		visits := formatInt(seoMetricsVisits[i])
+		visitValue := formatFloat(seoVisitValue[i])
+
+		// If there is insufficient data (i.e. ignoreLastMonth is true) for the last month display "-" in place of any value
+		if ignoreLastMonth && i == len(startMthDates)-1 {
+			orders = "-"
+			revenue = "-"
+			orderValue = "-"
+			visits = "-"
+			visitValue = "-"
+		}
+
 		row := []string{
-			//startMthDates[i],
 			formattedDate,
-			formatInt(seoMetricsOrders[i]),
-			formatInt(seoMetricsRevenue[i]),
-			formatInt(seoOrderValue[i]),
-			formatInt(seoMetricsVisits[i]),
-			formatFloat(seoVisitValue[i]),
+			orders,
+			revenue,
+			orderValue,
+			visits,
+			visitValue,
 		}
 		detailedKPIstableData = append(detailedKPIstableData, row)
 	}
 
 	// Generate the table
-	detailedKPIInsightsTable := generateHTML(detailedKPIstableData)
+	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPIstableData)
 
-	// Write the HTML content
-	file, err := os.Create("./Utilities/seoChartsWeb/dataInsightDetailKPIs.html")
-	if err != nil {
-		fmt.Println(red+"Error. dataInsightsDetail. Cannot create KPI detail table:"+reset, err)
-		return
-	}
-	defer file.Close()
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/dataInsightDetailKPIs.html")
 
-	_, err = file.WriteString(detailedKPIInsightsTable)
-	if err != nil {
-		fmt.Println(red+"Error. dataInsightsDetail. Cannot write KPI detail table:"+reset, err)
-		return
-	}
 }
 
 // formatInt formats integer values with comma separator
@@ -1159,7 +1158,7 @@ func formatDate(dateStr string) string {
 }
 
 // generateHTML generates the HTML content for the table
-func generateHTML(data [][]string) string {
+func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 	html := `
 <!DOCTYPE html>
 <html>
@@ -1201,6 +1200,22 @@ func generateHTML(data [][]string) string {
 </body>
 </html>`
 	return html
+}
+
+// Function used to write HTML content to a file
+func saveHTML(genHTML string, genFilename string) {
+	file, err := os.Create(genFilename)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(genHTML)
+	if err != nil {
+		fmt.Println(red+"Error. saveHTML. Cannot save HTML:"+reset, err)
+		return
+	}
 }
 
 // Display the line break
