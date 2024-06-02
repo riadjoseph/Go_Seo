@@ -1,4 +1,4 @@
-// seoCharts: Charting SEO insights
+// seoCharts: SEO insights dashboard
 // Written by Jason Vicinanza
 
 package main
@@ -26,11 +26,10 @@ import (
 // anonymous mode. When set to true the URL to the project defaults to 'http://go-seo.rf.gd/'
 var anonymousMode = true
 
-// DateRanges struct used to hold the monthly date ranges and the YTD date range
+// DateRanges struct used to hold the monthly date ranges
 // Used for revenue and visits data
 type DateRanges struct {
 	MonthlyRanges [][2]time.Time
-	YTDRange      [2]time.Time
 }
 
 // Slice used to store the name of the month
@@ -81,6 +80,9 @@ type Response struct {
 // Project URL
 var projectURL = ""
 
+// Organisation name used for display purposes
+var displayOrgName = ""
+
 // Version
 var version = "v0.1"
 
@@ -122,6 +124,15 @@ var maxVisitsPerOrder = 0
 // No. of months processed
 var noOfMonths = 0
 
+// Average visits per order
+var averageVisitsPerOrder = 0
+
+// Slice of strings
+var footerNotesStrings = []string{
+	"1. Only complete months are included in the analysis.",
+	"2. Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of business metric over a monthly basis taking into account the compounding effect. ",
+}
+
 func main() {
 
 	clearScreen()
@@ -147,8 +158,10 @@ func main() {
 	// Generate the link to the project
 	if anonymousMode {
 		projectURL = "http://go-seo.rf.gd/"
+		displayOrgName = "Anonymised"
 	} else {
 		projectURL = "https://app.botify.com/" + orgName + "/" + projectName
+		displayOrgName = orgName
 	}
 
 	displaySeparator()
@@ -181,6 +194,9 @@ func main() {
 
 	// Generate the charts for the insights detail
 	dataInsightsDetail()
+
+	// Footer notes
+	footerNotes()
 
 	// Badges
 	cmgrRevenue32 := float32(cmgrRevenue)                   // Cast to float32
@@ -259,12 +275,8 @@ func getSeoInsights() {
 		startMthNames = append(startMthNames, startMthName)
 	}
 
-	// Format the YTD range ready for use in the BQL
-	startYTDDate := dateRanges.YTDRange[0].Format("20060102")
-	endYTDDate := dateRanges.YTDRange[1].Format("20060102")
-
 	// Get the revenue data
-	getRevenueData(analyticsID, startYTDDate, endYTDDate, startMthDates, endMthDates)
+	getRevenueData(analyticsID, startMthDates, endMthDates)
 
 	// Calculate the CMGR for the metrics
 	getCMGR()
@@ -272,11 +284,11 @@ func getSeoInsights() {
 }
 
 // Get the revenue, Orders and visits data
-func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, startMthDates []string, endMthDates []string) {
+func getRevenueData(analyticsID string, startMthDates []string, endMthDates []string) {
 
-	var ytdMetricsOrders = 0
-	var ytdMetricsRevenue = 0
-	var ytdMetricsVisits = 0
+	var metricsOrders = 0
+	var metricsRevenue = 0
+	var metricsVisits = 0
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
@@ -284,37 +296,48 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 	fmt.Println(bold + "\nMonthly organic insights" + reset)
 	for i := range startMthDates {
 
-		ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 
 		// Append the metrics to the slices
-		seoMetricsOrders = append(seoMetricsOrders, ytdMetricsOrders)
-		seoMetricsRevenue = append(seoMetricsRevenue, ytdMetricsRevenue)
+		seoMetricsOrders = append(seoMetricsOrders, metricsOrders)
+		seoMetricsRevenue = append(seoMetricsRevenue, metricsRevenue)
 		seoOrderValue = append(seoOrderValue, avgOrderValue)
-		seoMetricsVisits = append(seoMetricsVisits, ytdMetricsVisits)
+		seoMetricsVisits = append(seoMetricsVisits, metricsVisits)
 		// Round avgVisitValue to 3 decimal places
 		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
 		// Calculate the visits per order (for the month)
-		visitsPerOrder = append(visitsPerOrder, ytdMetricsVisits/ytdMetricsOrders)
-		fmt.Println("Visits per order:", visitsPerOrder)
+		visitsPerOrder = append(visitsPerOrder, metricsVisits/metricsOrders)
+		fmt.Println("Visits per order:", visitsPerOrder[i])
 		fmt.Println()
 		// Calculate the total revenue
-		totalRevenue += ytdMetricsRevenue
+		totalRevenue += metricsRevenue
 		// Calculate the visits per order (average across all data)
-		totalVisits += ytdMetricsVisits
-		totalOrders += ytdMetricsOrders
-		totalVisitsPerOrder = float64(totalVisits / totalOrders)
+		totalVisits += metricsVisits
+		totalOrders += metricsOrders
 
 		// Display the metrics (formatted)
 		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
-		formattedOrders := formatWithCommas(ytdMetricsOrders)
+		formattedOrders := formatWithCommas(metricsOrders)
 		fmt.Println("No. Orders:", formattedOrders)
-		formattedRevenue := formatWithCommas(ytdMetricsRevenue)
+		formattedRevenue := formatWithCommas(metricsRevenue)
 		fmt.Println("Total revenue:", formattedRevenue)
 		fmt.Println("Average order value:", avgOrderValue)
-		formattedVisits := formatWithCommas(ytdMetricsVisits)
+		formattedVisits := formatWithCommas(metricsVisits)
 		fmt.Println("No. of visits:", formattedVisits)
 		fmt.Println("Average visit value:", avgVisitValue)
+	}
+
+	// Calculate the average visits per order
+	// Calculate the sum of the elements in the slice
+	totalVisitsPerOrder := 0
+	for _, value := range visitsPerOrder {
+		totalVisitsPerOrder += value
+	}
+	// Calculate the average
+	// Calculate the average and convert it to an int
+	if len(visitsPerOrder) > 0 {
+		averageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
 	}
 
 	// Get the min and max visits per order
@@ -333,14 +356,11 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		}
 	}
 
-	println(minVisitsPerOrder)
-	println(maxVisitsPerOrder)
-
-	fmt.Println(green + "Totals" + reset)
+	fmt.Println(green + "\nTotals" + reset)
 	fmt.Println("Total visits:", totalVisits)
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
-	fmt.Println("Visits per order:", totalVisitsPerOrder)
+	fmt.Println("Average visits per order:", averageVisitsPerOrder)
 }
 
 // Get the analytics ID
@@ -395,13 +415,6 @@ func calculateDateRanges() DateRanges {
 	currentTime := time.Now()
 	dateRanges := make([][2]time.Time, 12)
 
-	// Calculate the YTD date range
-	year, _, _ := currentTime.Date()
-	loc := currentTime.Location()
-	startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, loc)
-	endOfYTD := currentTime
-	yearToDateRange := [2]time.Time{startOfYear, endOfYTD}
-
 	// Calculate the date ranges for the last 12 months
 	for i := 0; i < 12; i++ {
 		// Calculate the start and end dates for the current range
@@ -434,13 +447,13 @@ func calculateDateRanges() DateRanges {
 	// Save the number of months
 	noOfMonths = len(dateRanges)
 
-	return DateRanges{MonthlyRanges: dateRanges, YTDRange: yearToDateRange}
+	return DateRanges{MonthlyRanges: dateRanges}
 }
 
 // Execute the BQL for the specified date range
 func executeRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64) {
 
-	// Get the revenue, no. Orders and visits - YTD
+	// Get the revenue, no. Orders and visits
 	bqlRevTrans := fmt.Sprintf(`
 	{
     "collections": [
@@ -523,9 +536,9 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 		log.Fatalf("Error. executeRevenueBQL. Cannot unmarshal the JSON: %v", err)
 	}
 
-	var ytdMetricsOrders = 0
-	var ytdMetricsRevenue = 0
-	var ytdMetricsVisits = 0
+	var metricsOrders = 0
+	var metricsRevenue = 0
+	var metricsVisits = 0
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
@@ -535,14 +548,14 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	if responseCount == 0 {
 		fmt.Println(yellow + "Warning. executeRevenueBQL. Some data may default to 1 if it's the first day of the month." + reset)
 	} else {
-		ytdMetricsOrders = int(response.Results[0].Metrics[0])
-		ytdMetricsRevenue = int(response.Results[0].Metrics[1])
-		ytdMetricsVisits = int(response.Results[0].Metrics[2])
+		metricsOrders = int(response.Results[0].Metrics[0])
+		metricsRevenue = int(response.Results[0].Metrics[1])
+		metricsVisits = int(response.Results[0].Metrics[2])
 		// Compute the average Order value
-		avgOrderValue = ytdMetricsRevenue / ytdMetricsOrders
-		avgVisitValue = float64(ytdMetricsRevenue) / float64(ytdMetricsVisits)
+		avgOrderValue = metricsRevenue / metricsOrders
+		avgVisitValue = float64(metricsRevenue) / float64(metricsVisits)
 	}
-	return ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue
+	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue
 }
 
 // Header for the dashboard
@@ -556,23 +569,25 @@ func dashboardHeader() {
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            justify-content: center;
-            align-items: center;
             margin: 0;
+            height: 100pv;
+            overflow: hidden;
         }
         .content {
             color: gray;
-            font-size: 20px;
+            font-size: 15px;
             padding: 5px;
+        }
+	.header-font {
+            font-size: 15px;  
         }
     </style>
 </head>
 <body>
     <div class="content">
-        The following insights are based on the last
-		<tr>
-			<td>` + fmt.Sprintf("%d", noOfMonths) + `</td> months.
-		</tr>
+        <span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
+		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + displayOrgName + `)
+
     </div>
 </body>
 </html>
@@ -708,7 +723,7 @@ func lineChartVisitsPerOrder() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Visits per order",
+			Title:    "Average visits per order",
 			Subtitle: "On average, how many organic visits are needed to generate one order?",
 			Link:     projectURL,
 		}),
@@ -899,6 +914,13 @@ func liquidBadges(badgeKPI string, badgeKPIValue float32) {
 func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid {
 
 	liquid := charts.NewLiquid()
+	liquid.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "400px",
+			Height: "480px",
+		}),
+	)
+
 	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})).
 		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
@@ -907,8 +929,7 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid 
 
 			charts.WithLiquidChartOpts(opts.LiquidChart{
 				IsWaveAnimation: opts.Bool(true),
-				//IsShowOutline:   opts.Bool(true),
-				Shape: "diamond",
+				Shape:           "circle",
 			}),
 		)
 	return liquid
@@ -1022,17 +1043,20 @@ func gaugeBase(visitsPerOrder float64) *charts.Gauge {
 
 	gauge := charts.NewGauge()
 
-	//bloo
 	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
 		s.Min = minVisitsPerOrder
 		s.Max = maxVisitsPerOrder
 	})
 
 	gauge.SetGlobalOptions(
-	//  No options defined
+		//  No options defined
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  "500px",
+			Height: "500px",
+		}),
 	)
 
-	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits per order", Value: visitsPerOrder}}, setMinMax)
+	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Average visits per order", Value: averageVisitsPerOrder}}, setMinMax)
 
 	return gauge
 }
@@ -1259,6 +1283,42 @@ func saveHTML(genHTML string, genFilename string) {
 	}
 }
 
+func footerNotes() {
+
+	// Create or open the HTML file
+	file, err := os.Create("./Utilities/seoChartsWeb/seoFooterNotes.html")
+	if err != nil {
+		fmt.Println(red+"Error. footerNotes. Cannot create footer notes:"+reset, err)
+		return
+	}
+	defer file.Close()
+
+	// Write the HTML header
+	_, err = file.WriteString("<!DOCTYPE html>\n<html>\n<head>\n<title>String Display</title>\n</head>\n<body>\n")
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	// Write each string as a paragraph in the HTML body
+	for _, str := range footerNotesStrings {
+		_, err := file.WriteString("<p>" + str + "</p>\n")
+		if err != nil {
+			fmt.Println("Error writing to file:", err)
+			return
+		}
+	}
+
+	// Write the HTML footer
+	_, err = file.WriteString("</body>\n</html>")
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	fmt.Println("HTML file generated successfully!")
+}
+
 // Display the line break
 func displaySeparator() {
 	block := "█"
@@ -1317,12 +1377,13 @@ func displayBanner() {
 	fmt.Println(purple + "seoCharts: Test Botify BQL.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
-	fmt.Println(checkmark + green + bold + " Revenue (YTD/monthly)" + reset)
-	fmt.Println(checkmark + green + bold + " Visits (YTD/monthly)" + reset)
-	fmt.Println(checkmark + green + bold + " Orders (YTD/monthly)" + reset)
+	fmt.Println(checkmark + green + bold + " Revenue (monthly)" + reset)
+	fmt.Println(checkmark + green + bold + " Visits (monthly)" + reset)
+	fmt.Println(checkmark + green + bold + " Orders (monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) Average order value" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) Average visit value" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) CMGR for Revenue, Visits, Orders, Order value, Visit value" + reset)
+	fmt.Println(checkmark + green + bold + " (Computed) Visits per order" + reset)
 
 }
 
