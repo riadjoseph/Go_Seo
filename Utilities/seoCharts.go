@@ -115,8 +115,12 @@ var projectNameInput string
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
 
-// Boolean to signal if the last month should be ignored due to lack of data
-var ignoreLastMonth = false
+// Used to store the min and max visits per order
+var minVisitsPerOrder = 0
+var maxVisitsPerOrder = 0
+
+// No. of months processed
+var noOfMonths = 0
 
 func main() {
 
@@ -279,28 +283,24 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 
 		ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 
-		// A little hack
-		// If any of the returned values is zero default them to 1 in order to avoid divide by zero issues later.
-		if ytdMetricsVisits == 0 {
-			ytdMetricsVisits = 1
-			ignoreLastMonth = true
-		}
-		if avgOrderValue == 0 {
-			avgOrderValue = 1
-			ignoreLastMonth = true
-		}
-		if avgVisitValue == 0 {
-			avgVisitValue = 1
-			ignoreLastMonth = true
-		}
-		if ytdMetricsOrders == 0 {
-			ytdMetricsOrders = 1
-			ignoreLastMonth = true
-		}
-		if ytdMetricsRevenue == 0 {
-			ytdMetricsRevenue = 1
-			ignoreLastMonth = true
-		}
+		// Append the metrics to the slices
+		seoMetricsOrders = append(seoMetricsOrders, ytdMetricsOrders)
+		seoMetricsRevenue = append(seoMetricsRevenue, ytdMetricsRevenue)
+		seoOrderValue = append(seoOrderValue, avgOrderValue)
+		seoMetricsVisits = append(seoMetricsVisits, ytdMetricsVisits)
+		// Round avgVisitValue to 3 decimal places
+		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
+		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
+		// Calculate the visits per order (for the month)
+		visitsPerOrder = append(visitsPerOrder, ytdMetricsVisits/ytdMetricsOrders)
+		fmt.Println("Visits per order:", visitsPerOrder)
+		fmt.Println()
+		// Calculate the total revenue
+		totalRevenue += ytdMetricsRevenue
+		// Calculate the visits per order (average across all data)
+		totalVisits += ytdMetricsVisits
+		totalOrders += ytdMetricsOrders
+		totalVisitsPerOrder = float64(totalVisits / totalOrders)
 
 		// Display the metrics (formatted)
 		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
@@ -312,27 +312,26 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 		formattedVisits := formatWithCommas(ytdMetricsVisits)
 		fmt.Println("No. of visits:", formattedVisits)
 		fmt.Println("Average visit value:", avgVisitValue)
-		fmt.Println()
-
-		// Append the metrics to the slices
-		seoMetricsOrders = append(seoMetricsOrders, ytdMetricsOrders)
-		seoMetricsRevenue = append(seoMetricsRevenue, ytdMetricsRevenue)
-		seoOrderValue = append(seoOrderValue, avgOrderValue)
-		seoMetricsVisits = append(seoMetricsVisits, ytdMetricsVisits)
-		// Round avgVisitValue to 3 decimal places
-		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
-		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
-
-		// Calculate the visits per order (for the month)
-		visitsPerOrder = append(visitsPerOrder, ytdMetricsVisits/ytdMetricsOrders)
-
-		// Calculate the total revenue
-		totalRevenue += ytdMetricsRevenue
-		// Calculate the visits per order (average across all data)
-		totalVisits += ytdMetricsVisits
-		totalOrders += ytdMetricsOrders
-		totalVisitsPerOrder = float64(totalVisits / totalOrders)
 	}
+
+	// Get the min and max visits per order
+	minVisitsPerOrder = -1
+	maxVisitsPerOrder = visitsPerOrder[0]
+
+	// Iterate through the slice to find the min and max values
+	for _, value := range visitsPerOrder {
+		if value >= 2 {
+			if minVisitsPerOrder == -1 || value < minVisitsPerOrder {
+				minVisitsPerOrder = value
+			}
+		}
+		if value > maxVisitsPerOrder {
+			maxVisitsPerOrder = value
+		}
+	}
+
+	println(minVisitsPerOrder)
+	println(maxVisitsPerOrder)
 
 	fmt.Println(green + "Totals" + reset)
 	fmt.Println("Total visits:", totalVisits)
@@ -403,16 +402,17 @@ func calculateDateRanges() DateRanges {
 	// Calculate the date ranges for the last 12 months
 	for i := 0; i < 12; i++ {
 		// Calculate the start and end dates for the current range
-		year, month, _ := currentTime.Date()
-		loc := currentTime.Location()
+		// Adjust to the previous month. We doint caount the current month.
+		prevMonth := currentTime.AddDate(0, -1, 0)
 
-		// Start of the current month range
-		startDate := time.Date(year, month, 1, 0, 0, 0, 0, loc)
+		// Start of the previous month range
+		startDate := time.Date(prevMonth.Year(), prevMonth.Month(), 1, 0, 0, 0, 0, currentTime.Location())
 
 		var endDate time.Time
 		if i == 0 {
-			// End of the current month range (up to the current date)
-			endDate = currentTime
+			// The end date is the End of the previous month. We don't use the current month for the analysis.
+			firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+			endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
 		} else {
 			// End of the previous month range
 			endDate = startDate.AddDate(0, 1, -1)
@@ -422,8 +422,14 @@ func calculateDateRanges() DateRanges {
 		dateRanges[11-i] = [2]time.Time{startDate, endDate}
 
 		// Move to the previous month
-		currentTime = startDate.AddDate(0, -1, 0)
+		currentTime = startDate.AddDate(0, 0, 0)
 	}
+
+	// Subtract 1 day from the end date in the last element of the array
+	dateRanges[0][1] = dateRanges[0][1].AddDate(0, 0, -1)
+
+	// Save the number of months
+	noOfMonths = len(dateRanges)
 
 	return DateRanges{MonthlyRanges: dateRanges, YTDRange: yearToDateRange}
 }
@@ -671,7 +677,7 @@ func lineChartVisitsPerOrder() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Visits per order",
-			Subtitle: "On average, how many organic visits are needed to generate each order?",
+			Subtitle: "On average, how many organic visits are needed to generate one order?",
 			Link:     projectURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -922,7 +928,7 @@ func generateRiverTime() *charts.ThemeRiver {
 			Width:  "600px",
 			Height: "480px",
 		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}), //bloo
+		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 	)
 
 	// Populate ThemeRiverData slice
@@ -983,11 +989,18 @@ func gaugeChartVisitsPerOrder(visitsPerOrder float64) {
 func gaugeBase(visitsPerOrder float64) *charts.Gauge {
 
 	gauge := charts.NewGauge()
+
+	//bloo
+	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
+		s.Min = minVisitsPerOrder
+		s.Max = maxVisitsPerOrder
+	})
+
 	gauge.SetGlobalOptions(
 	//  No options defined
 	)
 
-	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits per order", Value: visitsPerOrder}})
+	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits per order", Value: visitsPerOrder}}, setMinMax)
 
 	return gauge
 }
@@ -1047,7 +1060,8 @@ func computeCMGR(values []float64) float64 {
 	}
 
 	initialValue := values[0]
-	// The final period value us not included as it is not a full month
+
+	// The final period value is not included as it is not a full month
 	finalValue := values[len(values)-2]
 	numberOfPeriods := float64(len(values))
 
@@ -1081,15 +1095,7 @@ func dataInsightsDetail() {
 		orderValue := formatInt(seoOrderValue[i])
 		visits := formatInt(seoMetricsVisits[i])
 		visitValue := formatFloat(seoVisitValue[i])
-
-		// If there is insufficient data (i.e. ignoreLastMonth is true) for the last month display "-" in place of any value
-		if ignoreLastMonth && i == len(startMthDates)-1 {
-			orders = "-"
-			revenue = "-"
-			orderValue = "-"
-			visits = "-"
-			visitValue = "-"
-		}
+		visitsPerOrder := formatInt(visitsPerOrder[i])
 
 		row := []string{
 			formattedDate,
@@ -1098,6 +1104,7 @@ func dataInsightsDetail() {
 			orderValue,
 			visits,
 			visitValue,
+			visitsPerOrder,
 		}
 		detailedKPIstableData = append(detailedKPIstableData, row)
 	}
@@ -1184,6 +1191,8 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
                 <th class="title">Order Value</th>
                 <th class="title">No. of Visits</th>
                 <th class="title">Visit Value</th>
+                <th class="title">Visits per Order</th>
+
             </tr>
         </thead>
         <tbody>`
