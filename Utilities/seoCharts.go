@@ -158,6 +158,9 @@ func main() {
 
 	// Start of charts
 
+	// Insert the header
+	dashboardHeader()
+
 	// Total vales
 	tableTotalsVisitsOrdersRevenue()
 
@@ -542,24 +545,52 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	return ytdMetricsOrders, ytdMetricsRevenue, ytdMetricsVisits, avgOrderValue, avgVisitValue
 }
 
-// Table for total Visits, Orders & Revenue
-func tableTotalsVisitsOrdersRevenue() {
+// Header for the dashboard
+func dashboardHeader() {
 
-	// Generate HTML content
-	htmlContent := generateTableTotalsVisitsOrdersRevenue(totalVisits, totalOrders, totalRevenue)
+	htmlContent := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        .content {
+            color: gray;
+            font-size: 20px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        The following insights are based on the last
+		<tr>
+			<td>` + fmt.Sprintf("%d", noOfMonths) + `</td> months.
+		</tr>
+    </div>
+</body>
+</html>
+`
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/tableTotalsVisitsOrdersRevenue.html")
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDashboardHeader.html")
 
 }
 
-func generateTableTotalsVisitsOrdersRevenue(totalVisits, totalOrders int, totalRevenue int) string {
+// Table for total Visits, Orders & Revenue
+func tableTotalsVisitsOrdersRevenue() {
 
 	totalVisitsFormatted := formatInt(totalVisits)
 	totalOrdersFormatted := formatInt(totalOrders)
 	totalRevenueFormatted := formatInt(totalRevenue)
 
-	html := `
+	htmlContent := `
 <!DOCTYPE html>
 <html>
 <head>
@@ -596,11 +627,9 @@ func generateTableTotalsVisitsOrdersRevenue(totalVisits, totalOrders int, totalR
 <body>
     <div class="container">
     <div class="wrapper">
-
         <div class="column">
             <table>
                     <th>Visits</th>
-                </tr>
                 <tr>
                     <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
                 </tr>
@@ -630,7 +659,10 @@ func generateTableTotalsVisitsOrdersRevenue(totalVisits, totalOrders int, totalR
     </div>
 </body>
 </html>`
-	return html
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoTableTotalsVisitsOrdersRevenue.html")
+
 }
 
 // Bar chart. Revenue and Visits
@@ -899,7 +931,7 @@ func riverCharRevenueVisits() {
 	page.AddCharts(
 		generateRiverTime(),
 	)
-	f, err := os.Create("./Utilities/seoChartsWeb/seoRiver.html")
+	f, err := os.Create("./Utilities/seoChartsWeb/seoVisitsRevenueRiver.html")
 	if err != nil {
 
 		panic(err)
@@ -1113,7 +1145,7 @@ func dataInsightsDetail() {
 	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPIstableData)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/dataInsightDetailKPIs.html")
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDataInsightDetailKPIs.html")
 
 }
 
