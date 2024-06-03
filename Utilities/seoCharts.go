@@ -23,30 +23,7 @@ import (
 	"time"
 )
 
-var wcData = map[string]interface{}{
-	"Sam S Club":               10000,
-	"Macys":                    6181,
-	"Amy Schumer":              4386,
-	"Jurassic World":           4055,
-	"Charter Communications":   2467,
-	"Chick Fil A":              2244,
-	"Planet Fitness":           1898,
-	"Pitch Perfect":            1484,
-	"Express":                  1689,
-	"Home":                     1112,
-	"Johnny Depp":              985,
-	"Lena Dunham":              847,
-	"Lewis Hamilton":           582,
-	"KXAN":                     555,
-	"Mary Ellen Mark":          550,
-	"Farrah Abraham":           462,
-	"Rita Ora":                 366,
-	"Serena Williams":          282,
-	"NCAA baseball tournament": 273,
-	"Point Break":              265,
-}
-
-// anonymous mode. When set to true the URL to the project defaults to 'http://go-seo.rf.gd/'
+// Anonymous mode. When set to true the URL to the project defaults to 'http://go-seo.rf.gd/'
 var anonymousMode = true
 
 // DateRanges struct used to hold the monthly date ranges
@@ -54,6 +31,22 @@ var anonymousMode = true
 type DateRanges struct {
 	MonthlyRanges [][2]time.Time
 }
+
+// Struct used to store Keywords dimenstions and metrics
+type KeywordsData struct {
+	Results []struct {
+		Dimensions []interface{} `json:"dimensions"`
+		Metrics    []*float64    `json:"metrics,omitempty"`
+	} `json:"results"`
+	Previous interface{} `json:"previous"`
+	Next     string      `json:"next"`
+	Page     int         `json:"page"`
+	Size     int         `json:"size"`
+}
+
+// Used for the branded/non branded title in the wordcloud
+var wordcloudTitle = ""
+var wordcloudSubTitle = ""
 
 // Slice used to store the name of the month
 var startMthNames []string
@@ -68,6 +61,18 @@ var seoMetricsVisits []int
 var seoMetricsOrders []int
 var seoOrderValue []int
 var seoVisitValue []float64
+
+// Slices used to store Keywords KPIs - branded
+var kwKeywords []string
+var kwMetricsCountUrls []int
+var kwMetricsCountClicks []int
+var kwMetricsCountImpressions []int
+
+// Slices used to store Keywords KPIs - non-branded
+var kwKeywordsNB []string
+var kwMetricsCountUrlsNB []int
+var kwMetricsCountClicksNB []int
+var kwMetricsCountImpressionsNB []int
 
 // Variables used to store the CMGR values
 var cmgrRevenue float64
@@ -153,7 +158,7 @@ var averageVisitsPerOrder = 0
 // Slice of strings
 var footerNotesStrings = []string{
 	"1. Only complete months are included in the analysis.",
-	"2. Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of business metric over a monthly basis taking into account the compounding effect. ",
+	"2. Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect. ",
 }
 
 func main() {
@@ -180,7 +185,8 @@ func main() {
 
 	// Generate the link to the project
 	if anonymousMode {
-		projectURL = "http://go-seo.rf.gd/"
+		//projectURL = "http://go-seo.rf.gd/"
+		projectURL = "http://www.botify.com/"
 		displayOrgName = "Anonymised"
 	} else {
 		projectURL = "https://app.botify.com/" + orgName + "/" + projectName
@@ -218,8 +224,11 @@ func main() {
 	// Generate the charts for the insights detail
 	dataInsightsDetail()
 
-	// Word cloud
-	wordCloudBrandedUnbranded()
+	// Wordcloud
+	// Branded keywords
+	wordCloudBrandedUnbranded(true)
+	// Non branded keywords
+	wordCloudBrandedUnbranded(false)
 
 	// Footer notes
 	footerNotes()
@@ -304,6 +313,9 @@ func getSeoInsights() {
 	// Get the revenue data
 	getRevenueData(analyticsID, startMthDates, endMthDates)
 
+	// Get the keywords data
+	getKeywordsData("20240101", "20240131")
+
 	// Calculate the CMGR for the metrics
 	getCMGR()
 
@@ -387,6 +399,129 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
 	fmt.Println("Average visits per order:", averageVisitsPerOrder)
+}
+
+// Get the keywords data
+func getKeywordsData(startMthDates string, endMthDates string) {
+
+	// Branded keywords
+	executeKeywordsBQL("20240101", "20240131", "true")
+
+	// Non-branded keywords
+	executeKeywordsBQL("20240101", "20240131", "false")
+
+}
+
+// Execute the BQL to acquire keywords data
+func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []int) {
+
+	// Get the keywords data
+	bqlKeywords := fmt.Sprintf(`{
+		"collections": [
+						"search_console"
+		],
+		"periods": [
+			[
+						%s,
+						%s
+			]
+		],
+		"query": {
+			"dimensions": [
+				"keyword"
+			],
+			"metrics": [
+						"search_console.period_0.count_urls",
+						"search_console.period_0.count_clicks",
+						"search_console.period_0.count_impressions"
+			],
+			"sort": [{"index": 0, "type": "metrics", "order": "desc"}],
+	
+			"filters": {
+				"and": [
+					{
+						"field": "keyword_meta.branded",
+						"predicate": "eq",
+						"value": %s
+					}
+				]
+			}
+		}
+	}`, startDate, endDate, brandedFlag)
+
+	// Define the URL
+	// We get 21 keywords because the first keyword is not included in the wordcloud
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query?size=21", orgName, projectName)
+
+	// GET the HTTP request
+	req, errorCheck := http.NewRequest("GET", url, nil)
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. executeKeywordBQL. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
+	}
+
+	// Define the body
+	httpBody := []byte(bqlKeywords)
+
+	// Create the POST request
+	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
+	if errorCheck != nil {
+		log.Fatal("Error. executeKeywordsBQL. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
+	}
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	// Create HTTP client and execute the request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, errorCheck := client.Do(req)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. executeKeywordsBQL.  Cannot create the HTTP client: "+reset, errorCheck)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. executeKeywordsBQL. Cannot read response body: "+reset, errorCheck)
+	}
+
+	// Unmarshal JSON data into KeywordsData struct
+	var response KeywordsData
+	err := json.Unmarshal(responseData, &response)
+	if err != nil {
+		log.Fatalf("Error. executeKeywordsBQL. Cannot unmarshal the JSON: %v", err)
+		os.Exit(1)
+	}
+
+	// Load the response into the slices - branded keywords
+	if brandedFlag == "true" {
+		for _, result := range response.Results {
+			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
+				kwKeywords = append(kwKeywords, result.Dimensions[0].(string))
+				kwMetricsCountUrls = append(kwMetricsCountUrls, int(*result.Metrics[0]))
+				kwMetricsCountClicks = append(kwMetricsCountClicks, int(*result.Metrics[1]))
+				kwMetricsCountImpressions = append(kwMetricsCountImpressions, int(*result.Metrics[2]))
+			}
+		}
+	}
+
+	// Load the response into the slices - non-branded keywords
+	if brandedFlag == "false" {
+		for _, result := range response.Results {
+			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
+				kwKeywordsNB = append(kwKeywordsNB, result.Dimensions[0].(string))
+				kwMetricsCountUrlsNB = append(kwMetricsCountUrlsNB, int(*result.Metrics[0]))
+				kwMetricsCountClicksNB = append(kwMetricsCountClicksNB, int(*result.Metrics[1]))
+				kwMetricsCountImpressionsNB = append(kwMetricsCountImpressionsNB, int(*result.Metrics[2]))
+			}
+		}
+	}
+
+	return kwKeywords, kwMetricsCountUrls, kwMetricsCountClicks, kwMetricsCountImpressions
 }
 
 // Get the analytics ID
@@ -531,7 +666,7 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	// Create the POST request
 	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
 	if errorCheck != nil {
-		log.Fatal("Error. executeRevenueBQL. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
+		log.Fatal(red+"Error. executeRevenueBQL. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
 	}
 
 	// Define the headers
@@ -559,7 +694,7 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	var response Response
 	err := json.Unmarshal(responseData, &response)
 	if err != nil {
-		log.Fatalf("Error. executeRevenueBQL. Cannot unmarshal the JSON: %v", err)
+		log.Fatalf(red+"Error. executeRevenueBQL. Cannot unmarshal the JSON: %v"+reset, err)
 	}
 
 	var metricsOrders = 0
@@ -972,46 +1107,94 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 }
 
 // Top 20 keywords for branded and non branded
-func wordCloudBrandedUnbranded() {
+func wordCloudBrandedUnbranded(brandedMode bool) {
 
-	page := components.NewPage()
-	page.AddCharts(
-		generateWordCloud(),
-	)
-	f, err := os.Create("./Utilities/seoChartsWeb/seoWordCloud.html")
-	if err != nil {
-		panic(err)
+	// Generate the HTML for branded keywords
+	if brandedMode {
+		page := components.NewPage()
+		page.AddCharts(
+			generateWordCloud(true),
+		)
+		f, err := os.Create("./Utilities/seoChartsWeb/seoWordCloudBranded.html")
+		if err != nil {
+			panic(err)
+		}
+		page.Render(io.MultiWriter(f))
 	}
 
-	page.Render(io.MultiWriter(f))
+	// Generate the HTML for non-branded keywords
+	if !brandedMode {
+		page := components.NewPage()
+		page.AddCharts(
+			generateWordCloud(false),
+		)
+		f, err := os.Create("./Utilities/seoChartsWeb/seoWordCloudNonBranded.html")
+		if err != nil {
+			panic(err)
+		}
+		page.Render(io.MultiWriter(f))
+	}
 }
 
-func generateWordCloud() *charts.WordCloud {
+func generateWordCloud(brandedMode bool) *charts.WordCloud {
+
+	if brandedMode {
+		wordcloudTitle = "Top branded keywords"
+		wordcloudSubTitle = "Branded keywords driving clicks to the site last month."
+	}
+	if !brandedMode {
+		wordcloudTitle = "Top non branded keywords"
+		wordcloudSubTitle = "Non branded keywords driving clicks to the site last month."
+	}
 
 	wc := charts.NewWordCloud()
 	wc.SetGlobalOptions(
+		// Remove the legend from the wordcloud
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
-			Title: "Branded",
+			Title:    wordcloudTitle,
+			Subtitle: wordcloudSubTitle,
+			Link:     projectURL,
 		}))
 
-	wc.AddSeries("Keywords", generateWCData(wcData)).
-		SetSeriesOptions(
-			charts.WithWorldCloudChartOpts(
-				opts.WordCloudChart{
-					SizeRange: []float32{14, 80},
-					Shape:     "cardioid",
-				}),
-		)
+	// Generate the branded wordcloud
+	if brandedMode {
+		wc.AddSeries("Keywords", generateWCData(kwKeywords, kwMetricsCountClicks)).
+			SetSeriesOptions(
+				charts.WithWorldCloudChartOpts(
+					opts.WordCloudChart{
+						SizeRange: []float32{10, 90},
+						Shape:     "cardioid",
+					}),
+			)
+	}
+
+	// Generate the non-branded wordcloud
+	if !brandedMode {
+		wc.AddSeries("Keywords", generateWCData(kwKeywordsNB, kwMetricsCountClicks)).
+			SetSeriesOptions(
+				charts.WithWorldCloudChartOpts(
+					opts.WordCloudChart{
+						SizeRange: []float32{10, 90},
+						Shape:     "cardioid",
+					}),
+			)
+	}
 
 	return wc
 }
 
-func generateWCData(data map[string]interface{}) (items []opts.WordCloudData) {
+func generateWCData(kwKeywords []string, kwMetricsCountClicks []int) (items []opts.WordCloudData) {
 	items = make([]opts.WordCloudData, 0)
-	for k, v := range data {
-		items = append(items, opts.WordCloudData{Name: k, Value: v})
+	// Iterate over kwKeywords and kwMetricsCountClicks slices starting from index 1
+	// We start at index 1 because the top keyword is generally significantly higher performing than the following keywords
+	for i := 1; i < len(kwKeywords); i++ {
+		// Check if index is valid for kwMetricsCountClicks slice
+		if i < len(kwMetricsCountClicks) {
+			// Append WordCloudData struct with keyword and corresponding count
+			items = append(items, opts.WordCloudData{Name: kwKeywords[i], Value: kwMetricsCountClicks[i]})
+		}
 	}
-
 	return items
 }
 
