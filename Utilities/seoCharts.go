@@ -23,6 +23,29 @@ import (
 	"time"
 )
 
+var wcData = map[string]interface{}{
+	"Sam S Club":               10000,
+	"Macys":                    6181,
+	"Amy Schumer":              4386,
+	"Jurassic World":           4055,
+	"Charter Communications":   2467,
+	"Chick Fil A":              2244,
+	"Planet Fitness":           1898,
+	"Pitch Perfect":            1484,
+	"Express":                  1689,
+	"Home":                     1112,
+	"Johnny Depp":              985,
+	"Lena Dunham":              847,
+	"Lewis Hamilton":           582,
+	"KXAN":                     555,
+	"Mary Ellen Mark":          550,
+	"Farrah Abraham":           462,
+	"Rita Ora":                 366,
+	"Serena Williams":          282,
+	"NCAA baseball tournament": 273,
+	"Point Break":              265,
+}
+
 // anonymous mode. When set to true the URL to the project defaults to 'http://go-seo.rf.gd/'
 var anonymousMode = true
 
@@ -195,6 +218,9 @@ func main() {
 	// Generate the charts for the insights detail
 	dataInsightsDetail()
 
+	// Word cloud
+	wordCloudBrandedUnbranded()
+
 	// Footer notes
 	footerNotes()
 
@@ -205,11 +231,11 @@ func main() {
 	cmgrOrdersValue32 := float32(cmgrOrdersValue)           // Cast to float32
 	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue) // Cast to float32
 
-	liquidBadges("Revenue", cmgrRevenue32)
-	liquidBadges("Visits", cmgrVisits32)
-	liquidBadges("Visit Value", cmgrVisitValue32)
-	liquidBadges("Orders", cmgrOrdersValue32)
-	liquidBadges("Order Value", cmgrOrdersValueValue32)
+	liquidBadge("Revenue", cmgrRevenue32)
+	liquidBadge("Visits", cmgrVisits32)
+	liquidBadge("Visit Value", cmgrVisitValue32)
+	liquidBadge("Orders", cmgrOrdersValue32)
+	liquidBadge("Order Value", cmgrOrdersValueValue32)
 
 	// River chart
 	riverCharRevenueVisits() // Revenue & visits
@@ -894,7 +920,7 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 	return items
 }
 
-func liquidBadges(badgeKPI string, badgeKPIValue float32) {
+func liquidBadge(badgeKPI string, badgeKPIValue float32) {
 
 	page := components.NewPage()
 	page.AddCharts(
@@ -945,6 +971,50 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 	return items
 }
 
+// Top 20 keywords for branded and non branded
+func wordCloudBrandedUnbranded() {
+
+	page := components.NewPage()
+	page.AddCharts(
+		generateWordCloud(),
+	)
+	f, err := os.Create("./Utilities/seoChartsWeb/seoWordCloud.html")
+	if err != nil {
+		panic(err)
+	}
+
+	page.Render(io.MultiWriter(f))
+}
+
+func generateWordCloud() *charts.WordCloud {
+
+	wc := charts.NewWordCloud()
+	wc.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "Branded",
+		}))
+
+	wc.AddSeries("Keywords", generateWCData(wcData)).
+		SetSeriesOptions(
+			charts.WithWorldCloudChartOpts(
+				opts.WordCloudChart{
+					SizeRange: []float32{14, 80},
+					Shape:     "cardioid",
+				}),
+		)
+
+	return wc
+}
+
+func generateWCData(data map[string]interface{}) (items []opts.WordCloudData) {
+	items = make([]opts.WordCloudData, 0)
+	for k, v := range data {
+		items = append(items, opts.WordCloudData{Name: k, Value: v})
+	}
+
+	return items
+}
+
 // River chart
 func riverCharRevenueVisits() {
 
@@ -954,7 +1024,6 @@ func riverCharRevenueVisits() {
 	)
 	f, err := os.Create("./Utilities/seoChartsWeb/seoVisitsRevenueRiver.html")
 	if err != nil {
-
 		panic(err)
 	}
 	page.Render(io.MultiWriter(f))
@@ -1315,8 +1384,6 @@ func footerNotes() {
 		fmt.Println("Error writing to file:", err)
 		return
 	}
-
-	fmt.Println("HTML file generated successfully!")
 }
 
 // Display the line break
