@@ -1462,8 +1462,8 @@ func winningKeywords(brandedMode bool) {
 		htmlAvgPosition = kwMetricsAvgPosition[0]
 		fmt.Printf(green + "\nBranded keywords\n" + reset)
 		for i := 0; i < len(kwKeywords); i++ {
-			fmt.Printf("Keyword: %s, Clicks: %d, CTR: %.2f, Avg Position: %.2f\n",
-				kwKeywords[i], kwMetricsCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i]) //bloo
+			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
+				kwKeywords[i], kwMetricsCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i])
 		}
 	}
 
@@ -1474,8 +1474,8 @@ func winningKeywords(brandedMode bool) {
 		htmlAvgPosition = kwMetricsAvgPositionNB[0]
 		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
 		for i := 0; i < len(kwKeywords); i++ {
-			fmt.Printf("Keyword: %s, Clicks: %d, CTR: %.2f, Avg Position: %.2f\n",
-				kwKeywordsNB[i], kwMetricsCountClicksNB[i], kwMetricsCTRNB[i], kwMetricsAvgPositionNB[i]) //bloo
+			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
+				kwKeywordsNB[i], kwMetricsCountClicksNB[i], kwMetricsCTRNB[i], kwMetricsAvgPositionNB[i])
 		}
 	}
 
