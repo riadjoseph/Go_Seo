@@ -23,8 +23,9 @@ import (
 	"time"
 )
 
-// Anonymous mode. When set to true the URL to the project defaults to 'http://go-seo.rf.gd/'
-var anonymousMode = true
+// Anonymous mode. When set to true the URL to the project defaults to 'https://www.botify.com'
+// If set to false a link is provided to the Botify project
+var anonymousMode = false
 
 // DateRanges struct used to hold the monthly date ranges
 // Used for revenue and visits data
@@ -32,26 +33,22 @@ type DateRanges struct {
 	MonthlyRanges [][2]time.Time
 }
 
-// Struct used to store Keywords dimenstions and metrics
+// Slice used to store the month names
+var startMthNames []string
+
+// Struct used to store Keywords dimensions and metrics
 type KeywordsData struct {
 	Results []struct {
 		Dimensions []interface{} `json:"dimensions"`
 		Metrics    []*float64    `json:"metrics,omitempty"`
 	} `json:"results"`
-	Previous interface{} `json:"previous"`
-	Next     string      `json:"next"`
-	Page     int         `json:"page"`
-	Size     int         `json:"size"`
 }
 
 // Used for the branded/non branded title in the wordcloud
 var wordcloudTitle = ""
 var wordcloudSubTitle = ""
 
-// Slice used to store the name of the month
-var startMthNames []string
-
-// Define the slice to store startMthDate and endMthDate separately
+// Slices used to store the startMthDate and endMthDate
 var startMthDates = make([]string, 0)
 var endMthDates = make([]string, 0)
 
@@ -62,17 +59,19 @@ var seoMetricsOrders []int
 var seoOrderValue []int
 var seoVisitValue []float64
 
-// Slices used to store Keywords KPIs - branded
+// Slices used to store branded Keywords KPIs
 var kwKeywords []string
 var kwMetricsCountUrls []int
 var kwMetricsCountClicks []int
-var kwMetricsCountImpressions []int
+var kwMetricsCTR []float64
+var kwMetricsAvgPosition []float64
 
-// Slices used to store Keywords KPIs - non-branded
+// Slices used to store non branded Keywords KPIsd
 var kwKeywordsNB []string
 var kwMetricsCountUrlsNB []int
 var kwMetricsCountClicksNB []int
-var kwMetricsCountImpressionsNB []int
+var kwMetricsCTRNB []float64
+var kwMetricsAvgPositionNB []float64
 
 // Variables used to store the CMGR values
 var cmgrRevenue float64
@@ -81,7 +80,7 @@ var cmgrVisitValue float64
 var cmgrOrdersValue float64
 var cmgrOrdersValueValue float64
 
-// Totals
+// Variables used to store the total values
 var totalVisits int
 var totalRevenue int
 var totalOrders int
@@ -90,22 +89,21 @@ var totalVisitsPerOrder float64
 // Slice to store the visits per order for each month
 var visitsPerOrder []int
 
-// AnalyticsID is used to identify which analytics tool is in use
+// AnalyticsID is used to identify which analytics tool is in use and is used for some API cals
 type AnalyticsID struct {
 	ID string `json:"id"`
 }
 
-// Result is used to store the revenue, Orders and visits
+// The Result struct is used to store the revenue, Orders and visits
 type Result struct {
 	Dimensions []interface{} `json:"dimensions"`
 	Metrics    []float64     `json:"metrics"`
 }
-
 type Response struct {
 	Results []Result `json:"results"`
 }
 
-// Project URL
+// Project URL. Used to provide a link to the Botify project
 var projectURL = ""
 
 // Organisation name used for display purposes
@@ -131,7 +129,7 @@ var kpiColourOrganicVisitValue = "CornflowerBlue"
 var kpiColourNoOfOrders = "IndianRed"
 var kpiColourOrderValue = "MediumSlateBlue"
 
-// Botify API token here
+// Botify API token
 var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
@@ -145,7 +143,7 @@ var projectNameInput string
 // Boolean to signal if the project credentials have been entered by the user
 var credentialsInput = false
 
-// Used to store the min and max visits per order
+// Variables used to store the min and max visits per order
 var minVisitsPerOrder = 0
 var maxVisitsPerOrder = 0
 
@@ -154,12 +152,6 @@ var noOfMonths = 0
 
 // Average visits per order
 var averageVisitsPerOrder = 0
-
-// Slice of strings
-var footerNotesStrings = []string{
-	"1. Only complete months are included in the analysis.",
-	"2. Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect. ",
-}
 
 func main() {
 
@@ -185,7 +177,6 @@ func main() {
 
 	// Generate the link to the project
 	if anonymousMode {
-		//projectURL = "http://go-seo.rf.gd/"
 		projectURL = "http://www.botify.com/"
 		displayOrgName = "Anonymised"
 	} else {
@@ -195,7 +186,7 @@ func main() {
 
 	displaySeparator()
 
-	// Get revenue, visit and Order for the last 12 months
+	// Get revenue, visits and orders
 	getSeoInsights()
 
 	// Start of charts
@@ -222,25 +213,27 @@ func main() {
 	barChartOrderValue()
 
 	// Badges
-	cmgrRevenue32 := float32(cmgrRevenue)                   // Cast to float32
-	cmgrVisits32 := float32(cmgrVisits)                     // Cast to float32
-	cmgrVisitValue32 := float32(cmgrVisitValue)             // Cast to float32
-	cmgrOrdersValue32 := float32(cmgrOrdersValue)           // Cast to float32
-	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue) // Cast to float32
+	// Values for the badges
+	cmgrRevenue32 := float32(cmgrRevenue)
+	cmgrVisits32 := float32(cmgrVisits)
+	cmgrVisitValue32 := float32(cmgrVisitValue)
+	cmgrOrdersValue32 := float32(cmgrOrdersValue)
+	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue)
 
+	// Generate the badges
 	liquidBadge("Revenue", cmgrRevenue32)
 	liquidBadge("Visits", cmgrVisits32)
 	liquidBadge("Visit Value", cmgrVisitValue32)
 	liquidBadge("Orders", cmgrOrdersValue32)
 	liquidBadge("Order Value", cmgrOrdersValueValue32)
 
-	// River chart
-	riverCharRevenueVisits() // Revenue & visits
+	// Revenue and visits river chart
+	riverCharRevenueVisits()
 
-	// Gauge chart
-	gaugeChartVisitsPerOrder(totalVisitsPerOrder)
+	// Visits per order Gauge
+	gaugeVisitsPerOrder(totalVisitsPerOrder)
 
-	// Wordcloud
+	// Wordclouds
 	// Branded keywords
 	wordCloudBrandedUnbranded(true)
 	// Non branded keywords
@@ -251,8 +244,8 @@ func main() {
 	// Winning non branded keyword
 	winningKeywords(false)
 
-	// Generate the charts for the insights detail
-	dataInsightsDetail()
+	// KPI details table
+	tableDataDetail()
 
 	// Footer notes
 	footerNotes()
@@ -266,13 +259,12 @@ func main() {
 // if not prompt for them
 // Pressing Enter exits
 func checkCredentials() {
+
 	if len(os.Args) < 3 {
 
 		credentialsInput = true
-
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit seoCharts" +
 			"\n")
-
 		fmt.Print(purple + "\nEnter organisation name: " + reset)
 		_, _ = fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
@@ -302,7 +294,7 @@ func getSeoInsights() {
 	analyticsID := getAnalyticsID()
 	fmt.Println("Analytics identified:", analyticsID)
 
-	// Populate the slice with string versions of the date ready for use in the BQL
+	// Populate the slice with string versions of the dates ready for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
 		startMthDate := dateRange[0].Format("20060102")
 		endMthDate := dateRange[1].Format("20060102")
@@ -319,14 +311,18 @@ func getSeoInsights() {
 	getRevenueData(analyticsID, startMthDates, endMthDates)
 
 	// Get the keywords data
-	getKeywordsData("20240101", "20240131")
+	// Get last months' date range
+	kwStartDate := startMthDates[len(startMthDates)-1]
+	kwEndDate := endMthDates[len(endMthDates)-1]
 
-	// Calculate the CMGR for the metrics
-	getCMGR()
+	getKeywordsData(kwStartDate, kwEndDate)
+
+	// Calculate the CMGR values
+	calculateCMGR()
 
 }
 
-// Get the revenue, Orders and visits data
+// Get the revenue, orders and visits data
 func getRevenueData(analyticsID string, startMthDates []string, endMthDates []string) {
 
 	var metricsOrders = 0
@@ -336,7 +332,7 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	var avgVisitValue = 0.00
 
 	// Get monthly insights
-	fmt.Println(bold + "\nMonthly organic insights" + reset)
+	fmt.Println(purple + "\nMonthly organic insights\n" + reset)
 	for i := range startMthDates {
 
 		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
@@ -346,21 +342,21 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		seoMetricsRevenue = append(seoMetricsRevenue, metricsRevenue)
 		seoOrderValue = append(seoOrderValue, avgOrderValue)
 		seoMetricsVisits = append(seoMetricsVisits, metricsVisits)
-		// Round avgVisitValue to 3 decimal places
+
+		// Round avgVisitValue to 2 decimal places
 		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
+
 		// Calculate the visits per order (for the month)
 		visitsPerOrder = append(visitsPerOrder, metricsVisits/metricsOrders)
-		fmt.Println("Visits per order:", visitsPerOrder[i])
-		fmt.Println()
-		// Calculate the total revenue
+
+		// Calculate the grand total for revenue visits & orders
 		totalRevenue += metricsRevenue
-		// Calculate the visits per order (average across all data)
 		totalVisits += metricsVisits
 		totalOrders += metricsOrders
 
-		// Display the metrics (formatted)
-		fmt.Printf(green+"Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
+		// Display the KPIs
+		fmt.Printf(green+"\nDate Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
 		formattedOrders := formatWithCommas(metricsOrders)
 		fmt.Println("No. Orders:", formattedOrders)
 		formattedRevenue := formatWithCommas(metricsRevenue)
@@ -372,13 +368,11 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	}
 
 	// Calculate the average visits per order
-	// Calculate the sum of the elements in the slice
 	totalVisitsPerOrder := 0
 	for _, value := range visitsPerOrder {
 		totalVisitsPerOrder += value
 	}
-	// Calculate the average
-	// Calculate the average and convert it to an int
+
 	if len(visitsPerOrder) > 0 {
 		averageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
 	}
@@ -409,21 +403,23 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 // Get the keywords data
 func getKeywordsData(startMthDates string, endMthDates string) {
 
+	//bloo
 	// Branded keywords
-	executeKeywordsBQL("20240101", "20240131", "true")
+	executeKeywordsBQL(startMthDates, endMthDates, "true")
 
 	// Non-branded keywords
-	executeKeywordsBQL("20240101", "20240131", "false")
+	executeKeywordsBQL(startMthDates, endMthDates, "false")
 
 }
 
+// bloo continue from here
 // Execute the BQL to acquire keywords data
-func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []int) {
+func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []float64, []float64) {
 
 	// Get the keywords data
 	bqlKeywords := fmt.Sprintf(`{
 		"collections": [
-						"search_console"
+						"search_console_by_property"
 		],
 		"periods": [
 			[
@@ -436,9 +432,9 @@ func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([
 				"keyword"
 			],
 			"metrics": [
-						"search_console.period_0.count_urls",
-						"search_console.period_0.count_clicks",
-						"search_console.period_0.count_impressions"
+					"search_console_by_property.period_0.count_clicks",
+					"search_console_by_property.period_0.avg_position",
+					"search_console_by_property.period_0.ctr"
 			],
 			"sort": [{"index": 0, "type": "metrics", "order": "desc"}],
 	
@@ -507,9 +503,9 @@ func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([
 		for _, result := range response.Results {
 			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
 				kwKeywords = append(kwKeywords, result.Dimensions[0].(string))
-				kwMetricsCountUrls = append(kwMetricsCountUrls, int(*result.Metrics[0]))
-				kwMetricsCountClicks = append(kwMetricsCountClicks, int(*result.Metrics[1]))
-				kwMetricsCountImpressions = append(kwMetricsCountImpressions, int(*result.Metrics[2]))
+				kwMetricsCountClicks = append(kwMetricsCountClicks, int(*result.Metrics[0]))
+				kwMetricsAvgPosition = append(kwMetricsAvgPosition, float64(*result.Metrics[1])) //bloo error
+				kwMetricsCTR = append(kwMetricsCTR, float64(*result.Metrics[2]))
 			}
 		}
 	}
@@ -519,14 +515,14 @@ func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([
 		for _, result := range response.Results {
 			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
 				kwKeywordsNB = append(kwKeywordsNB, result.Dimensions[0].(string))
-				kwMetricsCountUrlsNB = append(kwMetricsCountUrlsNB, int(*result.Metrics[0]))
-				kwMetricsCountClicksNB = append(kwMetricsCountClicksNB, int(*result.Metrics[1]))
-				kwMetricsCountImpressionsNB = append(kwMetricsCountImpressionsNB, int(*result.Metrics[2]))
+				kwMetricsCountClicksNB = append(kwMetricsCountClicksNB, int(*result.Metrics[0]))
+				kwMetricsAvgPositionNB = append(kwMetricsAvgPositionNB, float64(*result.Metrics[1]))
+				kwMetricsCTRNB = append(kwMetricsCTRNB, float64(*result.Metrics[2]))
 			}
 		}
 	}
 
-	return kwKeywords, kwMetricsCountUrls, kwMetricsCountClicks, kwMetricsCountImpressions
+	return kwKeywords, kwMetricsCountUrls, kwMetricsCountClicks, kwMetricsCTR, kwMetricsAvgPosition
 }
 
 // Get the analytics ID
@@ -1282,7 +1278,7 @@ func generateRiverTime() *charts.ThemeRiver {
 }
 
 // Gauge chart
-func gaugeChartVisitsPerOrder(visitsPerOrder float64) {
+func gaugeVisitsPerOrder(visitsPerOrder float64) {
 
 	page := components.NewPage()
 	page.AddCharts(
@@ -1319,7 +1315,7 @@ func gaugeBase(visitsPerOrder float64) *charts.Gauge {
 }
 
 // CMGR
-func getCMGR() {
+func calculateCMGR() {
 
 	// Revenue
 	// Convert slice of ints to slice of floats for CMGR compute
@@ -1357,7 +1353,7 @@ func getCMGR() {
 	}
 	cmgrOrdersValueValue := computeCMGR(seoMetricsOrdersValueFloat)
 
-	fmt.Printf(green + "\nCompound Monthly Growth Rate (CMGR)\n" + reset)
+	fmt.Printf(green + "\nCompound Monthly Growth Rate\n" + reset)
 	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
 	fmt.Printf("Visits: %.2f\n", cmgrVisits)
 	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
@@ -1398,7 +1394,7 @@ func seoChartsDone() {
 }
 
 // Generate an HTML table containing the detailed KPI insights
-func dataInsightsDetail() {
+func tableDataDetail() {
 	var detailedKPIstableData [][]string
 
 	for i := 0; i < len(startMthDates); i++ {
@@ -1456,19 +1452,35 @@ func winningKeywords(brandedMode bool) {
 	// Define the display values based on branded or non branded mode
 	var htmlKeyword = ""
 	var htmlClicks = ""
-	var htmlImpressions = ""
-	//bloo
+	var htmlCTR float64
+	var htmlAvgPosition float64
+
 	if brandedMode {
 		htmlKeyword = kwKeywords[0]
 		htmlClicks = formatInt(kwMetricsCountClicks[0])
-		htmlImpressions = formatInt(kwMetricsCountImpressions[0])
+		htmlCTR = kwMetricsCTR[0]
+		htmlAvgPosition = kwMetricsAvgPosition[0]
+		fmt.Printf(green + "\nBranded keywords\n" + reset)
+		for i := 0; i < len(kwKeywords); i++ {
+			fmt.Printf("Keyword: %s, Clicks: %d, CTR: %.2f, Avg Position: %.2f\n",
+				kwKeywords[i], kwMetricsCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i]) //bloo
+		}
 	}
 
 	if !brandedMode {
 		htmlKeyword = kwKeywordsNB[0]
 		htmlClicks = formatInt(kwMetricsCountClicksNB[0])
-		htmlImpressions = formatInt(kwMetricsCountImpressionsNB[0])
+		htmlCTR = kwMetricsCTRNB[0]
+		htmlAvgPosition = kwMetricsAvgPositionNB[0]
+		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
+		for i := 0; i < len(kwKeywords); i++ {
+			fmt.Printf("Keyword: %s, Clicks: %d, CTR: %.2f, Avg Position: %.2f\n",
+				kwKeywordsNB[i], kwMetricsCountClicksNB[i], kwMetricsCTRNB[i], kwMetricsAvgPositionNB[i]) //bloo
+		}
 	}
+
+	// Get the last month name
+	htmlLastMonthName := startMthNames[len(startMthNames)-1]
 
 	// HTML content for the winning keyword
 	htmlContent := fmt.Sprintf(`
@@ -1480,14 +1492,19 @@ func winningKeywords(brandedMode bool) {
 			color: DeepSkyBlue;
 			font-size: 40px;
 		}
+	.keyword-font {
+		font-family: Arial, sans-serif;
+		font-size: 20px;
+		color: LightSlateGray;
+	}
 	</style>
 </head>
 <body>
-	<p>The winning branded keyword is  <span class="blueText">%s</span>.</p>
-	<p>This keyword generated %s clicks and %s impressions.</p>
+	<p><span class="keyword-font">The winning keyword was <span class="blueText">%s<span class="keyword-font"> during <b>%s</b></span></span></p>
+	<p><span class="keyword-font">This keyword generated <b>%s</b> clicks. The click through rate was <b>%.2f%%</b> from an average position of <b>%.2f</b></span></p>
 </body>
 </html>
-`, htmlKeyword, htmlClicks, htmlImpressions)
+`, htmlKeyword, htmlLastMonthName, htmlClicks, htmlCTR, htmlAvgPosition)
 
 	_, err = file.WriteString(htmlContent)
 	if err != nil {
@@ -1619,6 +1636,12 @@ func saveHTML(genHTML string, genFilename string) {
 }
 
 func footerNotes() {
+
+	// Slice of strings used for the footer text
+	var footerNotesStrings = []string{
+		"1. Only complete months are included in the analysis.",
+		"2. Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect. ",
+	}
 
 	// Create or open the HTML file
 	file, err := os.Create("./Utilities/seoChartsWeb/seoFooterNotes.html")
