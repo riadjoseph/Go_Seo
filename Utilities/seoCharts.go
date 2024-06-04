@@ -221,18 +221,6 @@ func main() {
 	// Order value barchart
 	barChartOrderValue()
 
-	// Generate the charts for the insights detail
-	dataInsightsDetail()
-
-	// Wordcloud
-	// Branded keywords
-	wordCloudBrandedUnbranded(true)
-	// Non branded keywords
-	wordCloudBrandedUnbranded(false)
-
-	// Footer notes
-	footerNotes()
-
 	// Badges
 	cmgrRevenue32 := float32(cmgrRevenue)                   // Cast to float32
 	cmgrVisits32 := float32(cmgrVisits)                     // Cast to float32
@@ -251,6 +239,23 @@ func main() {
 
 	// Gauge chart
 	gaugeChartVisitsPerOrder(totalVisitsPerOrder)
+
+	// Wordcloud
+	// Branded keywords
+	wordCloudBrandedUnbranded(true)
+	// Non branded keywords
+	wordCloudBrandedUnbranded(false)
+
+	// Winning branded keyword
+	winningKeywords(true)
+	// Winning non branded keyword
+	winningKeywords(false)
+
+	// Generate the charts for the insights detail
+	dataInsightsDetail()
+
+	// Footer notes
+	footerNotes()
 
 	displaySeparator()
 
@@ -1425,6 +1430,84 @@ func dataInsightsDetail() {
 
 }
 
+func winningKeywords(brandedMode bool) {
+
+	var file *os.File
+	var err error
+
+	if brandedMode {
+		file, err = os.Create("./Utilities/seoChartsWeb/seoWinningKeywordBranded.html")
+		if err != nil {
+			fmt.Println(red+"Error. winningKeywords. Cannot create branded winning keyword HTML:"+reset, err)
+			return
+		}
+		defer file.Close()
+	}
+
+	if !brandedMode {
+		file, err = os.Create("./Utilities/seoChartsWeb/seoWinningKeywordNonBranded.html")
+		if err != nil {
+			fmt.Println(red+"Error. winningKeywords. Cannot create non branded winning keyword HTML:"+reset, err)
+			return
+		}
+		defer file.Close()
+	}
+
+	// Define the display values based on branded or non branded mode
+	var htmlKeyword = ""
+	var htmlClicks = ""
+	var htmlImpressions = ""
+	//bloo
+	if brandedMode {
+		htmlKeyword = kwKeywords[0]
+		htmlClicks = formatInt(kwMetricsCountClicks[0])
+		htmlImpressions = formatInt(kwMetricsCountImpressions[0])
+	}
+
+	if !brandedMode {
+		htmlKeyword = kwKeywordsNB[0]
+		htmlClicks = formatInt(kwMetricsCountClicksNB[0])
+		htmlImpressions = formatInt(kwMetricsCountImpressionsNB[0])
+	}
+
+	// HTML content for the winning keyword
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		.blueText {
+			color: DeepSkyBlue;
+			font-size: 40px;
+		}
+	</style>
+</head>
+<body>
+	<p>The winning branded keyword is  <span class="blueText">%s</span>.</p>
+	<p>This keyword generated %s clicks and %s impressions.</p>
+</body>
+</html>
+`, htmlKeyword, htmlClicks, htmlImpressions)
+
+	_, err = file.WriteString(htmlContent)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+}
+
+// Display the line break
+func displaySeparator() {
+	block := "█"
+	fmt.Println()
+
+	for i := 0; i < 130; i++ {
+		fmt.Print(block)
+	}
+
+	fmt.Println()
+}
+
 // formatInt formats integer values with comma separator
 func formatInt(num int) string {
 	return formatIntWithCommas(int64(num))
@@ -1546,7 +1629,7 @@ func footerNotes() {
 	defer file.Close()
 
 	// Write the HTML header
-	_, err = file.WriteString("<!DOCTYPE html>\n<html>\n<head>\n<title>String Display</title>\n</head>\n<body>\n")
+	_, err = file.WriteString("<!DOCTYPE html>\n<html>\n<head>\n<body>\n")
 	if err != nil {
 		fmt.Println("Error writing to file:", err)
 		return
@@ -1567,18 +1650,6 @@ func footerNotes() {
 		fmt.Println("Error writing to file:", err)
 		return
 	}
-}
-
-// Display the line break
-func displaySeparator() {
-	block := "█"
-	fmt.Println()
-
-	for i := 0; i < 130; i++ {
-		fmt.Print(block)
-	}
-
-	fmt.Println()
 }
 
 // Function to format an integer with comma separation
@@ -1634,7 +1705,8 @@ func displayBanner() {
 	fmt.Println(checkmark + green + bold + " (Computed) Average visit value" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) CMGR for Revenue, Visits, Orders, Order value, Visit value" + reset)
 	fmt.Println(checkmark + green + bold + " (Computed) Visits per order" + reset)
-
+	fmt.Println(checkmark + green + bold + " Top branded keywords" + reset)
+	fmt.Println(checkmark + green + bold + " Top non branded keywords" + reset)
 }
 
 // Function to clear the screen
