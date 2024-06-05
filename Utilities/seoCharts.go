@@ -18,15 +18,37 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
 
+// Version
+var version = "v0.1"
+
+// Botify API token
+var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+
+// Colours, symbols etc
+var purple = "\033[0;35m"
+var green = "\033[0;32m"
+var red = "\033[0;31m"
+var yellow = "\033[33m"
+var bold = "\033[1m"
+var reset = "\033[0m"
+var checkmark = "\u2713"
+var clearScreen = "\033[H\033[2J"
+var lineSeparator = "█" + strings.Repeat("█", 129)
+
+// KPI Specific colours
+var kpiColourRevenue = "Coral"
+var kpiColourVisits = "Green"
+var kpiColourVisitsPerOrder = "DarkGoldenRod"
+var kpiColourOrganicVisitValue = "CornflowerBlue"
+var kpiColourNoOfOrders = "IndianRed"
+var kpiColourOrderValue = "MediumSlateBlue"
+
 // Anonymous mode. When set to true the URL to the project defaults to 'https://www.botify.com'
-// If set to false a link is provided to the Botify project
+// If set to false a link is provided to the analysis project
 var anonymousMode = true
 
 // DateRanges struct used to hold the monthly date ranges
@@ -111,30 +133,6 @@ var projectURL = ""
 // Organisation name used for display purposes
 var displayOrgName = ""
 
-// Version
-var version = "v0.1"
-
-// Colours, symbols etc
-var purple = "\033[0;35m"
-var green = "\033[0;32m"
-var red = "\033[0;31m"
-var yellow = "\033[33m"
-var bold = "\033[1m"
-var reset = "\033[0m"
-var checkmark = "\u2713"
-var clearScreen = "\033[H\033[2J"
-
-// KPI Specific colours
-var kpiColourRevenue = "Coral"
-var kpiColourVisits = "Green"
-var kpiColourVisitsPerOrder = "DarkGoldenRod"
-var kpiColourOrganicVisitValue = "CornflowerBlue"
-var kpiColourNoOfOrders = "IndianRed"
-var kpiColourOrderValue = "MediumSlateBlue"
-
-// Botify API token
-var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
-
 // Strings used to store the project credentials for API access
 var orgName string
 var projectName string
@@ -187,7 +185,8 @@ func main() {
 		displayOrgName = orgName
 	}
 
-	displaySeparator()
+	// Make a tidy display
+	fmt.Println(lineSeparator)
 
 	// Get revenue, visits, orders and keyword data
 	getSeoInsights()
@@ -200,10 +199,10 @@ func main() {
 	// Total vales
 	tableTotalsVisitsOrdersRevenue()
 
-	// Badges
+	// Badges for CMGR KPIs
 	badgesForKPIs()
 
-	// Visits per order Gauge
+	// Visits per order gauge
 	gaugeVisitsPerOrder(totalVisitsPerOrder)
 
 	// Revenue & visits bar chart
@@ -244,9 +243,13 @@ func main() {
 	// Generate index.html container
 	generateIndex()
 
-	displaySeparator()
+	// Make a tidy display
+	fmt.Println(lineSeparator)
 
-	seoChartsDone()
+	// We're done
+	fmt.Println(purple + "\nseoCharts: Done!")
+	os.Exit(0)
+
 }
 
 // Check that the org and project names have been specified as command line arguments
@@ -328,7 +331,7 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	// Get monthly insights
 	for i := range startMthDates {
 
-		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue = generateRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
 
 		// Append the metrics to the slices
 		seoMetricsOrders = append(seoMetricsOrders, metricsOrders)
@@ -348,14 +351,17 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		totalVisits += metricsVisits
 		totalOrders += metricsOrders
 
+		// Use the printer to format an integer
+		formatInteger := message.NewPrinter(language.English)
+
 		// Display the KPIs
 		fmt.Printf(green+"\nDate Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
-		formattedOrders := formatWithCommas(metricsOrders)
+		formattedOrders := formatInteger.Sprintf("%d", metricsOrders)
+		formattedRevenue := formatInteger.Sprintf("%d", metricsRevenue)
+		formattedVisits := formatInteger.Sprintf("%d", metricsVisits)
 		fmt.Println("No. Orders:", formattedOrders)
-		formattedRevenue := formatWithCommas(metricsRevenue)
 		fmt.Println("Total revenue:", formattedRevenue)
 		fmt.Println("Average order value:", avgOrderValue)
-		formattedVisits := formatWithCommas(metricsVisits)
 		fmt.Println("No. of visits:", formattedVisits)
 		fmt.Println("Average visit value:", avgVisitValue)
 	}
@@ -397,16 +403,15 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 func getKeywordsData(startMthDates string, endMthDates string) {
 
 	// Branded keywords
-	executeKeywordsBQL(startMthDates, endMthDates, "true")
+	generateKeywordsBQL(startMthDates, endMthDates, "true")
 
 	// Non-branded keywords
-	executeKeywordsBQL(startMthDates, endMthDates, "false")
+	generateKeywordsBQL(startMthDates, endMthDates, "false")
 
 }
 
-// bloo here
 // Execute the BQL to acquire keywords data
-func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []float64, []float64) {
+func generateKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []float64, []float64) {
 
 	// Get the keywords data. Define the BQL
 	bqlKeywords := fmt.Sprintf(`{
@@ -442,51 +447,14 @@ func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([
 		}
 	}`, startDate, endDate, brandedFlag)
 
-	// Define the URL
-	// We get 21 keywords because the first keyword is not included in the wordcloud
-	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query?size=21", orgName, projectName)
-
-	// GET the HTTP request
-	req, errorCheck := http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. executeKeywordBQL. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
-	}
-
-	// Define the body
-	httpBody := []byte(bqlKeywords)
-
-	// Create the POST request
-	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
-	if errorCheck != nil {
-		log.Fatal("Error. executeKeywordsBQL. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
-	}
-
-	// Define the headers
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	// Create HTTP client and execute the request
-	client := &http.Client{
-		Timeout: 20 * time.Second,
-	}
-	resp, errorCheck := client.Do(req)
-	if errorCheck != nil {
-		log.Fatal(red+"Error. executeKeywordsBQL.  Cannot create the HTTP client: "+reset, errorCheck)
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"Error. executeKeywordsBQL. Cannot read response body: "+reset, errorCheck)
-	}
+	// get the keywords data. Receiving top 50 keys here
+	responseData := executeBQL(50, bqlKeywords)
 
 	// Unmarshal JSON data into KeywordsData struct
 	var response KeywordsData
 	err := json.Unmarshal(responseData, &response)
 	if err != nil {
-		log.Fatalf("Error. executeKeywordsBQL. Cannot unmarshal the JSON: %v", err)
+		log.Fatalf("Error. generateKeywordsBQL. Cannot unmarshal the JSON: %v", err)
 		os.Exit(1)
 	}
 
@@ -517,95 +485,8 @@ func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([
 	return kwKeywords, kwMetricsCountUrls, kwMetricsCountClicks, kwMetricsCTR, kwMetricsAvgPosition
 }
 
-// Get the analytics ID
-func getAnalyticsID() string {
-	// First identify which analytics tool is integrated
-	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
-	//fmt.Println(bold+"\nAnalytics ID end point:"+reset, urlAPIAnalyticsID)
-	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
-
-	// Define the headers
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. getAnalyticsID. Cannot create request: "+reset, errorCheck)
-	}
-	// Create HTTP client and execute the request
-	client := &http.Client{
-		Timeout: 20 * time.Second,
-	}
-	resp, errorCheck := client.Do(req)
-	if errorCheck != nil {
-		log.Fatal("Error. getAnalyticsID. Error: ", errorCheck)
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"Error. getAnalyticsID. Cannot read response body: "+reset, errorCheck)
-	}
-
-	// Unmarshal the JSON data into the struct
-	var analyticsIDs []AnalyticsID
-	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
-		log.Fatal(red+"Error. getAnalyticsID. Cannot unmarshall the JSON: "+reset, err)
-	}
-
-	// Find and print the name value when the ID contains the word "visit"
-	// Assume the first instance of "visit" contains the analytics ID
-	for _, analyticsID := range analyticsIDs {
-		if strings.Contains(analyticsID.ID, "visit") {
-			return analyticsID.ID
-		}
-	}
-	return "noAnalyticsFound"
-}
-
-// Get the date ranges for the revenue and visits
-func calculateDateRanges() DateRanges {
-	currentTime := time.Now()
-	dateRanges := make([][2]time.Time, 12)
-
-	// Calculate the date ranges for the last 12 months
-	for i := 0; i < 12; i++ {
-		// Calculate the start and end dates for the current range
-		// Adjust to the previous month. We doint caount the current month.
-		prevMonth := currentTime.AddDate(0, -1, 0)
-
-		// Start of the previous month range
-		startDate := time.Date(prevMonth.Year(), prevMonth.Month(), 1, 0, 0, 0, 0, currentTime.Location())
-
-		var endDate time.Time
-		if i == 0 {
-			// The end date is the End of the previous month. We don't use the current month for the analysis.
-			firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
-			endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
-		} else {
-			// End of the previous month range
-			endDate = startDate.AddDate(0, 1, -1)
-		}
-
-		// Store the range
-		dateRanges[11-i] = [2]time.Time{startDate, endDate}
-
-		// Move to the previous month
-		currentTime = startDate.AddDate(0, 0, 0)
-	}
-
-	// Subtract 1 day from the end date in the last element of the array
-	dateRanges[0][1] = dateRanges[0][1].AddDate(0, 0, -1)
-
-	// Save the number of months
-	noOfMonths = len(dateRanges)
-
-	return DateRanges{MonthlyRanges: dateRanges}
-}
-
 // Execute the BQL for the specified date range
-func executeRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64) {
+func generateRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64) {
 
 	// Get the revenue, no. Orders and visits
 	bqlRevTrans := fmt.Sprintf(`
@@ -644,50 +525,14 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
  	   }
 	}`, analyticsID, startDate, endDate)
 
-	// Define the URL
-	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-
-	// GET the HTTP request
-	req, errorCheck := http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. executeRevenueBQL. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
-	}
-
-	// Define the body
-	httpBody := []byte(bqlRevTrans)
-
-	// Create the POST request
-	req, errorCheck = http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
-	if errorCheck != nil {
-		log.Fatal(red+"Error. executeRevenueBQL. Cannot create request. Perhaps the provided credentials are invalid: "+reset, errorCheck)
-	}
-
-	// Define the headers
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	// Create HTTP client and execute the request
-	client := &http.Client{
-		Timeout: 20 * time.Second,
-	}
-	resp, errorCheck := client.Do(req)
-	if errorCheck != nil {
-		log.Fatal("Error. executeRevenueBQL. Error: ", errorCheck)
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"Error. executeRevenueBQL. Cannot read response body: "+reset, errorCheck)
-	}
+	// get the revenue and transaction
+	responseData := executeBQL(0, bqlRevTrans)
 
 	// Unmarshal the JSON data into the struct
 	var response Response
 	err := json.Unmarshal(responseData, &response)
 	if err != nil {
-		log.Fatalf(red+"Error. executeRevenueBQL. Cannot unmarshal the JSON: %v"+reset, err)
+		log.Fatalf(red+"Error. generateRevenueBQL. Cannot unmarshal the JSON: %v"+reset, err)
 	}
 
 	var metricsOrders = 0
@@ -700,7 +545,7 @@ func executeRevenueBQL(analyticsID string, startDate string, endDate string) (in
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
-		fmt.Println(yellow + "Warning. executeRevenueBQL. Some data may default to 1 if it's the first day of the month." + reset)
+		fmt.Println(yellow + "Warning. generateRevenueBQL. Some data may default to 1 if it's the first day of the month." + reset)
 	} else {
 		metricsOrders = int(response.Results[0].Metrics[0])
 		metricsRevenue = int(response.Results[0].Metrics[1])
@@ -1153,11 +998,11 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	if brandedMode {
 		wordcloudTitle = "Top branded keywords"
-		wordcloudSubTitle = "Branded keywords driving clicks to the site last month."
+		wordcloudSubTitle = "Branded keywords producing clicks to the site last month."
 	}
 	if !brandedMode {
 		wordcloudTitle = "Top non branded keywords"
-		wordcloudSubTitle = "Non branded keywords driving clicks to the site last month."
+		wordcloudSubTitle = "Non branded keywords producing clicks to the site last month."
 	}
 
 	wc := charts.NewWordCloud()
@@ -1198,6 +1043,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 }
 
 func generateWCData(kwKeywords []string, kwMetricsCountClicks []int) (items []opts.WordCloudData) {
+
 	items = make([]opts.WordCloudData, 0)
 	// Iterate over kwKeywords and kwMetricsCountClicks slices starting from index 1
 	// We start at index 1 because the top keyword is generally significantly higher performing than the following keywords
@@ -1326,77 +1172,222 @@ func gaugeBase(visitsPerOrder float64) *charts.Gauge {
 	return gauge
 }
 
-// CMGR
-func calculateCMGR() {
+// Generate an HTML table containing the detailed KPI insights
+func tableDataDetail() {
+	var detailedKPIstableData [][]string
 
-	// Revenue
-	// Convert slice of ints to slice of floats for CMGR compute
-	var seoMetricsRevenueFloat []float64
-	for _, v := range seoMetricsRevenue {
-		seoMetricsRevenueFloat = append(seoMetricsRevenueFloat, float64(v))
+	// Use the printer to format an integer (or a float)
+	formatInteger := message.NewPrinter(language.English)
+
+	for i := 0; i < len(startMthDates); i++ {
+		formattedDate := formatDate(startMthDates[i])
+		orders := formatInteger.Sprintf("%d", seoMetricsOrders[i])
+		revenue := formatInteger.Sprintf("%d", seoMetricsRevenue[i])
+		orderValue := formatInteger.Sprintf("%d", seoOrderValue[i])
+		visits := formatInteger.Sprintf("%d", seoMetricsVisits[i])
+		visitValue := formatInteger.Sprintf("%.2f", seoVisitValue[i])
+		visitsPerOrderValue := formatInteger.Sprintf("%d", visitsPerOrder[i])
+
+		row := []string{
+			formattedDate,
+			orders,
+			revenue,
+			orderValue,
+			visits,
+			visitValue,
+			visitsPerOrderValue,
+		}
+		detailedKPIstableData = append(detailedKPIstableData, row)
 	}
-	cmgrRevenue = computeCMGR(seoMetricsRevenueFloat)
 
-	// Visits
-	var seoMetricsVisitsFloat []float64
-	for _, v := range seoMetricsVisits {
-		seoMetricsVisitsFloat = append(seoMetricsVisitsFloat, float64(v))
-	}
-	cmgrVisits = computeCMGR(seoMetricsVisitsFloat)
+	// Generate the table
+	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPIstableData)
 
-	// Visit value
-	var seoMetricsVisitValueFloat []float64
-	for _, v := range seoVisitValue {
-		seoMetricsVisitValueFloat = append(seoMetricsVisitValueFloat, float64(v))
-	}
-	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat)
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDataInsightDetailKPIs.html")
 
-	// No. of Orders
-	var seoMetricsOrdersFloat []float64
-	for _, v := range seoMetricsOrders {
-		seoMetricsOrdersFloat = append(seoMetricsOrdersFloat, float64(v))
-	}
-	cmgrOrdersValue = computeCMGR(seoMetricsOrdersFloat)
-
-	// Order value
-	var seoMetricsOrdersValueFloat []float64
-	for _, v := range seoOrderValue {
-		seoMetricsOrdersValueFloat = append(seoMetricsOrdersValueFloat, float64(v))
-	}
-	cmgrOrdersValueValue := computeCMGR(seoMetricsOrdersValueFloat)
-
-	fmt.Printf(green + "\nCompound Monthly Growth Rate\n" + reset)
-	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
-	fmt.Printf("Visits: %.2f\n", cmgrVisits)
-	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
-	fmt.Printf("No. of Orders: %.2f\n", cmgrOrdersValue)
-	fmt.Printf("Order value: %.2f\n", cmgrOrdersValueValue)
 }
 
-// Calculate the Compound Monthly Growth Rate
-func computeCMGR(values []float64) float64 {
+func winningKeywords(brandedMode bool) {
 
-	if len(values) < 2 {
-		return 0.0 // Cannot calculate CMGR with less than 2 values
+	var htmlFileName = ""
+
+	// Define the display values based on branded or non branded mode
+	var htmlKeyword = ""
+	var htmlClicks = ""
+	var htmlCTR float64
+	var htmlAvgPosition float64
+
+	// Use the printer to format an integer (clicks)
+	formatInteger := message.NewPrinter(language.English)
+
+	if brandedMode {
+		htmlKeyword = kwKeywords[0]
+		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicks[0])
+		htmlCTR = kwMetricsCTR[0]
+		htmlAvgPosition = kwMetricsAvgPosition[0]
+		fmt.Printf(green + "\nBranded keywords\n" + reset)
+		for i := 0; i < len(kwKeywords); i++ {
+			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
+				kwKeywords[i], kwMetricsCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i])
+		}
 	}
 
-	initialValue := values[0]
+	if !brandedMode {
+		htmlKeyword = kwKeywordsNB[0]
+		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicksNB[0])
+		htmlCTR = kwMetricsCTRNB[0]
+		htmlAvgPosition = kwMetricsAvgPositionNB[0]
+		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
+		for i := 0; i < len(kwKeywords); i++ {
+			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
+				kwKeywordsNB[i], kwMetricsCountClicksNB[i], kwMetricsCTRNB[i], kwMetricsAvgPositionNB[i])
+		}
+	}
 
-	// The final period value is not included as it is not a full month
-	finalValue := values[len(values)-2]
-	numberOfPeriods := float64(len(values))
+	// Get the last month name
+	htmlLastMonthName := startMthNames[len(startMthNames)-1]
 
-	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
-	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
+	// HTML content for the winning keyword
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		.blueText {
+			color: DeepSkyBlue;
+			font-size: 30px;
+		}
+	.keyword-font {
+		font-family: Arial, sans-serif;
+		font-size: 18px;
+		color: LightSlateGray;
+	}
+	</style>
+</head>
 
-	// Round CMGR to 2 decimal places
-	cmgr = math.Round(cmgr*100) / 100
+<body>
+	<p>
+		<span class="keyword-font">The winning keyword was <span class="blueText">%s<span class="keyword-font"> during <b>%s.</b></span></span></span>
+		<span class="keyword-font">This keyword generated <b>%s</b> clicks. The click-through rate was <b>%.2f%%</b> from an average position of <b>%.2f</b></span>
+	</p>
+</body>
 
-	return cmgr
+</html>
+`, htmlKeyword, htmlLastMonthName, htmlClicks, htmlCTR, htmlAvgPosition)
+
+	// Define the HTML filename
+	if brandedMode {
+		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordBranded.html"
+	} else {
+		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordNonBranded.html"
+	}
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, htmlFileName)
+
+}
+
+// generateHTML generates the HTML content for the table
+func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
+	htmlContent := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 18px; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        th.title { color: Gray; font-weight: bold; }
+        td { color: DimGray; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: HoneyDew; }
+    </style>
+</head>
+<body style="min-height: 10vh;">
+    <table>
+        <thead>
+            <tr>
+                <th class="title">Date</th>
+                <th class="title">No. of Orders</th>
+                <th class="title">Revenue</th>
+                <th class="title">Order Value</th>
+                <th class="title">No. of Visits</th>
+                <th class="title">Visit Value</th>
+                <th class="title">Visits per Order</th>
+
+            </tr>
+        </thead>
+        <tbody>`
+	for _, row := range data {
+		htmlContent += "<tr>"
+		for _, cell := range row {
+			htmlContent += "<td>" + cell + "</td>"
+		}
+		htmlContent += "</tr>"
+	}
+	htmlContent += `
+        </tbody>
+    </table>
+</body>
+</html>`
+
+	return htmlContent
+}
+
+func footerNotes() {
+
+	// Text content for the footer
+	var footerNotesStrings = []string{
+		"Only complete months are included in the analysis.",
+		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect.",
+	}
+
+	// Generate HTML content
+	htmlContent := "<html>\n<head>\n<title>Footer Notes</title>\n</head>\n<body>\n<ul>\n"
+
+	for _, note := range footerNotesStrings {
+		htmlContent += fmt.Sprintf("<li>%s</li>\n", note)
+	}
+
+	htmlContent += "</ul>\n</body>\n</html>"
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoFooterNotes.html")
+
+}
+
+// formatDate converts date from YYYYMMDD to Month-Year format
+func formatDate(dateStr string) string {
+	date, err := time.Parse("20060102", dateStr)
+	if err != nil {
+		fmt.Println(red+"Error. formatDate. Cannot parse date:"+reset, err)
+		return dateStr // return the original string in case of error
+	}
+	return date.Format("January 2006")
+}
+
+// Function used to generate and save the HTML content to a file
+func saveHTML(genHTML string, genFilename string) {
+
+	file, err := os.Create(genFilename)
+	if err != nil {
+		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
+		return
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(genHTML)
+	if err != nil {
+		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, genFilename, err)
+		return
+	}
 }
 
 // Define the HTML for the index.html container. Used to consolidate the generated charts into a single page.
 func generateIndex() {
+
 	htmlContent := `
 <!DOCTYPE html>
 <html lang="en">
@@ -1572,262 +1563,204 @@ func generateIndex() {
 
 }
 
-// Generate an HTML table containing the detailed KPI insights
-func tableDataDetail() {
-	var detailedKPIstableData [][]string
-
-	// Use the printer to format an integer (or a float)
-	formatInteger := message.NewPrinter(language.English)
-
-	for i := 0; i < len(startMthDates); i++ {
-		formattedDate := formatDate(startMthDates[i])
-		orders := formatInteger.Sprintf("%d", seoMetricsOrders[i])
-		revenue := formatInteger.Sprintf("%d", seoMetricsRevenue[i])
-		orderValue := formatInteger.Sprintf("%d", seoOrderValue[i])
-		visits := formatInteger.Sprintf("%d", seoMetricsVisits[i])
-		visitValue := formatInteger.Sprintf("%.2f", seoVisitValue[i])
-		visitsPerOrderValue := formatInteger.Sprintf("%d", visitsPerOrder[i])
-
-		row := []string{
-			formattedDate,
-			orders,
-			revenue,
-			orderValue,
-			visits,
-			visitValue,
-			visitsPerOrderValue,
-		}
-		detailedKPIstableData = append(detailedKPIstableData, row)
+func executeBQL(returnSize int, bqlToExecute string) []byte {
+	// If a size needs to be added to the URL, define it here
+	var returnSizeAppend string
+	if returnSize > 0 {
+		returnSizeAppend = "?size=" + fmt.Sprint(returnSize)
 	}
 
-	// Generate the table
-	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPIstableData)
+	// Define the URL
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query%s", orgName, projectName, returnSizeAppend)
 
-	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDataInsightDetailKPIs.html")
+	// Define the body
+	httpBody := []byte(bqlToExecute)
 
+	// Create the POST request
+	req, errorCheck := http.NewRequest("POST", url, bytes.NewBuffer(httpBody))
+	if errorCheck != nil {
+		log.Fatal("Error. executeBQL. Cannot create request. Perhaps the provided credentials are invalid: ", errorCheck)
+	}
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	// Create HTTP client and execute the request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, errorCheck := client.Do(req)
+	if errorCheck != nil {
+		log.Fatal("Error. executeBQL.  Cannot create the HTTP client: ", errorCheck)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal("Error. executeBQL. Cannot read response body: ", errorCheck)
+	}
+
+	// Return the response body as a byte slice
+	return responseData
 }
 
-func winningKeywords(brandedMode bool) {
+// CMGR
+func calculateCMGR() {
 
-	var htmlFileName = ""
-
-	// Define the display values based on branded or non branded mode
-	var htmlKeyword = ""
-	var htmlClicks = ""
-	var htmlCTR float64
-	var htmlAvgPosition float64
-
-	// Use the printer to format an integer (clicks)
-	formatInteger := message.NewPrinter(language.English)
-
-	if brandedMode {
-		htmlKeyword = kwKeywords[0]
-		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicks[0])
-		htmlCTR = kwMetricsCTR[0]
-		htmlAvgPosition = kwMetricsAvgPosition[0]
-		fmt.Printf(green + "\nBranded keywords\n" + reset)
-		for i := 0; i < len(kwKeywords); i++ {
-			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
-				kwKeywords[i], kwMetricsCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i])
-		}
+	// Revenue
+	// Convert slice of ints to slice of floats for CMGR compute
+	var seoMetricsRevenueFloat []float64
+	for _, v := range seoMetricsRevenue {
+		seoMetricsRevenueFloat = append(seoMetricsRevenueFloat, float64(v))
 	}
+	cmgrRevenue = computeCMGR(seoMetricsRevenueFloat)
 
-	if !brandedMode {
-		htmlKeyword = kwKeywordsNB[0]
-		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicksNB[0])
-		htmlCTR = kwMetricsCTRNB[0]
-		htmlAvgPosition = kwMetricsAvgPositionNB[0]
-		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
-		for i := 0; i < len(kwKeywords); i++ {
-			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
-				kwKeywordsNB[i], kwMetricsCountClicksNB[i], kwMetricsCTRNB[i], kwMetricsAvgPositionNB[i])
-		}
+	// Visits
+	var seoMetricsVisitsFloat []float64
+	for _, v := range seoMetricsVisits {
+		seoMetricsVisitsFloat = append(seoMetricsVisitsFloat, float64(v))
 	}
+	cmgrVisits = computeCMGR(seoMetricsVisitsFloat)
 
-	// Get the last month name
-	htmlLastMonthName := startMthNames[len(startMthNames)-1]
-
-	// HTML content for the winning keyword
-	htmlContent := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-	<style>
-		.blueText {
-			color: DeepSkyBlue;
-			font-size: 30px;
-		}
-	.keyword-font {
-		font-family: Arial, sans-serif;
-		font-size: 18px;
-		color: LightSlateGray;
+	// Visit value
+	var seoMetricsVisitValueFloat []float64
+	for _, v := range seoVisitValue {
+		seoMetricsVisitValueFloat = append(seoMetricsVisitValueFloat, float64(v))
 	}
-	</style>
-</head>
+	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat)
 
-<body>
-	<p>
-		<span class="keyword-font">The winning keyword was <span class="blueText">%s<span class="keyword-font"> during <b>%s.</b></span></span></span>
-		<span class="keyword-font">This keyword generated <b>%s</b> clicks. The click-through rate was <b>%.2f%%</b> from an average position of <b>%.2f</b></span>
-	</p>
-</body>
-
-</html>
-`, htmlKeyword, htmlLastMonthName, htmlClicks, htmlCTR, htmlAvgPosition)
-
-	// Define the HTML filename
-	if brandedMode {
-		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordBranded.html"
-	} else {
-		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordNonBranded.html"
+	// No. of Orders
+	var seoMetricsOrdersFloat []float64
+	for _, v := range seoMetricsOrders {
+		seoMetricsOrdersFloat = append(seoMetricsOrdersFloat, float64(v))
 	}
+	cmgrOrdersValue = computeCMGR(seoMetricsOrdersFloat)
 
-	// Save the HTML to a file
-	saveHTML(htmlContent, htmlFileName)
+	// Order value
+	var seoMetricsOrdersValueFloat []float64
+	for _, v := range seoOrderValue {
+		seoMetricsOrdersValueFloat = append(seoMetricsOrdersValueFloat, float64(v))
+	}
+	cmgrOrdersValueValue := computeCMGR(seoMetricsOrdersValueFloat)
 
+	fmt.Printf(green + "\nCompound Monthly Growth Rate\n" + reset)
+	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
+	fmt.Printf("Visits: %.2f\n", cmgrVisits)
+	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
+	fmt.Printf("No. of Orders: %.2f\n", cmgrOrdersValue)
+	fmt.Printf("Order value: %.2f\n", cmgrOrdersValueValue)
 }
 
-// Display the line break
-func displaySeparator() {
-	block := "█"
-	fmt.Println()
+// Calculate the Compound Monthly Growth Rate
+func computeCMGR(values []float64) float64 {
 
-	for i := 0; i < 130; i++ {
-		fmt.Print(block)
+	if len(values) < 2 {
+		return 0.0 // Cannot calculate CMGR with less than 2 values
 	}
 
-	fmt.Println()
+	initialValue := values[0]
+
+	// The final period value is not included as it is not a full month
+	finalValue := values[len(values)-2]
+	numberOfPeriods := float64(len(values))
+
+	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
+	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
+
+	// Round CMGR to 2 decimal places
+	cmgr = math.Round(cmgr*100) / 100
+
+	return cmgr
 }
 
-// formatDate converts date from YYYYMMDD to Month-Year format
-func formatDate(dateStr string) string {
-	date, err := time.Parse("20060102", dateStr)
-	if err != nil {
-		fmt.Println(red+"Error. formatDate. Cannot parse date:"+reset, err)
-		return dateStr // return the original string in case of error
+// Get the analytics ID
+func getAnalyticsID() string {
+	// First identify which analytics tool is integrated
+	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
+	//fmt.Println(bold+"\nAnalytics ID end point:"+reset, urlAPIAnalyticsID)
+	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
+
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	if errorCheck != nil {
+		log.Fatal(red+"\nError. getAnalyticsID. Cannot create request: "+reset, errorCheck)
 	}
-	return date.Format("January 2006")
-}
-
-// generateHTML generates the HTML content for the table
-func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
-	htmlContent := `
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 18px; text-align: left; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        th.title { color: Gray; font-weight: bold; }
-        td { color: DimGray; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: HoneyDew; }
-    </style>
-</head>
-<body style="min-height: 10vh;">
-    <table>
-        <thead>
-            <tr>
-                <th class="title">Date</th>
-                <th class="title">No. of Orders</th>
-                <th class="title">Revenue</th>
-                <th class="title">Order Value</th>
-                <th class="title">No. of Visits</th>
-                <th class="title">Visit Value</th>
-                <th class="title">Visits per Order</th>
-
-            </tr>
-        </thead>
-        <tbody>`
-	for _, row := range data {
-		htmlContent += "<tr>"
-		for _, cell := range row {
-			htmlContent += "<td>" + cell + "</td>"
-		}
-		htmlContent += "</tr>"
+	// Create HTTP client and execute the request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
 	}
-	htmlContent += `
-        </tbody>
-    </table>
-</body>
-</html>`
-
-	return htmlContent
-}
-
-// Function used to generate and save the HTML content to a file
-func saveHTML(genHTML string, genFilename string) {
-	file, err := os.Create(genFilename)
-	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
-		return
+	resp, errorCheck := client.Do(req)
+	if errorCheck != nil {
+		log.Fatal("Error. getAnalyticsID. Error: ", errorCheck)
 	}
-	defer file.Close()
+	defer resp.Body.Close()
 
-	_, err = file.WriteString(genHTML)
-	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, genFilename, err)
-		return
-	}
-}
-
-func footerNotes() {
-
-	// Text content for the footer
-	var footerNotesStrings = []string{
-		"Only complete months are included in the analysis.",
-		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect.",
+	// Read the response body
+	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	if errorCheck != nil {
+		log.Fatal(red+"Error. getAnalyticsID. Cannot read response body: "+reset, errorCheck)
 	}
 
-	// Generate HTML content
-	htmlContent := "<html>\n<head>\n<title>Footer Notes</title>\n</head>\n<body>\n<ul>\n"
-
-	for _, note := range footerNotesStrings {
-		htmlContent += fmt.Sprintf("<li>%s</li>\n", note)
+	// Unmarshal the JSON data into the struct
+	var analyticsIDs []AnalyticsID
+	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
+		log.Fatal(red+"Error. getAnalyticsID. Cannot unmarshall the JSON: "+reset, err)
 	}
 
-	htmlContent += "</ul>\n</body>\n</html>"
-
-	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoFooterNotes.html")
-
-}
-
-// Function to format an integer with comma separation
-func formatWithCommas(n int) string {
-	s := strconv.Itoa(n)
-	nLen := len(s)
-	if nLen <= 3 {
-		return s
-	}
-
-	var result strings.Builder
-	commaOffset := nLen % 3
-	if commaOffset > 0 {
-		result.WriteString(s[:commaOffset])
-		if nLen > commaOffset {
-			result.WriteString(",")
+	// Find and print the name value when the ID contains the word "visit"
+	// Assume the first instance of "visit" contains the analytics ID
+	for _, analyticsID := range analyticsIDs {
+		if strings.Contains(analyticsID.ID, "visit") {
+			return analyticsID.ID
 		}
 	}
-
-	for i := commaOffset; i < nLen; i += 3 {
-		result.WriteString(s[i : i+3])
-		if i+3 < nLen {
-			result.WriteString(",")
-		}
-	}
-
-	return result.String()
+	return "noAnalyticsFound"
 }
 
-func seoChartsDone() {
+// Get the date ranges for the revenue and visits
+func calculateDateRanges() DateRanges {
+	currentTime := time.Now()
+	dateRanges := make([][2]time.Time, 12)
 
-	// We're done
-	fmt.Println(purple + "\nseoCharts: Done!")
-	os.Exit(0)
+	// Calculate the date ranges for the last 12 months
+	for i := 0; i < 12; i++ {
+		// Calculate the start and end dates for the current range
+		// Adjust to the previous month. We doint caount the current month.
+		prevMonth := currentTime.AddDate(0, -1, 0)
+
+		// Start of the previous month range
+		startDate := time.Date(prevMonth.Year(), prevMonth.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+
+		var endDate time.Time
+		if i == 0 {
+			// The end date is the End of the previous month. We don't use the current month for the analysis.
+			firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+			endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
+		} else {
+			// End of the previous month range
+			endDate = startDate.AddDate(0, 1, -1)
+		}
+
+		// Store the range
+		dateRanges[11-i] = [2]time.Time{startDate, endDate}
+
+		// Move to the previous month
+		currentTime = startDate.AddDate(0, 0, 0)
+	}
+
+	// Subtract 1 day from the end date in the last element of the array
+	dateRanges[0][1] = dateRanges[0][1].AddDate(0, 0, -1)
+
+	// Save the number of months
+	noOfMonths = len(dateRanges)
+
+	return DateRanges{MonthlyRanges: dateRanges}
 }
 
 // Display the welcome banner
@@ -1855,18 +1788,4 @@ func displayBanner() {
 	fmt.Println(checkmark + green + bold + " (Computed) Visits per order" + reset)
 	fmt.Println(checkmark + green + bold + " Top branded keywords" + reset)
 	fmt.Println(checkmark + green + bold + " Top non branded keywords" + reset)
-}
-
-// Function to clear the screen
-func test() {
-
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
 }
