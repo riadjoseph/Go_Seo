@@ -10,6 +10,8 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	"io"
 	"io/ioutil"
 	"log"
@@ -112,7 +114,7 @@ var displayOrgName = ""
 // Version
 var version = "v0.1"
 
-// Colours
+// Colours, symbols etc
 var purple = "\033[0;35m"
 var green = "\033[0;32m"
 var red = "\033[0;31m"
@@ -120,6 +122,7 @@ var yellow = "\033[33m"
 var bold = "\033[1m"
 var reset = "\033[0m"
 var checkmark = "\u2713"
+var clearScreen = "\033[H\033[2J"
 
 // KPI Specific colours
 var kpiColourRevenue = "Coral"
@@ -155,7 +158,8 @@ var averageVisitsPerOrder = 0
 
 func main() {
 
-	clearScreen()
+	// Clear the screen
+	fmt.Print(clearScreen)
 
 	displayBanner()
 
@@ -392,7 +396,6 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 // Get the keywords data
 func getKeywordsData(startMthDates string, endMthDates string) {
 
-	//bloo
 	// Branded keywords
 	executeKeywordsBQL(startMthDates, endMthDates, "true")
 
@@ -401,11 +404,11 @@ func getKeywordsData(startMthDates string, endMthDates string) {
 
 }
 
-// bloo continue from here
+// bloo here
 // Execute the BQL to acquire keywords data
 func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []float64, []float64) {
 
-	// Get the keywords data
+	// Get the keywords data. Define the BQL
 	bqlKeywords := fmt.Sprintf(`{
 		"collections": [
 						"search_console_by_property"
@@ -769,9 +772,12 @@ func badgesForKPIs() {
 // Table for total Visits, Orders & Revenue
 func tableTotalsVisitsOrdersRevenue() {
 
-	totalVisitsFormatted := formatInt(totalVisits)
-	totalOrdersFormatted := formatInt(totalOrders)
-	totalRevenueFormatted := formatInt(totalRevenue)
+	// Use the printer to format an integer
+	formatInteger := message.NewPrinter(language.English)
+
+	totalVisitsFormatted := formatInteger.Sprintf("%d", totalVisits)
+	totalOrdersFormatted := formatInteger.Sprintf("%d", totalOrders)
+	totalRevenueFormatted := formatInteger.Sprintf("%d", totalRevenue)
 
 	htmlContent := `
 <!DOCTYPE html>
@@ -1570,14 +1576,17 @@ func generateIndex() {
 func tableDataDetail() {
 	var detailedKPIstableData [][]string
 
+	// Use the printer to format an integer (or a float)
+	formatInteger := message.NewPrinter(language.English)
+
 	for i := 0; i < len(startMthDates); i++ {
 		formattedDate := formatDate(startMthDates[i])
-		orders := formatInt(seoMetricsOrders[i])
-		revenue := formatInt(seoMetricsRevenue[i])
-		orderValue := formatInt(seoOrderValue[i])
-		visits := formatInt(seoMetricsVisits[i])
-		visitValue := formatFloat(seoVisitValue[i])
-		visitsPerOrder := formatInt(visitsPerOrder[i])
+		orders := formatInteger.Sprintf("%d", seoMetricsOrders[i])
+		revenue := formatInteger.Sprintf("%d", seoMetricsRevenue[i])
+		orderValue := formatInteger.Sprintf("%d", seoOrderValue[i])
+		visits := formatInteger.Sprintf("%d", seoMetricsVisits[i])
+		visitValue := formatInteger.Sprintf("%.2f", seoVisitValue[i])
+		visitsPerOrderValue := formatInteger.Sprintf("%d", visitsPerOrder[i])
 
 		row := []string{
 			formattedDate,
@@ -1586,7 +1595,7 @@ func tableDataDetail() {
 			orderValue,
 			visits,
 			visitValue,
-			visitsPerOrder,
+			visitsPerOrderValue,
 		}
 		detailedKPIstableData = append(detailedKPIstableData, row)
 	}
@@ -1609,9 +1618,12 @@ func winningKeywords(brandedMode bool) {
 	var htmlCTR float64
 	var htmlAvgPosition float64
 
+	// Use the printer to format an integer (clicks)
+	formatInteger := message.NewPrinter(language.English)
+
 	if brandedMode {
 		htmlKeyword = kwKeywords[0]
-		htmlClicks = formatInt(kwMetricsCountClicks[0])
+		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicks[0])
 		htmlCTR = kwMetricsCTR[0]
 		htmlAvgPosition = kwMetricsAvgPosition[0]
 		fmt.Printf(green + "\nBranded keywords\n" + reset)
@@ -1623,7 +1635,7 @@ func winningKeywords(brandedMode bool) {
 
 	if !brandedMode {
 		htmlKeyword = kwKeywordsNB[0]
-		htmlClicks = formatInt(kwMetricsCountClicksNB[0])
+		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicksNB[0])
 		htmlCTR = kwMetricsCTRNB[0]
 		htmlAvgPosition = kwMetricsAvgPositionNB[0]
 		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
@@ -1686,43 +1698,6 @@ func displaySeparator() {
 	}
 
 	fmt.Println()
-}
-
-// formatInt formats integer values with comma separator
-func formatInt(num int) string {
-	return formatIntWithCommas(int64(num))
-}
-
-// formatIntWithCommas formats an integer with commas as thousand separators
-func formatIntWithCommas(num int64) string {
-	in := strconv.FormatInt(num, 10)
-	n := len(in)
-	if n <= 3 {
-		return in
-	}
-
-	var sb strings.Builder
-	pre := n % 3
-	if pre > 0 {
-		sb.WriteString(in[:pre])
-		if n > pre {
-			sb.WriteString(",")
-		}
-	}
-
-	for i := pre; i < n; i += 3 {
-		sb.WriteString(in[i : i+3])
-		if i+3 < n {
-			sb.WriteString(",")
-		}
-	}
-
-	return sb.String()
-}
-
-// formatFloat formats float values with 2 decimal places
-func formatFloat(num float64) string {
-	return strconv.FormatFloat(num, 'f', 2, 64)
 }
 
 // formatDate converts date from YYYYMMDD to Month-Year format
@@ -1880,20 +1855,6 @@ func displayBanner() {
 	fmt.Println(checkmark + green + bold + " (Computed) Visits per order" + reset)
 	fmt.Println(checkmark + green + bold + " Top branded keywords" + reset)
 	fmt.Println(checkmark + green + bold + " Top non branded keywords" + reset)
-}
-
-// Function to clear the screen
-func clearScreen() {
-
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
 }
 
 // Function to clear the screen
