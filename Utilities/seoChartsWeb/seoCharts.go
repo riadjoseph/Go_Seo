@@ -156,9 +156,6 @@ var averageVisitsPerOrder = 0
 
 func main() {
 
-	// Clear the screen
-	fmt.Print(clearScreen)
-
 	displayBanner()
 
 	// Get the credentials if they have not been specified on the command line
@@ -240,8 +237,8 @@ func main() {
 	// Footer notes
 	footerNotes()
 
-	// Generate index.html container
-	generateIndex()
+	// Generate Go_Seo_Dashboard.html container
+	generateDashboard()
 
 	// Make a tidy display
 	fmt.Println(lineSeparator)
@@ -593,7 +590,7 @@ func dashboardHeader() {
 `
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDashboardHeader.html")
+	saveHTML(htmlContent, "./seoDashboardHeader.html")
 
 }
 
@@ -695,7 +692,7 @@ func tableTotalsVisitsOrdersRevenue() {
 </html>`
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoTableTotalsVisitsOrdersRevenue.html")
+	saveHTML(htmlContent, "./seoTableTotalsVisitsOrdersRevenue.html")
 
 }
 
@@ -734,7 +731,7 @@ func barChartRevenueVisits() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoRevenueVisitsBar.html")
+	f, _ := os.Create("./seoRevenueVisitsBar.html")
 	bar.Render(f)
 }
 
@@ -772,7 +769,7 @@ func lineChartVisitsPerOrder() {
 		),
 	)
 
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoVisitsPerOrderLine.html")
+	f, _ := os.Create("./seoVisitsPerOrderLine.html")
 	line.Render(f)
 }
 
@@ -817,7 +814,7 @@ func barChartVisitValue() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoVisitValueBar.html")
+	f, _ := os.Create("./seoVisitValueBar.html")
 	bar.Render(f)
 }
 
@@ -853,7 +850,7 @@ func barChartOrders() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoOrdersBar.html")
+	f, _ := os.Create("./seoOrdersBar.html")
 	bar.Render(f)
 }
 
@@ -889,7 +886,7 @@ func barChartOrderValue() {
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
 
-	f, _ := os.Create("./Utilities/seoChartsWeb/seoOrderValueBar.html")
+	f, _ := os.Create("./seoOrderValueBar.html")
 	bar.Render(f)
 }
 
@@ -922,7 +919,7 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32) {
 
 	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
 	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
-	badgeFileName := fmt.Sprintf("./Utilities/seoChartsWeb/seoCMGR%s.html", badgeKPI)
+	badgeFileName := fmt.Sprintf("./seoCMGR%s.html", badgeKPI)
 	f, err := os.Create(badgeFileName)
 	if err != nil {
 		panic(err)
@@ -973,7 +970,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(true),
 		)
-		f, err := os.Create("./Utilities/seoChartsWeb/seoWordCloudBranded.html")
+		f, err := os.Create("./seoWordCloudBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -986,7 +983,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(false),
 		)
-		f, err := os.Create("./Utilities/seoChartsWeb/seoWordCloudNonBranded.html")
+		f, err := os.Create("./seoWordCloudNonBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1064,7 +1061,7 @@ func riverCharRevenueVisits() {
 	page.AddCharts(
 		generateRiverTime(),
 	)
-	f, err := os.Create("./Utilities/seoChartsWeb/seoVisitsRevenueRiver.html")
+	f, err := os.Create("./seoVisitsRevenueRiver.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1143,7 +1140,7 @@ func gaugeVisitsPerOrder(visitsPerOrder float64) {
 		gaugeBase(visitsPerOrder),
 	)
 
-	f, err := os.Create("./Utilities/seoChartsWeb/seoGauge.html")
+	f, err := os.Create("./seoGauge.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1204,7 +1201,7 @@ func tableDataDetail() {
 	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPIstableData)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDataInsightDetailKPIs.html")
+	saveHTML(htmlContent, "./seoDataInsightDetailKPIs.html")
 
 }
 
@@ -1278,9 +1275,9 @@ func winningKeywords(brandedMode bool) {
 
 	// Define the HTML filename
 	if brandedMode {
-		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordBranded.html"
+		htmlFileName = "./seoWinningKeywordBranded.html"
 	} else {
-		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordNonBranded.html"
+		htmlFileName = "./seoWinningKeywordNonBranded.html"
 	}
 
 	// Save the HTML to a file
@@ -1354,7 +1351,7 @@ func footerNotes() {
 	htmlContent += "</ul>\n</body>\n</html>"
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoFooterNotes.html")
+	saveHTML(htmlContent, "./seoFooterNotes.html")
 
 }
 
@@ -1385,8 +1382,8 @@ func saveHTML(genHTML string, genFilename string) {
 	}
 }
 
-// Define the HTML for the index.html container. Used to consolidate the generated charts into a single page.
-func generateIndex() {
+// Define the HTML for the Go_Seo_Dashboard.html container. Used to consolidate the generated charts into a single page.
+func generateDashboard() {
 
 	htmlContent := `
 <!DOCTYPE html>
@@ -1559,7 +1556,7 @@ func generateIndex() {
 </html>`
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Utilities/seoChartsWeb/index.html")
+	saveHTML(htmlContent, "./Go_Seo_Dashboard.html")
 
 }
 
@@ -1765,6 +1762,9 @@ func calculateDateRanges() DateRanges {
 
 // Display the welcome banner
 func displayBanner() {
+
+	// Clear the screen
+	fmt.Print(clearScreen)
 
 	fmt.Println(green + `
 ███████╗███████╗ ██████╗  ██████╗██╗  ██╗ █████╗ ██████╗ ████████╗███████╗

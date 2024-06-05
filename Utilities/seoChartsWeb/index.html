@@ -112,14 +112,14 @@
 
 <!-- Main content -->
 <div class="content">
-    <form id="dashboardForm">
-        <label for="organization">Organization:</label>
+    <form id="dashboardForm" action="/submit" method="post">
+        <label for="organization" style="font-weight: bold;">Organization:</label>
         <input type="text" id="organization" name="organization"><br>
 
-        <label for="project">Project:</label>
+        <label for="project" style="font-weight: bold;">Project:</label>
         <input type="text" id="project" name="project"><br>
 
-        <button type="button" onclick="submitForm()">Display Dashboard</button>
+        <button type="submit">Display Dashboard</button>
     </form>
     <!-- Loading animation container -->
     <div class="animation-container">
@@ -127,6 +127,7 @@
         <div class="loader" id="loader"></div>
     </div>
 </div>
+
 
 <!-- DeepSkyBlue footer -->
 <div class="footer">
