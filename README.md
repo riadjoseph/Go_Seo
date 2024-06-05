@@ -1,15 +1,20 @@
 # Go_Seo
-A series of command line utilities to support SEO actions. Developed in Go.   
+A series of tools used to support SEO actions. Developed in Go.   
 
 ## seoCharts   
-Example visualizations based on SEO data from Botify and go-echarts.    
+Undercover the value of organic traffic with this business insights dashboard for Botify.
 
 Charts included:
+- Compound growth indicators
 - Revenue & visits
+- Visits per order
+- Order volume
+- Order value
+- Revenue & Visits river
 - Visit value
-- Transaction volume
-- Transaction value
-- CMGR (Compound Monthly Growth rate) for Revenue, Visits, Transaction volume, Transaction value.
+- Branded & non branded keyword cloud
+- Winning branded and non branded keywords
+- Detailed KPI insights 
   
 ```
 Usage: ./seoCharts (organisation and project name will be prompted for)    
@@ -18,6 +23,7 @@ Usage: ./seoCharts org_name project_name
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
+
 - First level folders
 - Second level folders
 - Parameter usage
