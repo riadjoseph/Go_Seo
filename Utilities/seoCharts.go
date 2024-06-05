@@ -25,7 +25,7 @@ import (
 
 // Anonymous mode. When set to true the URL to the project defaults to 'https://www.botify.com'
 // If set to false a link is provided to the Botify project
-var anonymousMode = false
+var anonymousMode = true
 
 // DateRanges struct used to hold the monthly date ranges
 // Used for revenue and visits data
@@ -173,7 +173,6 @@ func main() {
 
 	fmt.Println(bold+"\nOrganisation name:", orgName)
 	fmt.Println(bold+"Project name:", projectName+reset)
-	fmt.Println()
 
 	// Generate the link to the project
 	if anonymousMode {
@@ -186,16 +185,22 @@ func main() {
 
 	displaySeparator()
 
-	// Get revenue, visits and orders
+	// Get revenue, visits, orders and keyword data
 	getSeoInsights()
 
 	// Start of charts
 
-	// Insert the header
+	// Generate the header
 	dashboardHeader()
 
 	// Total vales
 	tableTotalsVisitsOrdersRevenue()
+
+	// Badges
+	badgesForKPIs()
+
+	// Visits per order Gauge
+	gaugeVisitsPerOrder(totalVisitsPerOrder)
 
 	// Revenue & visits bar chart
 	barChartRevenueVisits()
@@ -212,26 +217,8 @@ func main() {
 	// Order value barchart
 	barChartOrderValue()
 
-	// Badges
-	// Values for the badges
-	cmgrRevenue32 := float32(cmgrRevenue)
-	cmgrVisits32 := float32(cmgrVisits)
-	cmgrVisitValue32 := float32(cmgrVisitValue)
-	cmgrOrdersValue32 := float32(cmgrOrdersValue)
-	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue)
-
-	// Generate the badges
-	liquidBadge("Revenue", cmgrRevenue32)
-	liquidBadge("Visits", cmgrVisits32)
-	liquidBadge("Visit Value", cmgrVisitValue32)
-	liquidBadge("Orders", cmgrOrdersValue32)
-	liquidBadge("Order Value", cmgrOrdersValueValue32)
-
 	// Revenue and visits river chart
 	riverCharRevenueVisits()
-
-	// Visits per order Gauge
-	gaugeVisitsPerOrder(totalVisitsPerOrder)
 
 	// Wordclouds
 	// Branded keywords
@@ -249,6 +236,9 @@ func main() {
 
 	// Footer notes
 	footerNotes()
+
+	// Generate index.html container
+	generateIndex()
 
 	displaySeparator()
 
@@ -332,7 +322,6 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	var avgVisitValue = 0.00
 
 	// Get monthly insights
-	fmt.Println(purple + "\nMonthly organic insights\n" + reset)
 	for i := range startMthDates {
 
 		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue = executeRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
@@ -504,7 +493,7 @@ func executeKeywordsBQL(startDate string, endDate string, brandedFlag string) ([
 			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
 				kwKeywords = append(kwKeywords, result.Dimensions[0].(string))
 				kwMetricsCountClicks = append(kwMetricsCountClicks, int(*result.Metrics[0]))
-				kwMetricsAvgPosition = append(kwMetricsAvgPosition, float64(*result.Metrics[1])) //bloo error
+				kwMetricsAvgPosition = append(kwMetricsAvgPosition, float64(*result.Metrics[1]))
 				kwMetricsCTR = append(kwMetricsCTR, float64(*result.Metrics[2]))
 			}
 		}
@@ -758,6 +747,23 @@ func dashboardHeader() {
 	// Save the HTML to a file
 	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoDashboardHeader.html")
 
+}
+
+// Badges
+func badgesForKPIs() {
+
+	cmgrRevenue32 := float32(cmgrRevenue)
+	cmgrVisits32 := float32(cmgrVisits)
+	cmgrVisitValue32 := float32(cmgrVisitValue)
+	cmgrOrdersValue32 := float32(cmgrOrdersValue)
+	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue)
+
+	// Generate the badges
+	liquidBadge("Revenue", cmgrRevenue32)
+	liquidBadge("Visits", cmgrVisits32)
+	liquidBadge("Visit Value", cmgrVisitValue32)
+	liquidBadge("Orders", cmgrOrdersValue32)
+	liquidBadge("Order Value", cmgrOrdersValueValue32)
 }
 
 // Table for total Visits, Orders & Revenue
@@ -1383,14 +1389,181 @@ func computeCMGR(values []float64) float64 {
 	return cmgr
 }
 
-func seoChartsDone() {
+// Define the HTML for the index.html container. Used to consolidate the generated charts into a single page.
+func generateIndex() {
+	htmlContent := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go_Seo Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: Cornsilk;
+        }
+        .banner {
+            background-color: DeepSkyBlue;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+        }
+        .banner.top {
+            font-size: 24px;
+        }
+        .banner.bottom {
+            font-size: 12px;
+        }
+        .title {
+            background-color: LightCyan;
+            color: LightSlateGray;
+            text-align: center;
+            padding: 5px;
+            margin: 20px auto;
+            font-size: 22px;
+            border-radius: 10px;
+            width: 90%;
+        }
+        .iframe-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin: 20px auto;
+            width: 90%;
+        }
+        .iframe-container.row {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+        iframe {
+            flex: 1 1 auto;
+            min-width: 200px;
+            width: 100%;
+            border: 2px solid LightGray;
+            border-radius: 10px;
+        }
+        .iframe-container.row iframe {
+            height: 530px;
+        }
+        .iframe-container.no-border iframe {
+            border: none;
+        }
+        .column iframe {
+            height: 700px;
+        }
+        a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
 
-	// We're done
-	fmt.Println(purple + "\nseoCharts: Done!")
-	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
-	var input string
-	fmt.Scanln(&input)
-	os.Exit(0)
+<!-- Top Banner -->
+<header class="banner top">
+    <span>Go_Seo</span><br>
+    <span style="font-size: 12px;">Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO">https://github.com/flaneur7508/Go_SEO</a></span>
+</header>
+
+<!-- Header for the totals display -->
+<section class="iframe-container row no-border">
+    <iframe src="seoDashboardHeader.html" title="Totals" style="height: 30px;"></iframe>
+</section>
+
+<!-- Totals of visits, orders & revenue -->
+<section class="iframe-container row no-border">
+    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Totals" style="height: 100px;"></iframe>
+</section>
+
+<!-- Title bar -->
+<div class="title">Organic visits' impact on your business</div>
+
+<!-- Revenue & visits badges and visits per order gauge -->
+<section class="iframe-container row">
+    <iframe src="seoCMGRRevenue.html" title="CMGR Revenue"></iframe>
+    <iframe src="seoCMGRVisits.html" title="CMGR Visits"></iframe>
+    <iframe src="seoGauge.html" title="Visits per order gauge"></iframe>
+</section>
+
+<!-- Title bar -->
+<div class="title">Compound growth rate for your key performance indicators</div>
+
+<!-- Badges for visits, orders and order value -->
+<section class="iframe-container row">
+    <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value"></iframe>
+    <iframe src="seoCMGROrders.html" title="CMGR Orders"></iframe>
+    <iframe src="seoCMGROrderValue.html" title="CMGR Order Value"></iframe>
+</section>
+
+<!-- Header bar -->
+<div class="title">Revenue & visit contribution over time</div>
+
+<!-- Bar chart for revenue & visits and line chart for visits per order -->
+<section class="iframe-container row">
+    <iframe src="seoRevenueVisitsBar.html" title="Revenue & visits"></iframe>
+    <iframe src="seoVisitsPerOrderLine.html" title="Visits per order"></iframe>
+</section>
+
+<!-- Header bar -->
+<div class="title">Order trends</div>
+
+<!-- Orders and order value bar charts -->
+<section class="iframe-container row">
+    <iframe src="seoOrdersBar.html" title="No. of orders"></iframe>
+    <iframe src="seoOrderValueBar.html" title="Order value"></iframe>
+</section>
+
+<!-- Header bar -->
+<div class="title">Organic visits trending</div>
+
+<!-- Revenue/Visits river chart and visit value bar chart -->
+<section class="iframe-container row">
+    <iframe src="seoVisitsRevenueRiver.html" title="Revenue & visits"></iframe>
+    <iframe src="seoVisitValueBar.html" title="Organic visit value"></iframe>
+</section>
+
+<!-- Header bar -->
+<div class="title">Which keywords are delivering traffic to the site?</div>
+
+<!-- Wordclouds for top keywords -->
+<section class="iframe-container row no-border">
+    <iframe src="seoWordCloudBranded.html" title="Branded Keyword wordcloud" style="height: 550px; font-size: 10px;"></iframe>
+    <iframe src="seoWordCloudNonBranded.html" title="Non Branded Keyword wordcloud" style="height: 550px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Winning keywords -->
+<section class="iframe-container row no-border">
+    <iframe src="seoWinningKeywordBranded.html" title="Winning branded keyword" style="height: 150px; font-size: 10px;"></iframe>
+    <iframe src="seoWinningKeywordNonBranded.html" title="Winning non Branded keyword" style="height: 150px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Header bar -->
+<div class="title">Detailed insights</div>
+
+<!-- KPI details table-->
+<section class="iframe-container row no-border">
+    <iframe src="seoDataInsightDetailKPIs.html" title="KPIs"></iframe>
+</section>
+
+<!-- Footer notes -->
+<footer class="iframe-container row">
+    <iframe src="seoFooterNotes.html" title="Footer notes" style="height: 200px; font-size: 10px; border: none;"></iframe>
+</footer>
+
+<!-- Bottom Banner -->
+<footer class="banner bottom">
+    Go_Seo. Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO">https://github.com/flaneur7508/Go_SEO</a>
+</footer>
+
+</body>
+</html>`
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/index.html")
+
 }
 
 // Generate an HTML table containing the detailed KPI insights
@@ -1428,26 +1601,7 @@ func tableDataDetail() {
 
 func winningKeywords(brandedMode bool) {
 
-	var file *os.File
-	var err error
-
-	if brandedMode {
-		file, err = os.Create("./Utilities/seoChartsWeb/seoWinningKeywordBranded.html")
-		if err != nil {
-			fmt.Println(red+"Error. winningKeywords. Cannot create branded winning keyword HTML:"+reset, err)
-			return
-		}
-		defer file.Close()
-	}
-
-	if !brandedMode {
-		file, err = os.Create("./Utilities/seoChartsWeb/seoWinningKeywordNonBranded.html")
-		if err != nil {
-			fmt.Println(red+"Error. winningKeywords. Cannot create non branded winning keyword HTML:"+reset, err)
-			return
-		}
-		defer file.Close()
-	}
+	var htmlFileName = ""
 
 	// Define the display values based on branded or non branded mode
 	var htmlKeyword = ""
@@ -1490,27 +1644,36 @@ func winningKeywords(brandedMode bool) {
 	<style>
 		.blueText {
 			color: DeepSkyBlue;
-			font-size: 40px;
+			font-size: 30px;
 		}
 	.keyword-font {
 		font-family: Arial, sans-serif;
-		font-size: 20px;
+		font-size: 18px;
 		color: LightSlateGray;
 	}
 	</style>
 </head>
+
 <body>
-	<p><span class="keyword-font">The winning keyword was <span class="blueText">%s<span class="keyword-font"> during <b>%s</b></span></span></p>
-	<p><span class="keyword-font">This keyword generated <b>%s</b> clicks. The click through rate was <b>%.2f%%</b> from an average position of <b>%.2f</b></span></p>
+	<p>
+		<span class="keyword-font">The winning keyword was <span class="blueText">%s<span class="keyword-font"> during <b>%s.</b></span></span></span>
+		<span class="keyword-font">This keyword generated <b>%s</b> clicks. The click-through rate was <b>%.2f%%</b> from an average position of <b>%.2f</b></span>
+	</p>
 </body>
+
 </html>
 `, htmlKeyword, htmlLastMonthName, htmlClicks, htmlCTR, htmlAvgPosition)
 
-	_, err = file.WriteString(htmlContent)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
+	// Define the HTML filename
+	if brandedMode {
+		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordBranded.html"
+	} else {
+		htmlFileName = "./Utilities/seoChartsWeb/seoWinningKeywordNonBranded.html"
 	}
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, htmlFileName)
+
 }
 
 // Display the line break
@@ -1574,7 +1737,7 @@ func formatDate(dateStr string) string {
 
 // generateHTML generates the HTML content for the table
 func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
-	html := `
+	htmlContent := `
 <!DOCTYPE html>
 <html>
 <head>
@@ -1605,74 +1768,57 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         </thead>
         <tbody>`
 	for _, row := range data {
-		html += "<tr>"
+		htmlContent += "<tr>"
 		for _, cell := range row {
-			html += "<td>" + cell + "</td>"
+			htmlContent += "<td>" + cell + "</td>"
 		}
-		html += "</tr>"
+		htmlContent += "</tr>"
 	}
-	html += `
+	htmlContent += `
         </tbody>
     </table>
 </body>
 </html>`
-	return html
+
+	return htmlContent
 }
 
-// Function used to write HTML content to a file
+// Function used to generate and save the HTML content to a file
 func saveHTML(genHTML string, genFilename string) {
 	file, err := os.Create(genFilename)
 	if err != nil {
-		fmt.Println("Error creating file:", err)
+		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
 		return
 	}
 	defer file.Close()
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Cannot save HTML:"+reset, err)
+		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, genFilename, err)
 		return
 	}
 }
 
 func footerNotes() {
 
-	// Slice of strings used for the footer text
+	// Text content for the footer
 	var footerNotesStrings = []string{
-		"1. Only complete months are included in the analysis.",
-		"2. Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect. ",
+		"Only complete months are included in the analysis.",
+		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect.",
 	}
 
-	// Create or open the HTML file
-	file, err := os.Create("./Utilities/seoChartsWeb/seoFooterNotes.html")
-	if err != nil {
-		fmt.Println(red+"Error. footerNotes. Cannot create footer notes:"+reset, err)
-		return
-	}
-	defer file.Close()
+	// Generate HTML content
+	htmlContent := "<html>\n<head>\n<title>Footer Notes</title>\n</head>\n<body>\n<ul>\n"
 
-	// Write the HTML header
-	_, err = file.WriteString("<!DOCTYPE html>\n<html>\n<head>\n<body>\n")
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
+	for _, note := range footerNotesStrings {
+		htmlContent += fmt.Sprintf("<li>%s</li>\n", note)
 	}
 
-	// Write each string as a paragraph in the HTML body
-	for _, str := range footerNotesStrings {
-		_, err := file.WriteString("<p>" + str + "</p>\n")
-		if err != nil {
-			fmt.Println("Error writing to file:", err)
-			return
-		}
-	}
+	htmlContent += "</ul>\n</body>\n</html>"
 
-	// Write the HTML footer
-	_, err = file.WriteString("</body>\n</html>")
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./Utilities/seoChartsWeb/seoFooterNotes.html")
+
 }
 
 // Function to format an integer with comma separation
@@ -1702,11 +1848,16 @@ func formatWithCommas(n int) string {
 	return result.String()
 }
 
+func seoChartsDone() {
+
+	// We're done
+	fmt.Println(purple + "\nseoCharts: Done!")
+	os.Exit(0)
+}
+
 // Display the welcome banner
 func displayBanner() {
 
-	//Banner
-	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
 ███████╗███████╗ ██████╗  ██████╗██╗  ██╗ █████╗ ██████╗ ████████╗███████╗
 ██╔════╝██╔════╝██╔═══██╗██╔════╝██║  ██║██╔══██╗██╔══██╗╚══██╔══╝██╔════╝
@@ -1719,8 +1870,7 @@ func displayBanner() {
 	fmt.Println(purple+"Version:"+reset, version)
 
 	fmt.Println(purple + "seoCharts: Test Botify BQL.\n" + reset)
-	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
-	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)
+	fmt.Println(purple + "The following insights are being generated.\n" + reset)
 	fmt.Println(checkmark + green + bold + " Revenue (monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " Visits (monthly)" + reset)
 	fmt.Println(checkmark + green + bold + " Orders (monthly)" + reset)
