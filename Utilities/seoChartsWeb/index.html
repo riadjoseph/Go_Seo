@@ -107,12 +107,12 @@
 <!-- DeepSkyBlue header -->
 <div class="header">
     <span>Go_Seo</span><br>
-    <span style="font-size: 12px;">Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO">https://github.com/flaneur7508/Go_SEO</a></span>
+    <span style="font-size: 12px;">Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_Seo">https://github.com/flaneur7508/Go_Seo</a></span>
 </div>
 
 <!-- Main content -->
 <div class="content">
-    <form id="dashboardForm" action="/submit" method="post">
+    <form id="dashboardForm" action="/submit" method="post" onsubmit="return validateForm()">
         <label for="organization" style="font-weight: bold;">Organization:</label>
         <input type="text" id="organization" name="organization"><br>
 
@@ -131,35 +131,24 @@
 
 <!-- DeepSkyBlue footer -->
 <div class="footer">
-    <p>Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_SEO</a></p>
+    <p>Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_Seo" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_Seo</a></p>
 </div>
 
 <script>
-    function submitForm() {
+    function validateForm() {
+        var organization = document.getElementById("organization").value;
+        var project = document.getElementById("project").value;
+
+        if (organization === "" || project === "") {
+            alert("Enter both the organization and project name. Please try again.");
+            return false;
+        }
+
         // Show loading animation
         document.getElementById("loader").style.display = "block";
 
-        // Simulate background work (here using setTimeout)
-        setTimeout(function() {
-            // Hide loading animation after some time (simulating completion of work)
-            document.getElementById("loader").style.display = "none";
-        }, 3000); // 3000 milliseconds (3 seconds) - adjust as needed
+        return true; // Allow form submission
     }
 </script>
 </body>
 </html>
-
-
-
-<script>
-    function submitForm() {
-        // Show loading animation
-        document.getElementById("loader").style.display = "block";
-
-        // Simulate background work (here using setTimeout)
-        setTimeout(function() {
-            // Hide loading animation after some time (simulating completion of work)
-            document.getElementById("loader").style.display = "none";
-        }, 3000); // 3000 milliseconds (3 seconds) - adjust as needed
-    }
-</script>

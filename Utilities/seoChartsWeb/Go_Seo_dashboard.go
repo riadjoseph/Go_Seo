@@ -18,8 +18,6 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -132,7 +130,7 @@ type Response struct {
 // Project URL. Used to provide a link to the Botify project
 var projectURL = ""
 
-// Organisation name used for display purposes
+// Organization name used for display purposes
 var displayOrgName = ""
 
 // Strings used to store the project credentials for API access
@@ -156,15 +154,16 @@ var noOfMonths = 0
 // Average visits per order
 var averageVisitsPerOrder = 0
 
-func main() {
+// The number of keywords to include in the wordcloud
+var noOfKWInCloud = 50
 
+func main() {
 	// Display the welcome banner
 	displayBanner()
 
-	// Define a handler function for serving the HTML file
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.html")
-	})
+	// Serve static files from the current directory
+	fs := http.FileServer(http.Dir("."))
+	http.Handle("/", fs)
 
 	// Define a handler function for form submission
 	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
@@ -179,19 +178,16 @@ func main() {
 		// Set the organization and project name
 		orgName = organization
 		projectName = project
+
 		// Generate the dashboard
 		Go_Seo_Dashboard()
 
 		// Respond to the client with a success message or redirect to another page
-		http.Redirect(w, r, "/success.html", http.StatusFound)
+		http.Redirect(w, r, "Go_Seo_Dashboard.html", http.StatusFound)
 	})
-
-	// Launch the Chrome browser with the default URL: http://localhost:8080
-	launchChrome()
 
 	// Start the HTTP server
 	http.ListenAndServe(":8080", nil)
-
 }
 
 func Go_Seo_Dashboard() {
@@ -272,7 +268,7 @@ func checkCredentials() {
 		credentialsInput = true
 		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit seoCharts" +
 			"\n")
-		fmt.Print(purple + "\nEnter organisation name: " + reset)
+		fmt.Print(purple + "\nEnter organization name: " + reset)
 		_, _ = fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
@@ -458,7 +454,7 @@ func generateKeywordsBQL(startDate string, endDate string, brandedFlag string) (
 	}`, startDate, endDate, brandedFlag)
 
 	// get the keywords data. Receiving top 50 keys here
-	responseData := executeBQL(50, bqlKeywords)
+	responseData := executeBQL(noOfKWInCloud, bqlKeywords)
 
 	// Unmarshal JSON data into KeywordsData struct
 	var response KeywordsData
@@ -752,7 +748,7 @@ func lineChartVisitsPerOrder() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Average visits per order",
+			Title:    "Avg. visits per order",
 			Subtitle: "On average, how many organic visits are needed to generate one order?",
 			Link:     projectURL,
 		}),
@@ -1266,11 +1262,11 @@ func winningKeywords(brandedMode bool) {
 	<style>
 		.blueText {
 			color: DeepSkyBlue;
-			font-size: 30px;
+			font-size: 25px;
 		}
 	.keyword-font {
 		font-family: Arial, sans-serif;
-		font-size: 18px;
+		font-size: 15px;
 		color: LightSlateGray;
 	}
 	</style>
@@ -1278,9 +1274,13 @@ func winningKeywords(brandedMode bool) {
 
 <body>
 	<p>
-		<span class="keyword-font">The winning keyword was <span class="blueText">%s<span class="keyword-font"> during <b>%s.</b></span></span></span>
-		<span class="keyword-font">This keyword generated <b>%s</b> clicks. The click-through rate was <b>%.2f%%</b> from an average position of <b>%.2f</b></span>
-	</p>
+    <span class="keyword-font">
+        The winning keyword was <span class="blueText">%s</span> during <b>%s</b>. 
+        This keyword generated <b>%s</b> clicks. The click-through rate was <b>%.2f%%</b> 
+        from an average position of <b>%.2f</b>.
+    </span>
+</p>
+
 </body>
 
 </html>
@@ -1350,8 +1350,9 @@ func footerNotes() {
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
-		"Only complete months are included in the analysis.",
-		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect.",
+		"Only complete months are included in the analysis",
+		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect",
+		"The keyword wordcloud includes the top 50 keywords for the preceding month",
 	}
 
 	// Generate HTML content
@@ -1771,26 +1772,6 @@ func calculateDateRanges() DateRanges {
 	noOfMonths = len(dateRanges)
 
 	return DateRanges{MonthlyRanges: dateRanges}
-}
-
-func launchChrome() {
-	url := "http://localhost:8080"
-
-	var cmd *exec.Cmd
-
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "linux":
-		cmd = exec.Command("xdg-open", url)
-	default:
-		fmt.Println(red + "Error. dashboardServer. You are attempting to launch the server on an unsupported platform" + reset)
-		os.Exit(1)
-	}
-
-	if err := cmd.Start(); err != nil {
-		fmt.Printf("Error. dashboardServer. Failed to launch Chrome: %v\n", err)
-	}
 }
 
 // Display the welcome banner
