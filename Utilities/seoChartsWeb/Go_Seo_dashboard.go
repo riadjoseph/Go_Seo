@@ -49,7 +49,7 @@ var kpiColourOrderValue = "MediumSlateBlue"
 
 // Anonymous mode. When set to true the URL to the project defaults to 'https://www.botify.com'
 // If set to false a link is provided to the analysis project
-var anonymousMode = true
+var anonymousMode = false
 
 // DateRanges struct used to hold the monthly date ranges
 // Used for revenue and visits data
@@ -92,7 +92,6 @@ var kwMetricsAvgPosition []float64
 
 // Slices used to store non branded Keywords KPIsd
 var kwKeywordsNB []string
-var kwMetricsCountUrlsNB []int
 var kwMetricsCountClicksNB []int
 var kwMetricsCTRNB []float64
 var kwMetricsAvgPositionNB []float64
@@ -157,6 +156,21 @@ var averageVisitsPerOrder = 0
 // The number of keywords to include in the wordcloud
 var noOfKWInCloud = 50
 
+// The number of top keywords to include in the keywords detail table
+var noOfTopKeywords = 10
+
+var chartDefaultWidth = "85vw"
+var chartDefaultHeight = "90vh"
+
+var wcDefaultWidth = "95vw"
+var wcDefaultHeight = "95vh"
+
+var badgeDefaultWidth = "95vw"
+var badgeDefaultHeight = "95vh"
+
+var gaugeDefaultWidth = "95vw"
+var gaugeDefaultHeight = "95vh"
+
 func main() {
 	// Display the welcome banner
 	displayBanner()
@@ -172,18 +186,41 @@ func main() {
 		organization := r.Form.Get("organization")
 		project := r.Form.Get("project")
 
-		// Process the form data as needed (e.g., print it)
-		fmt.Printf("Organization: %s, Project: %s\n", organization, project)
+		fmt.Printf("\nOrganization: %s, Project: %s\n", organization, project)
 
 		// Set the organization and project name
 		orgName = organization
 		projectName = project
 
+		// Get revenue, visits, orders and keyword data
+		dataStatus := getSeoInsights()
+
+		// An invalid org/project name has been specified
+		if dataStatus == "errorNoProjectFound" {
+			generateErrorPage("No project found. Try another organisation and project name. (" + orgName + "/" + projectName + ")")
+			http.Redirect(w, r, "go_seo_errorPage.html", http.StatusFound)
+			return
+		}
+
+		// No analytics tool has been integrated
+		if dataStatus == "errorNoAnalyticsIntegrated" {
+			generateErrorPage("No analytics tool has been integrated into the specified project (" + orgName + "/" + projectName + ")")
+			http.Redirect(w, r, "go_seo_errorPage.html", http.StatusFound)
+			return
+		}
+
+		// Engagement analytics has not been configured
+		if dataStatus == "errorNoEAFound" {
+			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + orgName + "/" + projectName + ")")
+			http.Redirect(w, r, "go_seo_errorPage.html", http.StatusFound)
+			return
+		}
+
 		// Generate the dashboard
 		Go_Seo_Dashboard()
 
 		// Respond to the client with a success message or redirect to another page
-		http.Redirect(w, r, "Go_Seo_Dashboard.html", http.StatusFound)
+		http.Redirect(w, r, "go_Seo_Dashboard.html", http.StatusFound)
 	})
 
 	// Start the HTTP server
@@ -191,9 +228,6 @@ func main() {
 }
 
 func Go_Seo_Dashboard() {
-
-	// Get revenue, visits, orders and keyword data
-	getSeoInsights()
 
 	// Start of charts
 
@@ -238,20 +272,33 @@ func Go_Seo_Dashboard() {
 	// Winning non branded keyword
 	winningKeywords(false)
 
+	// Detailed keyword insights - Branded
+	generateHTMLDetailedKeywordsInsights(true)
+	// Detailed keyword insights - Non rranded
+	generateHTMLDetailedKeywordsInsights(false)
+
 	// KPI details table
 	tableDataDetail()
 
 	// Footer notes
 	footerNotes()
 
-	// Generate Go_Seo_Dashboard.html container
+	// Generate go_Seo_Dashboard.html container
 	generateDashboard()
 
 	// Make a tidy display
+	fmt.Println()
 	fmt.Println(lineSeparator)
 
 	// We're done
-	fmt.Println(purple + "\nseoCharts: Done!")
+	now := time.Now()
+	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(purple + "\nGo_Seo_Dashboard: Done at " + formattedTime)
+	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, orgName, projectName)
+
+	// Make a tidy display
+	fmt.Println()
+	fmt.Println(lineSeparator)
 
 	// Wait for the next request
 	return
@@ -286,16 +333,32 @@ func checkCredentials() {
 	}
 }
 
-func getSeoInsights() {
+func getSeoInsights() string {
 
 	fmt.Println(purple + bold + "\nGetting SEO insights" + reset)
 
 	// Get the date ranges
 	dateRanges := calculateDateRanges()
+	// Iterate over the MonthlyRanges and print each range
 
 	// Identify which analytics tool is used
 	analyticsID := getAnalyticsID()
 	fmt.Println("Analytics identified:", analyticsID)
+
+	// Error checking
+	// Exit if no project has been found
+	if analyticsID == "errorNoProjectFound" {
+		fmt.Println(red+"Error. getSeoInsights. No project found for", orgName+"/"+projectName+reset)
+		return analyticsID
+	}
+	// Exit if no analytics tool has been detected
+	if analyticsID == "errorNoAnalyticsIntegrated" {
+		fmt.Println(red+"Error. getSeoInsights. No analytics tool integrated for", orgName+"/"+projectName+reset)
+		return analyticsID
+	}
+
+	// Reset the dates slice
+	resetMetrics()
 
 	// Populate the slice with string versions of the dates ready for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
@@ -311,22 +374,64 @@ func getSeoInsights() {
 	}
 
 	// Get the revenue data
-	getRevenueData(analyticsID, startMthDates, endMthDates)
+	getRevenueDataStatus := getRevenueData(analyticsID, startMthDates, endMthDates)
+
+	// Error checking
+	if getRevenueDataStatus == "errorNoEAFound" {
+		println("error2")
+		println(getRevenueDataStatus)
+
+		return getRevenueDataStatus
+	}
 
 	// Get the keywords data
 	// Get last months' date range
 	kwStartDate := startMthDates[len(startMthDates)-1]
 	kwEndDate := endMthDates[len(endMthDates)-1]
 
-	getKeywordsData(kwStartDate, kwEndDate)
+	getKeywordsCloudData(kwStartDate, kwEndDate)
 
 	// Calculate the CMGR values
 	calculateCMGR()
 
+	return "success"
+}
+
+func resetMetrics() {
+	// Reset slices
+	startMthDates = nil
+	endMthDates = nil
+	startMthNames = nil
+	seoMetricsRevenue = nil
+	seoMetricsVisits = nil
+	seoMetricsOrders = nil
+	seoOrderValue = nil
+	seoVisitValue = nil
+	visitsPerOrder = nil
+	kwKeywords = nil
+	kwMetricsCountUrls = nil
+	kwMetricsCountClicks = nil
+	kwMetricsCTR = nil
+	kwMetricsAvgPosition = nil
+	kwKeywordsNB = nil
+	kwMetricsCountClicksNB = nil
+	kwMetricsCTRNB = nil
+	kwMetricsAvgPositionNB = nil
+
+	// Reset integers and floats
+	totalVisits = 0
+	totalRevenue = 0
+	totalOrders = 0
+	totalVisitsPerOrder = 0.00
+	cmgrRevenue = 0.00
+	cmgrVisits = 0.00
+	cmgrVisitValue = 0.00
+	cmgrOrdersValue = 0.00
+	cmgrOrdersValueValue = 0.00
 }
 
 // Get the revenue, orders and visits data
-func getRevenueData(analyticsID string, startMthDates []string, endMthDates []string) {
+func getRevenueData(analyticsID string, startMthDates []string, endMthDates []string) string {
 
 	var metricsOrders = 0
 	var metricsRevenue = 0
@@ -337,7 +442,13 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	// Get monthly insights
 	for i := range startMthDates {
 
-		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue = generateRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+		getRevenueDataStatus := ""
+		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueDataStatus = generateRevenueBQL(analyticsID, startMthDates[i], endMthDates[i])
+
+		// Error checking
+		if getRevenueDataStatus == "errorNoEAFound" {
+			return getRevenueDataStatus
+		}
 
 		// Append the metrics to the slices
 		seoMetricsOrders = append(seoMetricsOrders, metricsOrders)
@@ -403,24 +514,26 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
 	fmt.Println("Average visits per order:", averageVisitsPerOrder)
+
+	return "success"
 }
 
 // Get the keywords data
-func getKeywordsData(startMthDates string, endMthDates string) {
+func getKeywordsCloudData(startMthDates string, endMthDates string) {
 
 	// Branded keywords
-	generateKeywordsBQL(startMthDates, endMthDates, "true")
+	generateKeywordsCloudBQL(startMthDates, endMthDates, "true")
 
 	// Non-branded keywords
-	generateKeywordsBQL(startMthDates, endMthDates, "false")
+	generateKeywordsCloudBQL(startMthDates, endMthDates, "false")
 
 }
 
 // Execute the BQL to acquire keywords data
-func generateKeywordsBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []float64, []float64) {
+func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag string) ([]string, []int, []int, []float64, []float64) {
 
 	// Get the keywords data. Define the BQL
-	bqlKeywords := fmt.Sprintf(`{
+	bqlCloudKeywords := fmt.Sprintf(`{
 		"collections": [
 						"search_console_by_property"
 		],
@@ -454,13 +567,13 @@ func generateKeywordsBQL(startDate string, endDate string, brandedFlag string) (
 	}`, startDate, endDate, brandedFlag)
 
 	// get the keywords data. Receiving top 50 keys here
-	responseData := executeBQL(noOfKWInCloud, bqlKeywords)
+	responseData := executeBQL(noOfKWInCloud, bqlCloudKeywords)
 
 	// Unmarshal JSON data into KeywordsData struct
 	var response KeywordsData
 	err := json.Unmarshal(responseData, &response)
 	if err != nil {
-		log.Fatalf("Error. generateKeywordsBQL. Cannot unmarshal the JSON: %v", err)
+		log.Fatalf(red+"Error. generateKeywordsCloudBQL. Cannot unmarshal the JSON: %v"+reset, err)
 		os.Exit(1)
 	}
 
@@ -487,18 +600,29 @@ func generateKeywordsBQL(startDate string, endDate string, brandedFlag string) (
 			}
 		}
 	}
-
+	//bloo check this
 	return kwKeywords, kwMetricsCountUrls, kwMetricsCountClicks, kwMetricsCTR, kwMetricsAvgPosition
 }
 
 // Execute the BQL for the specified date range
-func generateRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64) {
+func generateRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64, string) {
+
+	conversionCollection := ""
+	conversionTransactionField := ""
+	// GA4
+	conversionCollection = "conversion.dip"
+	conversionTransactionField = "transactions"
+	// Support for Adobe
+	if analyticsID == "visits.adobe" {
+		conversionCollection = "conversion"
+		conversionTransactionField = "orders"
+	}
 
 	// Get the revenue, no. Orders and visits
 	bqlRevTrans := fmt.Sprintf(`
 	{
     "collections": [
-                    "conversion.dip",
+                    "%s",
                     "%s"
     ],
     "periods": [
@@ -510,26 +634,26 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
     "query": {
         "dimensions": [],
         "metrics": [
-                    "conversion.dip.period_0.transactions",
-                    "conversion.dip.period_0.revenue",    
-                    "visits.dip.period_0.nb"
+                    "%s.period_0.%s",
+                    "%s.period_0.revenue",    
+                    "%s.period_0.nb"
         ],
         "filters": {
             "and": [
                 {
-                    "field": "conversion.dip.period_0.medium",
+                    "field": "%s.period_0.medium",
                     "predicate": "eq",
                     "value": "organic"
                 },
                 {
-                    "field": "visits.dip.period_0.medium",
+                    "field": "%s.period_0.medium",
                     "predicate": "eq",
                     "value": "organic"
            	     }
       	      ]
     	    }
  	   }
-	}`, analyticsID, startDate, endDate)
+	}`, conversionCollection, analyticsID, startDate, endDate, conversionCollection, conversionTransactionField, conversionCollection, analyticsID, conversionCollection, analyticsID)
 
 	// get the revenue and transaction
 	responseData := executeBQL(0, bqlRevTrans)
@@ -551,7 +675,9 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
-		fmt.Println(yellow + "Warning. generateRevenueBQL. Some data may default to 1 if it's the first day of the month." + reset)
+		fmt.Println(red+"Error. generateRevenueBQL. No engagement analytics (revenue, transactions & visits) has been configured for", orgName+"/"+projectName+reset)
+		getRevenueDataStatus := "errorNoEAFound"
+		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
 	} else {
 		metricsOrders = int(response.Results[0].Metrics[0])
 		metricsRevenue = int(response.Results[0].Metrics[1])
@@ -560,11 +686,24 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 		avgOrderValue = metricsRevenue / metricsOrders
 		avgVisitValue = float64(metricsRevenue) / float64(metricsVisits)
 	}
-	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue
+	getRevenueDataStatus := "success"
+	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueDataStatus
 }
 
 // Header for the dashboard
 func dashboardHeader() {
+
+	// 	Anonymous mode
+	if anonymousMode {
+		displayOrgName = "anonymized"
+		projectURL = "https://www.botify.com"
+	}
+
+	// 	Not anonymous mode
+	if !anonymousMode {
+		displayOrgName = orgName
+		projectURL = "https://app.botify.com/" + orgName + "/" + projectName
+	}
 
 	htmlContent := `
 <!DOCTYPE html>
@@ -644,17 +783,15 @@ func tableTotalsVisitsOrdersRevenue() {
         }
      .wrapper {
             display: flex;
-            justify-content: space-between; /* Distribute space between columns */
-            width: 80%; /* Adjust the width as needed */
+            justify-content: space-between;  
+            width: 70%;  
         }
         .column {
             flex: 1;
             text-align: center;
-            margin: 0 130px; /* Increase margin for more space between columns */
-        }
+            margin: 0 50px;  
         th, td {
-            padding: 4px; /* Adjust padding here */
-            font-size: 30px; /* Double the font size */
+            font-size: 25px;  
         }
         th {
             color: DimGray;
@@ -723,8 +860,8 @@ func barChartRevenueVisits() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "600px",
-			Height: "480px",
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 	)
@@ -736,6 +873,7 @@ func barChartRevenueVisits() {
 		AddSeries("Revenue", barDataRevenue).
 		AddSeries("Visits", barDataVisits).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
@@ -748,7 +886,7 @@ func lineChartVisitsPerOrder() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Avg. visits per order",
+			Title:    "Average visits per order",
 			Subtitle: "On average, how many organic visits are needed to generate one order?",
 			Link:     projectURL,
 		}),
@@ -758,8 +896,8 @@ func lineChartVisitsPerOrder() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "600px",
-			Height: "480px",
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisitsPerOrder}),
 	)
@@ -797,7 +935,7 @@ func barChartVisitValue() {
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Organic visit value",
-		Subtitle: "What is the value of a single organic visit to the site?",
+		Subtitle: "What is the value of a single organic visit?",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -808,8 +946,8 @@ func barChartVisitValue() {
 		}),
 		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "600px",
-			Height: "480px",
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourOrganicVisitValue}),
 	)
@@ -819,6 +957,7 @@ func barChartVisitValue() {
 	bar.SetXAxis(startMthNames).
 		AddSeries("Organic visit value", barDataVisitValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
@@ -834,7 +973,7 @@ func barChartOrders() {
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "No. of orders",
-		Subtitle: "How many orders are placed by organic visitors to your site?",
+		Subtitle: "How many orders are placed by organic visitors?",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -844,8 +983,8 @@ func barChartOrders() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "600px",
-			Height: "480px",
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourNoOfOrders}),
 	)
@@ -855,6 +994,7 @@ func barChartOrders() {
 	bar.SetXAxis(startMthNames).
 		AddSeries("No. of Orders", barDataOrders).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
@@ -870,7 +1010,7 @@ func barChartOrderValue() {
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Average order value",
-		Subtitle: "What is the average value of an order placed by an organic visitor to your site?",
+		Subtitle: "What is the average value of an order placed by an organic visitor?",
 		Link:     projectURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -880,8 +1020,8 @@ func barChartOrderValue() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "600px",
-			Height: "480px",
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourOrderValue}),
 	)
@@ -891,6 +1031,7 @@ func barChartOrderValue() {
 	bar.SetXAxis(startMthNames).
 		AddSeries("Order value", barDataOrderValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Avg", Type: "average"},
 		))
@@ -941,8 +1082,8 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid 
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "400px",
-			Height: "480px",
+			Width:  badgeDefaultWidth,
+			Height: badgeDefaultHeight,
 		}),
 	)
 
@@ -970,7 +1111,7 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 	return items
 }
 
-// Top 20 keywords for branded and non branded
+// Top keywords for branded and non branded
 func wordCloudBrandedUnbranded(brandedMode bool) {
 
 	// Generate the HTML for branded keywords
@@ -1003,22 +1144,23 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	if brandedMode {
-		wordcloudTitle = "Top branded keywords"
-		wordcloudSubTitle = "Branded keywords producing clicks to the site last month."
+		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noOfKWInCloud)
 	}
 	if !brandedMode {
-		wordcloudTitle = "Top non branded keywords"
-		wordcloudSubTitle = "Non branded keywords producing clicks to the site last month."
+		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noOfKWInCloud)
 	}
 
 	wc := charts.NewWordCloud()
 	wc.SetGlobalOptions(
-		// Remove the legend from the wordcloud
+		//  No options defined
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  wcDefaultWidth,
+			Height: wcDefaultHeight,
+		}),
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    wordcloudTitle,
-			Subtitle: wordcloudSubTitle,
-			Link:     projectURL,
+			Title: wordcloudTitle,
+			Link:  projectURL,
 		}))
 
 	// Generate the branded wordcloud
@@ -1028,21 +1170,30 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
 						SizeRange: []float32{10, 90},
-						Shape:     "cardioid",
+						Shape:     "basic",
 					}),
 			)
+
+		println("slice branded")
+		for i, keyword := range kwKeywords {
+			fmt.Printf("kwKeywords[%d]: %s\n", i, keyword)
+		}
 	}
 
 	// Generate the non-branded wordcloud
 	if !brandedMode {
-		wc.AddSeries("Keywords", generateWCData(kwKeywordsNB, kwMetricsCountClicks)).
+		wc.AddSeries("Keywords", generateWCDataNB(kwKeywordsNB, kwMetricsCountClicksNB)).
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
 						SizeRange: []float32{10, 90},
-						Shape:     "cardioid",
+						Shape:     "basic",
 					}),
 			)
+		println("slice NONbranded")
+		for i, keyword := range kwKeywordsNB {
+			fmt.Printf("kwKeywordsNB[%d]: %s\n", i, keyword)
+		}
 	}
 
 	return wc
@@ -1052,12 +1203,27 @@ func generateWCData(kwKeywords []string, kwMetricsCountClicks []int) (items []op
 
 	items = make([]opts.WordCloudData, 0)
 	// Iterate over kwKeywords and kwMetricsCountClicks slices starting from index 1
-	// We start at index 1 because the top keyword is generally significantly higher performing than the following keywords
+	// We start at index 1 because the top keyword is generally significantly higher performing than the following keywords and will distort the wordcloud if included
 	for i := 1; i < len(kwKeywords); i++ {
 		// Check if index is valid for kwMetricsCountClicks slice
 		if i < len(kwMetricsCountClicks) {
 			// Append WordCloudData struct with keyword and corresponding count
 			items = append(items, opts.WordCloudData{Name: kwKeywords[i], Value: kwMetricsCountClicks[i]})
+		}
+	}
+	return items
+}
+
+func generateWCDataNB(kwKeywordsNB []string, kwMetricsCountClicksNB []int) (items []opts.WordCloudData) {
+
+	items = make([]opts.WordCloudData, 0)
+	// Iterate over kwKeywords and kwMetricsCountClicks slices starting from index 1
+	// We start at index 1 because the top keyword is generally significantly higher performing than the following keywords and will distort the wordcloud if included
+	for i := 1; i < len(kwKeywordsNB); i++ {
+		// Check if index is valid for kwMetricsCountClicks slice
+		if i < len(kwMetricsCountClicksNB) {
+			// Append WordCloudData struct with keyword and corresponding count
+			items = append(items, opts.WordCloudData{Name: kwKeywordsNB[i], Value: kwMetricsCountClicksNB[i]})
 		}
 	}
 	return items
@@ -1095,8 +1261,8 @@ func generateRiverTime() *charts.ThemeRiver {
 		}),
 		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "600px",
-			Height: "480px",
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 	)
@@ -1168,12 +1334,12 @@ func gaugeBase(visitsPerOrder float64) *charts.Gauge {
 	gauge.SetGlobalOptions(
 		//  No options defined
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "500px",
-			Height: "500px",
+			Width:  gaugeDefaultWidth,
+			Height: gaugeDefaultHeight,
 		}),
 	)
 
-	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Average visits per order", Value: averageVisitsPerOrder}}, setMinMax)
+	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits / order", Value: averageVisitsPerOrder}}, setMinMax)
 
 	return gauge
 }
@@ -1221,6 +1387,8 @@ func winningKeywords(brandedMode bool) {
 	// Define the display values based on branded or non branded mode
 	var htmlKeyword = ""
 	var htmlClicks = ""
+	var htmlClickGap = 0
+	var htmlSecondPlaceKW = ""
 	var htmlCTR float64
 	var htmlAvgPosition float64
 
@@ -1230,6 +1398,8 @@ func winningKeywords(brandedMode bool) {
 	if brandedMode {
 		htmlKeyword = kwKeywords[0]
 		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicks[0])
+		htmlClickGap = int(((float64(kwMetricsCountClicks[0]) - float64(kwMetricsCountClicks[1])) / float64(kwMetricsCountClicks[1])) * 100)
+		htmlSecondPlaceKW = kwKeywords[1]
 		htmlCTR = kwMetricsCTR[0]
 		htmlAvgPosition = kwMetricsAvgPosition[0]
 		fmt.Printf(green + "\nBranded keywords\n" + reset)
@@ -1242,6 +1412,8 @@ func winningKeywords(brandedMode bool) {
 	if !brandedMode {
 		htmlKeyword = kwKeywordsNB[0]
 		htmlClicks = formatInteger.Sprintf("%d", kwMetricsCountClicksNB[0])
+		htmlClickGap = int(((float64(kwMetricsCountClicksNB[0]) - float64(kwMetricsCountClicksNB[1])) / float64(kwMetricsCountClicksNB[1])) * 100)
+		htmlSecondPlaceKW = kwKeywordsNB[1]
 		htmlCTR = kwMetricsCTRNB[0]
 		htmlAvgPosition = kwMetricsAvgPositionNB[0]
 		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
@@ -1276,15 +1448,13 @@ func winningKeywords(brandedMode bool) {
 	<p>
     <span class="keyword-font">
         The winning keyword was <span class="blueText">%s</span> during <b>%s</b>. 
-        This keyword generated <b>%s</b> clicks. The click-through rate was <b>%.2f%%</b> 
+        This keyword generated <b>%s</b> clicks and generated <b>%d%%</b> more clicks than the second placed keyword (<b>%s</b>). The click-through rate for the winning keyword was <b>%.2f%%</b> 
         from an average position of <b>%.2f</b>.
     </span>
-</p>
-
+	</p>
 </body>
-
 </html>
-`, htmlKeyword, htmlLastMonthName, htmlClicks, htmlCTR, htmlAvgPosition)
+`, htmlKeyword, htmlLastMonthName, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
 
 	// Define the HTML filename
 	if brandedMode {
@@ -1306,26 +1476,26 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 <head>
     <style>
         body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 18px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 18px; text-align: left; }
         th, td { padding: 12px; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; }
         th.title { color: Gray; font-weight: bold; }
         td { color: DimGray; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: HoneyDew; }
+		tr:hover { background-color: DeepSkyBlue; }
     </style>
 </head>
 <body style="min-height: 10vh;">
     <table>
         <thead>
             <tr>
-                <th class="title">Date</th>
-                <th class="title">No. of Orders</th>
-                <th class="title">Revenue</th>
-                <th class="title">Order Value</th>
-                <th class="title">No. of Visits</th>
-                <th class="title">Visit Value</th>
-                <th class="title">Visits per Order</th>
+                <th class="title" style="color: DeepSkyBlue;">Date</th>
+				<th class="title" style="color: DeepSkyBlue;">No. of Orders</th>
+                <th class="title" style="color: DeepSkyBlue;">Revenue</th>
+                <th class="title" style="color: DeepSkyBlue;">Order Value</th>
+                <th class="title" style="color: DeepSkyBlue;">No. of Visits</th>
+                <th class="title" style="color: DeepSkyBlue;">Visit Value</th>
+                <th class="title" style="color: DeepSkyBlue;">Visits per Order</th>
 
             </tr>
         </thead>
@@ -1346,18 +1516,101 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 	return htmlContent
 }
 
+func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
+
+	// Use the printer to format an integer (clicks)
+	formatInteger := message.NewPrinter(language.English)
+
+	htmlContent := `<!DOCTYPE html>
+<head>
+<style>
+body { font-family: Arial, sans-serif; }
+table { width: 100%; border-collapse: collapse; color: DimGray; margin: 5px 0; font-size: 18px; text-align: left;}
+th, td { padding: 12px; border-bottom: 1px solid #ddd;}
+th {  background-color: White; color: deepskyblue; }
+tr:nth-child(odd) { background-color: #f9f9f9 }
+tr:hover { background-color: DeepSkyBlue; }
+</style>
+</head>
+<body>
+<table>
+<tr>
+<table>
+<tr>
+<th>Keyword</th>
+<th>No. of Clicks</th>
+<th>CTR</th>
+<th>Average Position</th>
+</tr>`
+
+	// Branded keywords details
+	if brandedMode {
+		htmlContent += fmt.Sprintf("Top %d Branded keywords generating clicks", noOfTopKeywords)
+		for i := 0; i < noOfTopKeywords; i++ {
+			htmlContent += fmt.Sprintf("<tr>\n")
+			htmlContent += fmt.Sprintf("<td>%s</td>\n", kwKeywords[i])
+			kwMetricsCountClicksFormatted := formatInteger.Sprintf("%d", kwMetricsCountClicks[i])
+			htmlContent += fmt.Sprintf("<td>%s</td>\n", kwMetricsCountClicksFormatted)
+			htmlContent += fmt.Sprintf("<td>%.2f%%</td>\n", kwMetricsCTR[i])
+			htmlContent += fmt.Sprintf("<td>%.2f</td>\n", kwMetricsAvgPosition[i])
+			htmlContent += fmt.Sprintf("</tr>\n")
+		}
+	}
+
+	// Branded keywords details
+	if !brandedMode {
+		htmlContent += fmt.Sprintf("\n\nTop %d Non branded keywords generating clicks", noOfTopKeywords)
+		for i := 0; i < noOfTopKeywords; i++ {
+			htmlContent += fmt.Sprintf("<tr>\n")
+			htmlContent += fmt.Sprintf("<td>%s</td>\n", kwKeywordsNB[i])
+			kwMetricsCountClicksFormatted := formatInteger.Sprintf("%d", kwMetricsCountClicksNB[i])
+			htmlContent += fmt.Sprintf("<td>%s</td>\n", kwMetricsCountClicksFormatted)
+			htmlContent += fmt.Sprintf("<td>%.2f%%</td>\n", kwMetricsCTRNB[i])
+			htmlContent += fmt.Sprintf("<td>%.2f</td>\n", kwMetricsAvgPositionNB[i])
+			htmlContent += fmt.Sprintf("</tr>\n")
+		}
+	}
+
+	htmlContent += fmt.Sprintf("</table>\n")
+	htmlContent += fmt.Sprintf("</body>\n")
+	htmlContent += fmt.Sprintf("</html>\n")
+
+	// Save the HTML to a file
+	// Branded keywords details
+	if brandedMode {
+		saveHTML(htmlContent, "./seoDataInsightKeywordsKPIsBranded.html")
+	}
+	// Branded keywords details
+	if !brandedMode {
+		saveHTML(htmlContent, "./seoDataInsightKeywordsKPIsNonBranded.html")
+	}
+}
+
+// Footer notes
 func footerNotes() {
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"Only complete months are included in the analysis",
 		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a business metric over a monthly basis taking into account the compounding effect",
-		"The keyword wordcloud includes the top 50 keywords for the preceding month",
+		"The keyword wordcloud includes the top 20 keywords for the preceding month",
 	}
 
 	// Generate HTML content
-	htmlContent := "<html>\n<head>\n<title>Footer Notes</title>\n</head>\n<body>\n<ul>\n"
-
+	htmlContent := `<html>
+<head>
+</head>
+	<style>
+		body {
+		font-family: Arial, sans-serif;
+		font-size: 15px;
+		color: LightSlateGray;
+		}
+	</style>
+<body>
+    <ul>
+    <hr>
+`
 	for _, note := range footerNotesStrings {
 		htmlContent += fmt.Sprintf("<li>%s</li>\n", note)
 	}
@@ -1396,7 +1649,7 @@ func saveHTML(genHTML string, genFilename string) {
 	}
 }
 
-// Define the HTML for the Go_Seo_Dashboard.html container. Used to consolidate the generated charts into a single page.
+// Define the HTML for the go_Seo_Dashboard.html container. Used to consolidate the generated charts into a single page.
 func generateDashboard() {
 
 	htmlContent := `
@@ -1429,7 +1682,7 @@ func generateDashboard() {
             color: LightSlateGray;
             text-align: center;
             padding: 5px;
-            margin: 20px auto;
+            margin: 5px auto;
             font-size: 22px;
             border-radius: 10px;
             width: 90%;
@@ -1439,12 +1692,11 @@ func generateDashboard() {
             flex-wrap: wrap;
             align-items: center;
             gap: 20px;
-            margin: 20px auto;
+            margin: 5px auto;
             width: 90%;
         }
         .iframe-container.row {
             flex-wrap: nowrap;
-            overflow-x: auto;
         }
         iframe {
             flex: 1 1 auto;
@@ -1460,11 +1712,50 @@ func generateDashboard() {
             border: none;
         }
         .column iframe {
-            height: 700px;
+            height: 500px;
         }
         a {
             color: white;
             text-decoration: none;
+        }
+.badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin: 5px auto;
+            width: 90%;
+        }
+        .badge-container.row {
+            flex-wrap: nowrap;
+        }
+        iframe {
+            flex: 1 1 auto;
+            min-width: 200px;
+            width: 100%;
+            border: 2px solid LightGray;
+            border-radius: 10px;
+        }
+        .badge-container.row iframe {
+            height: 350px;
+        }
+.back-button {
+            padding: 12px 24px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
     </style>
 </head>
@@ -1473,8 +1764,18 @@ func generateDashboard() {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 12px;">Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO">https://github.com/flaneur7508/Go_SEO</a></span>
+    <span style="font-size: 20px;">Business insights dashboard</span>
 </header>
+
+<!-- Back Button -->
+<button class="back-button" onclick="goHome()">New dashboard</button>
+
+<script>
+    function goHome() {
+        window.open('http://localhost:8080/', '_blank');
+    }
+</script>
+
 
 <!-- Header for the totals display -->
 <section class="iframe-container row no-border">
@@ -1483,77 +1784,88 @@ func generateDashboard() {
 
 <!-- Totals of visits, orders & revenue -->
 <section class="iframe-container row no-border">
-    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Totals" style="height: 100px;"></iframe>
+    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Totals" style="height: 120px;"></iframe>
 </section>
-
-<!-- Title bar -->
-<div class="title">Organic visits' impact on your business</div>
-
-<!-- Revenue & visits badges and visits per order gauge -->
-<section class="iframe-container row">
-    <iframe src="seoCMGRRevenue.html" title="CMGR Revenue"></iframe>
-    <iframe src="seoCMGRVisits.html" title="CMGR Visits"></iframe>
-    <iframe src="seoGauge.html" title="Visits per order gauge"></iframe>
-</section>
-
-<!-- Title bar -->
-<div class="title">Compound growth rate for your key performance indicators</div>
-
-<!-- Badges for visits, orders and order value -->
-<section class="iframe-container row">
-    <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value"></iframe>
-    <iframe src="seoCMGROrders.html" title="CMGR Orders"></iframe>
-    <iframe src="seoCMGROrderValue.html" title="CMGR Order Value"></iframe>
-</section>
-
-<!-- Header bar -->
-<div class="title">Revenue & visit contribution over time</div>
 
 <!-- Bar chart for revenue & visits and line chart for visits per order -->
 <section class="iframe-container row">
     <iframe src="seoRevenueVisitsBar.html" title="Revenue & visits"></iframe>
-    <iframe src="seoVisitsPerOrderLine.html" title="Visits per order"></iframe>
 </section>
 
-<!-- Header bar -->
-<div class="title">Order trends</div>
+<!-- Bar chart for revenue & visits and line chart for visits per order -->
+<section class="badge-container row">
+    <iframe src="seoCMGRRevenue.html" title="CMGR Revenue"></iframe>
+    <iframe src="seoCMGRVisits.html" title="CMGR Visits"></iframe>
+</section>
+
+<section class="iframe-container row">
+    <iframe src="seoVisitsPerOrderLine.html" title="Visits per order"></iframe>
+</section>
 
 <!-- Orders and order value bar charts -->
 <section class="iframe-container row">
     <iframe src="seoOrdersBar.html" title="No. of orders"></iframe>
-    <iframe src="seoOrderValueBar.html" title="Order value"></iframe>
 </section>
 
-<!-- Header bar -->
-<div class="title">Organic visits trending</div>
+<section class="badge-container row">
+    <iframe src="seoGauge.html" title="Visits per order gauge"></iframe>
+    <iframe src="seoCMGROrders.html" title="CMGR Orders"></iframe>
+</section>
+
+<!-- Orders and order value bar charts -->
+<section class="iframe-container row">
+    <iframe src="seoOrderValueBar.html" title="Order value"></iframe>
+</section>
 
 <!-- Revenue/Visits river chart and visit value bar chart -->
 <section class="iframe-container row">
     <iframe src="seoVisitsRevenueRiver.html" title="Revenue & visits"></iframe>
+</section>
+
+<!-- Revenue/Visits river chart and visit value bar chart -->
+<section class="iframe-container row">
     <iframe src="seoVisitValueBar.html" title="Organic visit value"></iframe>
 </section>
 
-<!-- Header bar -->
-<div class="title">Which keywords are delivering traffic to the site?</div>
-
-<!-- Wordclouds for top keywords -->
-<section class="iframe-container row no-border">
-    <iframe src="seoWordCloudBranded.html" title="Branded Keyword wordcloud" style="height: 550px; font-size: 10px;"></iframe>
-    <iframe src="seoWordCloudNonBranded.html" title="Non Branded Keyword wordcloud" style="height: 550px; font-size: 10px;"></iframe>
+<!-- Revenue/Visits river chart and visit value bar chart -->
+<section class="badge-container row">
+    <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value"></iframe>
+    <iframe src="seoCMGROrderValue.html" title="CMGR Order Value"></iframe>
 </section>
-
-<!-- Winning keywords -->
-<section class="iframe-container row no-border">
-    <iframe src="seoWinningKeywordBranded.html" title="Winning branded keyword" style="height: 150px; font-size: 10px;"></iframe>
-    <iframe src="seoWinningKeywordNonBranded.html" title="Winning non Branded keyword" style="height: 150px; font-size: 10px;"></iframe>
-</section>
-
-<!-- Header bar -->
-<div class="title">Detailed insights</div>
 
 <!-- KPI details table-->
 <section class="iframe-container row no-border">
-    <iframe src="seoDataInsightDetailKPIs.html" title="KPIs"></iframe>
+    <iframe src="seoDataInsightDetailKPIs.html" style="height: 630px; title="KPIs"></iframe>
+</section>
+
+<!-- Wordclouds for top keywords -->
+<section class="iframe-container row no-border">
+    <iframe src="seoWordCloudBranded.html" title="Branded Keyword wordcloud" style="height: 700px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Wordclouds for top keywords -->
+<section class="iframe-container row no-border">
+    <iframe src="seoWinningKeywordBranded.html" title="Winning branded keyword" style="height: 150px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Wordclouds for top keywords -->
+<section class="iframe-container row no-border">
+    <iframe src="seoWordCloudNonBranded.html" title="Non Branded Keyword wordcloud" style="height: 700px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Wordclouds for top keywords -->
+<section class="iframe-container row no-border">
+    <iframe src="seoWinningKeywordNonBranded.html" title="Winning non Branded keyword" style="height: 150px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Keywords insights for top keywords - Branded-->
+<section class="iframe-container row no-border">
+    <iframe src="seoDataInsightKeywordsKPIsBranded.html" title="Branded keyword insights"; style="height: 600px; font-size: 10px;"></iframe>
+</section>
+
+<!-- Keywords insights for top keywords - Non branded -->
+<section class="iframe-container row no-border">
+    <iframe src="seoDataInsightKeywordsKPIsNonBranded.html" title="Branded keyword insights"; style="height: 600px; font-size: 10px;"></iframe>
 </section>
 
 <!-- Footer notes -->
@@ -1570,7 +1882,7 @@ func generateDashboard() {
 </html>`
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./Go_Seo_Dashboard.html")
+	saveHTML(htmlContent, "./go_Seo_Dashboard.html")
 
 }
 
@@ -1691,7 +2003,6 @@ func computeCMGR(values []float64) float64 {
 func getAnalyticsID() string {
 	// First identify which analytics tool is integrated
 	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
-	//fmt.Println(bold+"\nAnalytics ID end point:"+reset, urlAPIAnalyticsID)
 	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
 
 	// Define the headers
@@ -1708,7 +2019,7 @@ func getAnalyticsID() string {
 	}
 	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
-		log.Fatal("Error. getAnalyticsID. Error: ", errorCheck)
+		log.Fatal(red+"Error. getAnalyticsID. Error: "+reset, errorCheck)
 	}
 	defer resp.Body.Close()
 
@@ -1721,7 +2032,8 @@ func getAnalyticsID() string {
 	// Unmarshal the JSON data into the struct
 	var analyticsIDs []AnalyticsID
 	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
-		log.Fatal(red+"Error. getAnalyticsID. Cannot unmarshall the JSON: "+reset, err)
+		fmt.Println(red+"Error. getAnalyticsID. The organisation and/or project name are probably incorrect. Cannot unmarshall the JSON:: "+reset, err)
+		return "errorNoProjectFound"
 	}
 
 	// Find and print the name value when the ID contains the word "visit"
@@ -1731,7 +2043,7 @@ func getAnalyticsID() string {
 			return analyticsID.ID
 		}
 	}
-	return "noAnalyticsFound"
+	return "errorNoAnalyticsIntegrated"
 }
 
 // Get the date ranges for the revenue and visits
@@ -1742,7 +2054,7 @@ func calculateDateRanges() DateRanges {
 	// Calculate the date ranges for the last 12 months
 	for i := 0; i < 12; i++ {
 		// Calculate the start and end dates for the current range
-		// Adjust to the previous month. We doint caount the current month.
+		// Adjust to the previous month. We don't count the current month.
 		prevMonth := currentTime.AddDate(0, -1, 0)
 
 		// Start of the previous month range
@@ -1774,6 +2086,97 @@ func calculateDateRanges() DateRanges {
 	return DateRanges{MonthlyRanges: dateRanges}
 }
 
+// Define the error page
+func generateErrorPage(displayMessage string) {
+
+	// If displayMessage is empty or nil display a default error message.
+	if displayMessage == "" {
+		displayMessage = "An Unknown error has occurred" // Provide a default message if needed
+	}
+
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go_Seo Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: Cornsilk;
+        }
+        .banner {
+            background-color: DeepSkyBlue;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+        }
+        .banner.top {
+            font-size: 24px;
+        }
+        .back-button {
+            padding: 12px 24px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+		.error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            padding: 100px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Banner -->
+<header class="banner top">
+    <span>Go_Seo</span><br>
+    <span style="font-size: 20px;">Business insights dashboard</span>
+</header>
+
+<!-- Back Button -->
+<button class="back-button" onclick="goHome()">Try again</button>
+
+<!-- Error message -->
+<div class="error-message" id="error-message">
+    %s
+</div>
+
+<script>
+    function goHome() {
+        window.open('http://localhost:8080/', '_blank');
+    }
+</script>
+
+</body>
+</html>`, displayMessage)
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./go_seo_errorPage.html")
+
+}
+
 // Display the welcome banner
 func displayBanner() {
 
@@ -1802,7 +2205,11 @@ func displayBanner() {
 	fmt.Println(purple+"Version:"+reset, version)
 
 	fmt.Println(green + "\nThe Go_Seo dashboard server is ON.\n" + reset)
-	fmt.Println("Go to http://localhost:8080 to view the dashboard")
+
+	now := time.Now()
+	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(green + "Server started at " + formattedTime + reset)
+
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 
 }

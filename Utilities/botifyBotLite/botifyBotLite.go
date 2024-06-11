@@ -116,8 +116,8 @@ func validateCrawlmeTxt() {
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
-		if !strings.HasPrefix(line, "https://www.") {
-			// If a line does not start with "https://www."
+		if !strings.HasPrefix(line, "https://") {
+			// If a line does not start with "https://"
 			foundInvalid = true
 			fmt.Println("URL incorrectly formatted:", line)
 		}
