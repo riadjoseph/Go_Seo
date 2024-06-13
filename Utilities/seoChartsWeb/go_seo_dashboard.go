@@ -5,6 +5,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -40,6 +42,7 @@ var lineSeparator = "█" + strings.Repeat("█", 129)
 var kpiColourRevenue = "Coral"
 var kpiColourVisits = "Green"
 var kpiColourVisitsPerOrder = "DarkGoldenRod"
+var kpiColourRevenueProjection = "Orange"
 var kpiColourOrganicVisitValue = "CornflowerBlue"
 var kpiColourNoOfOrders = "IndianRed"
 var kpiColourOrderValue = "MediumSlateBlue"
@@ -56,6 +59,9 @@ type DateRanges struct {
 
 // Slice used to store the month names
 var startMthNames []string
+
+// Slice used to store projected revenue values
+var projectionRevenue []int
 
 // KeywordsData struct used to store Keywords dimensions and metrics
 type KeywordsData struct {
@@ -103,6 +109,7 @@ var cmgrOrdersValueValue float64
 var totalVisits int
 var totalRevenue int
 var totalOrders int
+var totalAverageOrderValue int
 
 // Slices used  to store the visits per order for each month
 var visitsPerOrder []int
@@ -139,7 +146,7 @@ var maxVisitsPerOrder = 0
 var noOfMonths = 0
 
 // Average visits per order
-var averageVisitsPerOrder = 0
+var totalAverageVisitsPerOrder = 0
 
 // The number of keywords to include in the wordcloud
 var noOfKWInCloud = 50
@@ -159,6 +166,14 @@ var badgeDefaultHeight = "95vh"
 
 var gaugeDefaultWidth = "96vw"
 var gaugeDefaultHeight = "96vh"
+
+// Define the increment and the maximum value
+var projectionIncrement = 10000
+var projectionMaxVisits = 1000000
+
+// Slices used to store the visit increment values
+var projectionVisitIncrements []int
+var projectionVisitIncrementsString []string
 
 func main() {
 
@@ -182,11 +197,19 @@ func main() {
 		orgName = organization
 		projectName = project
 
+		// Generate a session ID used for grouping log entries
+		sessionID, err := generateLogSessionID(8)
+		if err != nil {
+			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
+		}
+
 		// Get revenue, visits, orders and keyword data
-		dataStatus := getSeoInsights()
+		dataStatus := getSeoInsights(sessionID)
 
 		// An invalid org/project name has been specified
 		if dataStatus == "errorNoProjectFound" {
+			// Write to the log
+			writeLog(sessionID, orgName, projectName, "-", "No project found")
 			generateErrorPage("No project found. Try another organisation and project name. (" + orgName + "/" + projectName + ")")
 			http.Redirect(w, r, "go_seo_errorPage.html", http.StatusFound)
 			return
@@ -194,6 +217,8 @@ func main() {
 
 		// No analytics tool has been integrated
 		if dataStatus == "errorNoAnalyticsIntegrated" {
+			// Write to the log
+			writeLog(sessionID, orgName, projectName, "-", "No analytics found")
 			generateErrorPage("No analytics tool has been integrated into the specified project (" + orgName + "/" + projectName + ")")
 			http.Redirect(w, r, "go_seo_errorPage.html", http.StatusFound)
 			return
@@ -201,6 +226,8 @@ func main() {
 
 		// Engagement analytics has not been configured
 		if dataStatus == "errorNoEAFound" {
+			// Write to the log
+			writeLog(sessionID, orgName, projectName, "-", "No revenue data found")
 			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + orgName + "/" + projectName + ")")
 			http.Redirect(w, r, "go_seo_errorPage.html", http.StatusFound)
 			return
@@ -208,6 +235,9 @@ func main() {
 
 		// Generate the dashboard HTML
 		goSeoDashboard()
+
+		// Write to the log
+		writeLog(sessionID, orgName, projectName, "-", "Dashboard generated")
 
 		// Respond to the client with a success message or redirect to another page
 		http.Redirect(w, r, "go_seo_dashboard.html", http.StatusFound)
@@ -270,6 +300,13 @@ func goSeoDashboard() {
 	// KPI details table
 	tableDataDetail()
 
+	// Revenue projection
+	// Revenue projection line chart
+	lineChartRevenueProjection()
+
+	// Projection narrative
+	projectionNarrative()
+
 	// Footer notes
 	footerNotes()
 
@@ -295,9 +332,10 @@ func goSeoDashboard() {
 
 }
 
-func getSeoInsights() string {
+func getSeoInsights(sessionID string) string {
 
 	fmt.Println(purple + bold + "\nGetting SEO insights" + reset)
+	fmt.Println("Session ID:", sessionID)
 
 	// Get the date ranges
 	dateRanges := calculateDateRanges()
@@ -340,11 +378,11 @@ func getSeoInsights() string {
 
 	// Error checking
 	if getRevenueDataStatus == "errorNoEAFound" {
-		println("error2")
-		println(getRevenueDataStatus)
-
 		return getRevenueDataStatus
 	}
+
+	// Write to the log. Data acquired
+	writeLog(sessionID, orgName, projectName, analyticsID, "Revenue data acquired")
 
 	// Get the keywords data
 	// Get last months' date range
@@ -353,8 +391,14 @@ func getSeoInsights() string {
 
 	getKeywordsCloudData(kwStartDate, kwEndDate)
 
+	// Write to the log. Data acquired
+	writeLog(sessionID, orgName, projectName, analyticsID, "Keyword data acquired")
+
 	// Calculate the CMGR values
 	calculateCMGR()
+
+	// Calculate the projections
+	projectionDataCompute()
 
 	return "success"
 }
@@ -368,6 +412,7 @@ func resetMetrics() {
 	seoMetricsVisits = nil
 	seoMetricsOrders = nil
 	seoOrderValue = nil
+	totalAverageOrderValue = 0
 	seoVisitValue = nil
 	visitsPerOrder = nil
 	kwKeywords = nil
@@ -451,7 +496,7 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	}
 
 	if len(visitsPerOrder) > 0 {
-		averageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
+		totalAverageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
 	}
 
 	// Get the min and max visits per order
@@ -470,11 +515,25 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		}
 	}
 
+	// Calculate the average order value for all months
+	var totalOrderValue = 0
+	var mthAverageOrderValue = 0
+	// Sum the total of averages
+	for _, mthAverageOrderValue = range seoOrderValue {
+		totalOrderValue += mthAverageOrderValue
+	}
+	// Calculate the average of averages. Ensure there is no division by zero
+	totalAverageOrderValue = 0
+	if len(seoOrderValue) > 0 {
+		totalAverageOrderValue = totalOrderValue / len(seoOrderValue)
+	}
+
 	fmt.Println(green + "\nTotals" + reset)
 	fmt.Println("Total visits:", totalVisits)
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
-	fmt.Println("Average visits per order:", averageVisitsPerOrder)
+	fmt.Println("Total average order value:", totalAverageOrderValue)
+	fmt.Println("Average visits per order:", totalAverageVisitsPerOrder)
 
 	return "success"
 }
@@ -535,7 +594,6 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 	err := json.Unmarshal(responseData, &response)
 	if err != nil {
 		log.Fatalf(red+"Error. generateKeywordsCloudBQL. Cannot unmarshal the JSON: %v"+reset, err)
-		os.Exit(1)
 	}
 
 	// Load the response into the slices - branded keywords
@@ -544,8 +602,8 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
 				kwKeywords = append(kwKeywords, result.Dimensions[0].(string))
 				kwMetricsCountClicks = append(kwMetricsCountClicks, int(*result.Metrics[0]))
-				kwMetricsAvgPosition = append(kwMetricsAvgPosition, float64(*result.Metrics[1]))
-				kwMetricsCTR = append(kwMetricsCTR, float64(*result.Metrics[2]))
+				kwMetricsAvgPosition = append(kwMetricsAvgPosition, *result.Metrics[1])
+				kwMetricsCTR = append(kwMetricsCTR, *result.Metrics[2])
 			}
 		}
 	}
@@ -556,8 +614,8 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
 				kwKeywordsNB = append(kwKeywordsNB, result.Dimensions[0].(string))
 				kwMetricsCountClicksNB = append(kwMetricsCountClicksNB, int(*result.Metrics[0]))
-				kwMetricsAvgPositionNB = append(kwMetricsAvgPositionNB, float64(*result.Metrics[1]))
-				kwMetricsCTRNB = append(kwMetricsCTRNB, float64(*result.Metrics[2]))
+				kwMetricsAvgPositionNB = append(kwMetricsAvgPositionNB, *result.Metrics[1])
+				kwMetricsCTRNB = append(kwMetricsCTRNB, *result.Metrics[2])
 			}
 		}
 	}
@@ -874,7 +932,12 @@ func lineChartVisitsPerOrder() {
 	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder)
 
 	line.SetXAxis(startMthNames).AddSeries("Month", lineVisitsPerOrderValue).SetSeriesOptions(
-
+		charts.WithAreaStyleOpts(opts.AreaStyle{
+			Opacity: 0.2,
+		}),
+		charts.WithLineChartOpts(opts.LineChart{
+			Smooth: opts.Bool(true),
+		}),
 		charts.WithMarkPointNameTypeItemOpts(
 			opts.MarkPointNameTypeItem{Name: "Maximum visits per order", Type: "max"},
 			opts.MarkPointNameTypeItem{Name: "Average visits per order", Type: "average"},
@@ -1307,8 +1370,8 @@ func gaugeBase() *charts.Gauge {
 		}),
 	)
 
-	//gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits / order", Value: averageVisitsPerOrder}}, setMinMax)
-	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Value: averageVisitsPerOrder}}, setMinMax)
+	//gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits / order", Value: totalAverageVisitsPerOrder}}, setMinMax)
+	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
 	return gauge
 }
@@ -1425,10 +1488,10 @@ func winningKeywords(brandedMode bool) {
             font-family: 'Arial', sans-serif;
             font-size: 18px;
             color: LightSlateGray;
-            line-height: 1.6; /* Better line spacing for readability bloo */
+            line-height: 1.6; 
         }
         b {
-            color: #333; /* Darker color for bold text */
+            color: #333;
         }
     </style>
 </head>
@@ -1456,7 +1519,6 @@ func winningKeywords(brandedMode bool) {
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
-
 }
 
 // generateHTML generates the HTML content for the table
@@ -1465,16 +1527,42 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 18px; text-align: left; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        th.title { color: Gray; font-weight: bold; }
-        td { color: DimGray; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-		tr:hover { background-color: DeepSkyBlue; }
-    </style>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 18px;
+        text-align: left;
+    }
+    th, td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    th.title {
+        color: gray;
+        font-weight: bold;
+    }
+    td {
+        color: dimgray;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    tr:hover {
+        background-color: deepskyblue;
+    }
+    h2 {
+        color: dimgray;
+        margin-bottom: 20px;
+    }
+</style>
 </head>
 <body style="min-height: 10vh;">
     <table>
@@ -1490,6 +1578,11 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
             </tr>
         </thead>
         <tbody>`
+
+	// Title
+	htmlContent += fmt.Sprintf("<h2>\n\nMonthly summary for the previous %d months</h2>", noOfMonths)
+
+	// Insert tke KPI details
 	for _, row := range data {
 		htmlContent += "<tr>"
 		for _, cell := range row {
@@ -1606,12 +1699,165 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 	}
 }
 
+// generate the slice containing the projected revenue data
+func projectionDataCompute() {
+
+	// First create a slice containing the visit ranges
+	numElements := projectionMaxVisits/projectionIncrement + 1
+	projectionVisitIncrements = make([]int, numElements)
+	projectionVisitIncrementsString = make([]string, numElements)
+
+	// Populate the slice with the visit ranges
+	formatInteger := message.NewPrinter(language.English)
+
+	for i := 0; i < numElements; i++ {
+		projectionVisitIncrements[i] = i * projectionIncrement
+		// Create a formatted String version for use in the chart XAxis
+		projectionVisitIncrementsString[i] = formatInteger.Sprintf("%d", projectionVisitIncrements[i])
+	}
+
+	// Create a slice to hold the projection revenue values
+	projectionRevenue = make([]int, numElements)
+	// Populate the projection revenue slice
+	for i := 0; i < numElements; i++ {
+		projectionRevenue[i] = projectionVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValue
+	}
+}
+
+// Revenue projection line chart
+func lineChartRevenueProjection() {
+	line := charts.NewLine()
+	line.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title:    "Revenue projection",
+			Subtitle: "What is the revenue potential of increasing the number of organic visits?",
+			Link:     projectURL,
+		}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 0,
+			End:   100,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:  chartDefaultWidth,
+			Height: chartDefaultHeight,
+		}),
+
+		charts.WithColorsOpts(opts.Colors{kpiColourRevenueProjection}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	// Pass visitsPerOrder directly to generaLineItems
+	lineVisitsPerOrderValue := generateLineItemsRevenueProjection(projectionRevenue)
+
+	line.SetXAxis(projectionVisitIncrementsString).AddSeries("Revenue projection", lineVisitsPerOrderValue).SetSeriesOptions(
+
+		charts.WithAreaStyleOpts(opts.AreaStyle{
+			Opacity: 0.2,
+		}),
+		charts.WithLineChartOpts(opts.LineChart{
+			Smooth: opts.Bool(true),
+		}),
+		charts.WithMarkPointNameTypeItemOpts(
+			opts.MarkPointNameTypeItem{Name: "Maximum revenue", Type: "max"},
+			opts.MarkPointNameTypeItem{Name: "Average revenue", Type: "average"},
+			opts.MarkPointNameTypeItem{Name: "Minimum revenue", Type: "min"},
+		),
+		charts.WithMarkPointStyleOpts(
+			opts.MarkPointStyle{Label: &opts.Label{Show: opts.Bool(true)}},
+		),
+	)
+
+	f, _ := os.Create("./seoVisitsPerOrderLineRevenueProjection.html")
+	line.Render(f)
+}
+
+// Populate the chart with the revenue projection data
+func generateLineItemsRevenueProjection(projectionRevenue []int) []opts.LineData {
+	items := make([]opts.LineData, len(projectionRevenue))
+	for i, val := range projectionRevenue {
+		items[i] = opts.LineData{Value: val}
+	}
+	return items
+}
+
+func projectionNarrative() {
+
+	var htmlFileName = ""
+
+	var noOfOrderVisits = projectionIncrement / totalAverageVisitsPerOrder
+	var projectedRevenue = noOfOrderVisits * totalAverageOrderValue
+
+	// HTML content for the revenue projection narrative
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: Cornsilk;
+        }
+        .content {
+            max-width: 600px;
+            text-align: center;  
+            padding-bottom: 40px; 
+        }
+        .blueText {
+            color: DeepSkyBlue;
+            font-size: 25px;
+            font-weight: bold;  
+        }
+        .keyword-font {
+            font-family: 'Arial', sans-serif;
+            font-size: 18px;
+            color: LightSlateGray;
+            line-height: 1.6; 
+        }
+        b {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+	<div class="content">
+		<p class="keyword-font">
+			On average over the period the number of visits required in order to generate one order is 
+			<span class="blueText">%d</span>. For each additional 
+			<span class="blueText">%d</span> visits, we can project 
+			<span class="blueText">%d</span> orders will be placed. With an average 
+			order value of <span class="blueText">%d</span>, the projected 
+			incremental revenue for <span class="blueText">%d</span> visits will be 
+			<span class="blueText">%d</span>.
+		</p>
+	</div>
+</body>
+</html>
+`, totalAverageVisitsPerOrder, projectionIncrement, noOfOrderVisits, totalAverageOrderValue,
+		projectionIncrement, projectedRevenue,
+	)
+
+	// Define the HTML filename
+	htmlFileName = "./seoVisitsPerOrderLineRevenueProjectionNarrative.html"
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, htmlFileName)
+
+}
+
 // Footer notes
 func footerNotes() {
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
-		"The insights presented here are based on the previous month",
+		"These current month is not included in the analysis, only full months are reported on",
 		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
 	}
 
@@ -1826,6 +2072,11 @@ func generateDashboard() {
     <iframe src="seoOrdersBar.html" title="No. of orders"></iframe>
 </section>
 
+<section class="iframe-container row">
+    <iframe src="seoVisitsPerOrderLineRevenueProjection.html" title="Revenue projection"></iframe>
+    <iframe src="seoVisitsPerOrderLineRevenueProjectionNarrative.html" title="Visits per order"></iframe>
+</section>
+
 <section class="badge-container row">
     <iframe src="seoGauge.html" title="Visits per order gauge"></iframe>
     <iframe src="seoCMGROrders.html" title="CMGR Orders"></iframe>
@@ -1970,7 +2221,7 @@ func calculateCMGR() {
 	// Visit value
 	var seoMetricsVisitValueFloat []float64
 	for _, v := range seoVisitValue {
-		seoMetricsVisitValueFloat = append(seoMetricsVisitValueFloat, float64(v))
+		seoMetricsVisitValueFloat = append(seoMetricsVisitValueFloat, v)
 	}
 	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat)
 
@@ -2194,6 +2445,54 @@ func generateErrorPage(displayMessage string) {
 	// Save the HTML to a file
 	saveHTML(htmlContent, "./go_seo_errorPage.html")
 
+}
+
+func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription string) {
+	// Define log file name
+	fileName := "_seoDashboardlogfile.log"
+
+	// Check if the log file exists
+	fileExists := true
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		fileExists = false
+	}
+
+	// Open or create the log file
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf(red+"Error. writeLog. Cannot oprn log file: %s"+reset, err)
+	}
+	defer file.Close()
+
+	// Get current time
+	currentTime := time.Now().Format("2006-01-02 15:04:05")
+
+	// Construct log record
+	logRecord := fmt.Sprintf("%s,%s,%s,%s,%s,%s\n",
+		sessionID, currentTime, orgName, projectName, analyticsID, statusDescription)
+
+	// If the file doesn't exist, write header first
+	if !fileExists {
+		header := "SessionID,Date,Organisation,Project,AnalyticsID,Status\n"
+		if _, err := file.WriteString(header); err != nil {
+			log.Fatalf(red+"Error. writeLog. Failed to write log header: %s"+reset, err)
+		}
+	}
+
+	// Write log record to file
+	if _, err := file.WriteString(logRecord); err != nil {
+		log.Fatalf(red+"Error. writeLog. Cannot write to log file: %s", err)
+	}
+}
+
+func generateLogSessionID(length int) (string, error) {
+	// Generate random bytes
+	sessionIDLength := make([]byte, length)
+	if _, err := rand.Read(sessionIDLength); err != nil {
+		return "", err
+	}
+	// Encode bytes to base64 string
+	return base64.URLEncoding.EncodeToString(sessionIDLength), nil
 }
 
 // Display the welcome banner
