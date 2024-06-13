@@ -48,6 +48,9 @@ var projectSlug = ""
 // Error detection
 var err error
 
+// No of URLs found in crawlme.txt
+var urlsFound = 0
+
 func main() {
 
 	clearScreen()
@@ -89,7 +92,7 @@ func main() {
 
 // Check of crawlme.txt exists. If not exit.
 func checkCrawlmeTxt() {
-	if _, err := os.Stat("crawlme.txt"); os.IsNotExist(err) {
+	if _, err := os.Stat("./crawlme.txt"); os.IsNotExist(err) {
 		fmt.Printf(red + "\nError. checkCrawlmeTxt. No " + bold + "crawlme.txt" + reset + red + " found. Crawls cannot be generated.\n" + reset)
 		os.Exit(1)
 	}
@@ -121,6 +124,8 @@ func validateCrawlmeTxt() {
 			foundInvalid = true
 			fmt.Println("URL incorrectly formatted:", line)
 		}
+		urlsFound++
+
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -130,10 +135,11 @@ func validateCrawlmeTxt() {
 
 	// Exit with error code 0 if any invalid lines were found
 	if foundInvalid {
-		fmt.Println(red + "\nCorrect the formatting of the URLs above and try again. Remember all URLs must start with " + bold + "https://www." + reset)
+		fmt.Println(red + "\nCheck your crawlme.txt file, correct the formatting of the URLs above and try again. Remember all URLs must start with " + bold + "https://" + reset)
 		os.Exit(0)
 	} else {
 		fmt.Println(green + "\ncrawlme.txt validated successfully\n" + reset)
+		fmt.Printf("\nNo. of sites to crawl: %d\n", urlsFound)
 	}
 }
 
@@ -359,7 +365,7 @@ func extractDomain(url string) string {
 func checkCrawlParameters() {
 	if len(os.Args) < 3 {
 		configInput = true
-		fmt.Print("\nEnter your crawl settings. Press" + green + " Enter " + reset + "to exit botifyBotLite" +
+		fmt.Print("\n\nEnter your crawl settings. Press" + green + " Enter " + reset + "to exit botifyBotLite" +
 			"\n")
 		fmt.Print(purple + "\nEnter the project prefix: " + reset)
 		fmt.Scanln(&projectPrefixInput)
