@@ -23,6 +23,164 @@ import (
 	"time"
 )
 
+type botifyResponse struct {
+	Next     string      `json:"next"`
+	Previous interface{} `json:"previous"`
+	Count    int         `json:"count"`
+	Results  []struct {
+		Owner struct {
+			Login          string      `json:"login"`
+			Email          string      `json:"email"`
+			IsOrganisation bool        `json:"is_organisation"`
+			URL            string      `json:"url"`
+			DateJoined     string      `json:"date_joined"`
+			Status         interface{} `json:"status"`
+			FirstName      string      `json:"first_name"`
+			LastName       string      `json:"last_name"`
+			CompanyName    interface{} `json:"company_name"`
+		} `json:"owner"`
+		Slug              string      `json:"slug"`
+		Name              string      `json:"name"`
+		FriendlyName      interface{} `json:"friendly_name"`
+		URL               string      `json:"url"`
+		Status            string      `json:"status"`
+		ComputingRevision interface{} `json:"computing_revision"`
+		Features          struct {
+			Js struct {
+				Version int `json:"version"`
+			} `json:"js"`
+			Rel struct {
+				ProcessRelAmp       bool `json:"process_rel_amp"`
+				ProcessRelApp       bool `json:"process_rel_app"`
+				ProcessRelAlternate bool `json:"process_rel_alternate"`
+				ProcessRelCanonical bool `json:"process_rel_canonical"`
+				ProcessRelPrevNext  bool `json:"process_rel_prev_next"`
+			} `json:"rel"`
+			Main struct {
+				Lang                          bool  `json:"lang"`
+				HasSw                         *bool `json:"has_sw,omitempty"`
+				ProcessDevice                 bool  `json:"process_device"`
+				CompliantExcludeBadCanonicals bool  `json:"compliant_exclude_bad_canonicals"`
+			} `json:"main"`
+			Links struct {
+				Chains              bool `json:"chains"`
+				PageRank            bool `json:"page_rank"`
+				PrevNext            bool `json:"prev_next"`
+				LinksGraph          bool `json:"links_graph"`
+				TopAnchors          bool `json:"top_anchors"`
+				TopDomains          bool `json:"top_domains"`
+				LinksToNoindex      bool `json:"links_to_noindex"`
+				LinksSegmentGraph   bool `json:"links_segment_graph"`
+				LinksToNonCanonical bool `json:"links_to_non_canonical"`
+			} `json:"links"`
+			Scoring struct {
+				Version       int  `json:"version"`
+				ActionsHash   int  `json:"actions_hash"`
+				ActionsCount  int  `json:"actions_count"`
+				HaveMlActions bool `json:"have_ml_actions"`
+			} `json:"scoring"`
+			Segments struct {
+				Flags  []string `json:"flags"`
+				Names  []string `json:"names"`
+				Values []struct {
+					Name  string `json:"name"`
+					Field string `json:"field"`
+				} `json:"values"`
+				DateCreated string `json:"date_created"`
+			} `json:"segments"`
+			Sitemaps struct {
+				Urls           []string `json:"urls"`
+				DateRetrieved  string   `json:"date_retrieved"`
+				HasOrphansArea bool     `json:"has_orphans_area"`
+			} `json:"sitemaps"`
+			MainImage     interface{} `json:"main_image"`
+			SearchConsole struct {
+				DateEnd   interface{} `json:"date_end"`
+				DateStart interface{} `json:"date_start"`
+			} `json:"search_console"`
+			ContentQuality struct {
+				Samples bool `json:"samples"`
+			} `json:"content_quality"`
+			SemanticMetadata struct {
+				Length         bool `json:"length"`
+				StructuredData struct {
+					Stats struct {
+						Offer      int `json:"offer"`
+						Address    int `json:"address"`
+						Product    int `json:"product"`
+						Breadcrumb int `json:"breadcrumb"`
+					} `json:"stats"`
+					Versions struct {
+						Qa             string `json:"qa"`
+						Car            string `json:"car"`
+						Faq            string `json:"faq"`
+						Book           string `json:"book"`
+						News           string `json:"news"`
+						Dates          string `json:"dates"`
+						Event          string `json:"event"`
+						Movie          string `json:"movie"`
+						Offer          string `json:"offer"`
+						Course         string `json:"course"`
+						Person         string `json:"person"`
+						Rating         string `json:"rating"`
+						Recipe         string `json:"recipe"`
+						Review         string `json:"review"`
+						Address        string `json:"address"`
+						Product        string `json:"product"`
+						AudioBook      string `json:"audio_book"`
+						Breadcrumb     string `json:"breadcrumb"`
+						Restaurant     string `json:"restaurant"`
+						TrainTrip      string `json:"train_trip"`
+						JobPosting     string `json:"job_posting"`
+						VideoObject    string `json:"video_object"`
+						EducationEvent string `json:"education_event"`
+					} `json:"versions"`
+					Currencies struct {
+						Offer []string `json:"offer"`
+					} `json:"currencies"`
+				} `json:"structured_data"`
+			} `json:"semantic_metadata"`
+			DuplicateQueryKvs bool `json:"duplicate_query_kvs"`
+		} `json:"features"`
+		UrlsDone    int `json:"urls_done"`
+		UrlsInQueue int `json:"urls_in_queue"`
+		Config      struct {
+			MaxUrls          int         `json:"max_urls"`
+			MaxUrlsPerSec    int         `json:"max_urls_per_sec"`
+			MaxDepth         interface{} `json:"max_depth"`
+			VirtualRobotsTxt interface{} `json:"virtual_robots_txt"`
+			AllowedDomains   []struct {
+				Domain          string `json:"domain"`
+				Mobile          bool   `json:"mobile"`
+				Protocol        string `json:"protocol"`
+				UserAgent       string `json:"user_agent"`
+				AllowSubdomains bool   `json:"allow_subdomains"`
+			} `json:"allowed_domains"`
+			BlacklistedDomains []string `json:"blacklisted_domains"`
+			StartUrls          []string `json:"start_urls"`
+			StartUrlsURL       []string `json:"start_urls_url"`
+			ExportLimit        int      `json:"export_limit"`
+		} `json:"config"`
+		DateLaunched                string      `json:"date_launched"`
+		DateFinished                string      `json:"date_finished"`
+		DateLastModified            string      `json:"date_last_modified"`
+		DateCreated                 string      `json:"date_created"`
+		DateCrawlDone               string      `json:"date_crawl_done"`
+		Failures                    []string    `json:"failures"`
+		RedButtonDomain             interface{} `json:"red_button_domain"`
+		ImportKeywordsData          bool        `json:"import_keywords_data"`
+		ImportKeywordsDataByCountry bool        `json:"import_keywords_data_by_country"`
+		CrawlLaunchType             string      `json:"crawl_launch_type"`
+		ToBeDeletedAt               string      `json:"to_be_deleted_at"`
+		Comparable                  bool        `json:"comparable"`
+		ExcludedFromTrends          bool        `json:"excluded_from_trends"`
+		Pk                          int         `json:"pk"`
+		HasRawPages                 bool        `json:"has_raw_pages"`
+	} `json:"results"`
+	Page int `json:"page"`
+	Size int `json:"size"`
+}
+
 // Version
 var version = "v0.1"
 
@@ -148,6 +306,9 @@ var noOfMonths = 0
 // Average visits per order
 var totalAverageVisitsPerOrder = 0
 
+// Average visit value
+var totalAverageVisitValue = 0.00
+
 // The number of keywords to include in the wordcloud
 var noOfKWInCloud = 50
 
@@ -174,6 +335,10 @@ var projectionMaxVisits = 1000000
 // Slices used to store the visit increment values
 var projectionVisitIncrements []int
 var projectionVisitIncrementsString []string
+
+// Project currency
+var currencyCode string
+var currencySymbol string
 
 func main() {
 
@@ -337,6 +502,9 @@ func getSeoInsights(sessionID string) string {
 	fmt.Println(purple + bold + "\nGetting SEO insights" + reset)
 	fmt.Println("Session ID:", sessionID)
 
+	// Get the currency used
+	getCurrency()
+
 	// Get the date ranges
 	dateRanges := calculateDateRanges()
 	// Iterate over the MonthlyRanges and print each range
@@ -494,7 +662,6 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	for _, value := range visitsPerOrder {
 		totalVisitsPerOrder += value
 	}
-
 	if len(visitsPerOrder) > 0 {
 		totalAverageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
 	}
@@ -515,6 +682,15 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		}
 	}
 
+	// Calculate the average visit value
+	totalVisitsValue := 0.00
+	for _, value := range seoVisitValue {
+		totalVisitsValue += value
+	}
+	if len(seoVisitValue) > 0 {
+		totalAverageVisitValue = totalVisitsValue / float64(len(seoVisitValue))
+	}
+
 	// Calculate the average order value for all months
 	var totalOrderValue = 0
 	var mthAverageOrderValue = 0
@@ -533,7 +709,8 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
 	fmt.Println("Total average order value:", totalAverageOrderValue)
-	fmt.Println("Average visits per order:", totalAverageVisitsPerOrder)
+	fmt.Println("Total average visits per order:", totalAverageVisitsPerOrder)
+	fmt.Println("Total average visit value:", totalAverageVisitValue)
 
 	return "success"
 }
@@ -787,79 +964,114 @@ func tableTotalsVisitsOrdersRevenue() {
 	totalOrdersFormatted := formatInteger.Sprintf("%d", totalOrders)
 	totalRevenueFormatted := formatInteger.Sprintf("%d", totalRevenue)
 
+	totalAverageOrderValueFormatted := formatInteger.Sprintf("%d", totalAverageOrderValue)
+	totalAverageVisitsPerOrderFormatted := formatInteger.Sprintf("%d", totalAverageVisitsPerOrder)
+	totalAverageVisitValueFormatted := fmt.Sprintf("%.2f", totalAverageVisitValue)
+
 	htmlContent := `
 <!DOCTYPE html>
 <html>
 <head>
-        <style>
+     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
             margin: 0;
-            height: 100vh; /* Ensure the body takes full viewport height */
+            height: 100vh;
         }
         .wrapper {
             display: flex;
             justify-content: space-between;
-            width: 70%;
+            width: 80%;
+            max-width: 1200px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
         }
         .column {
             flex: 1;
             text-align: center;
-            margin: 0 50px;
+            margin: 0 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
         th, td {
-            font-size: 25px;
-            padding: 10px; /* Add padding to the table cells */
+            font-size: 22px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
         }
         th {
-            color: DimGray;
+            color: #555;
+            font-weight: 600;
+            text-transform: uppercase;
         }
         td {
-            color: LightSeaGreen;
+            color: #00796b;
         }
     </style>
 </head>
 <body>
     <div class="container">
-    <div class="wrapper">
-        <div class="column">
-            <table>
-				<tr>
-                    <th>Visits</th>
-                </tr>
-                 <tr>
-                    <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
-                </tr>
-            </table>
+        <div class="wrapper">
+            <div class="column">
+                <table>
+                    <tr>
+                        <th>Visits</th>
+                    </tr>
+                    <tr>
+                        <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
+                    </tr>
+                    <tr>
+                        <th>Visit value</th>
+                    </tr>
+                    <tr>
+						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageVisitValueFormatted) + `</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="column">
+                <table>
+                    <tr>
+                        <th>Orders</th>
+                    </tr>
+                    <tr>
+                        <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
+                    </tr>
+                    <tr>
+                        <th>Order value</th>
+                    </tr>
+                    <tr>
+						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="column">
+                <table>
+                    <tr>
+                        <th>Revenue</th>
+                    </tr>
+                    <tr>
+						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
+                    </tr>
+                    <tr>
+                        <th>Visits per order</th>
+                    </tr>
+                    <tr>
+                        <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
+                    </tr>
+                </table>
+            </div>
         </div>
-        <div class="column">
-            <table>
-                <tr>
-                    <th>Orders</th>
-                </tr>
-                <tr>
-                    <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
-                </tr>
-            </table>
-        </div>
-        <div class="column">
-            <table>
-                <tr>
-                    <th>Revenue</th>
-                </tr>
-                <tr>
-                    <td>` + fmt.Sprintf("%s", totalRevenueFormatted) + `</td>
-                </tr>
-            </table>
-        </div>
-    </div>
     </div>
 </body>
-</html>`
-
+</html>
+`
+	//bloo
 	// Save the HTML to a file
 	saveHTML(htmlContent, "./seoTableTotalsVisitsOrdersRevenue.html")
 
@@ -892,8 +1104,10 @@ func barChartRevenueVisits() {
 	barDataRevenue := generateBarItems(seoMetricsRevenue)
 	barDataVisits := generateBarItems(seoMetricsVisits)
 
+	var seriesWithCurrency = "Revenue (" + currencySymbol + ")"
+
 	bar.SetXAxis(startMthNames).
-		AddSeries("Revenue", barDataRevenue).
+		AddSeries(seriesWithCurrency, barDataRevenue).
 		AddSeries("Visits", barDataVisits).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
@@ -1370,7 +1584,6 @@ func gaugeBase() *charts.Gauge {
 		}),
 	)
 
-	//gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Name: "Visits / order", Value: totalAverageVisitsPerOrder}}, setMinMax)
 	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
 	return gauge
@@ -1395,10 +1608,10 @@ func tableDataDetail() {
 		row := []string{
 			formattedDate,
 			orders,
-			revenue,
-			orderValue,
+			currencySymbol + revenue,
+			currencySymbol + orderValue,
 			visits,
-			visitValue,
+			currencySymbol + visitValue,
 			visitsPerOrderValue,
 		}
 		detailedKPITableData = append(detailedKPITableData, row)
@@ -1670,7 +1883,7 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 	if !brandedMode {
 		htmlContent += fmt.Sprintf("<h2>\n\nTop %d non branded keywords generating clicks</h2>", noOfTopKeywords)
 		for i := 0; i < noOfTopKeywords; i++ {
-			kwMetricsCountClicksFormatted := formatInteger.Sprintf("%d", kwMetricsCountClicksNB[i])
+			kwMetricsCountClicksFormattedNB := formatInteger.Sprintf("%d", kwMetricsCountClicksNB[i])
 			htmlContent += fmt.Sprintf("<tr>\n"+
 				"    <td>%s</td>\n"+
 				"    <td>%s</td>\n"+
@@ -1678,7 +1891,7 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 				"    <td>%.2f</td>\n"+
 				"</tr>\n",
 				kwKeywordsNB[i],
-				kwMetricsCountClicksFormatted,
+				kwMetricsCountClicksFormattedNB,
 				kwMetricsCTRNB[i],
 				kwMetricsAvgPositionNB[i])
 		}
@@ -1829,19 +2042,19 @@ func projectionNarrative() {
 <body>
 	<div class="content">
 		<p class="keyword-font">
-			On average over the period the number of visits required in order to generate one order is 
+			On average the number of visits required in order to generate one order is 
 			<span class="blueText">%d</span>. For each additional 
 			<span class="blueText">%d</span> visits, we can project 
 			<span class="blueText">%d</span> orders will be placed. With an average 
-			order value of <span class="blueText">%d</span>, the projected 
-			incremental revenue for <span class="blueText">%d</span> visits will be 
-			<span class="blueText">%d</span>.
+			order value of <span class="blueText">%s%d</span>, the projected 
+			incremental revenue from <span class="blueText">%d</span> additional visits will be 
+			<span class="blueText">%s%d</span>.
 		</p>
 	</div>
 </body>
 </html>
-`, totalAverageVisitsPerOrder, projectionIncrement, noOfOrderVisits, totalAverageOrderValue,
-		projectionIncrement, projectedRevenue,
+`, totalAverageVisitsPerOrder, projectionIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
+		projectionIncrement, currencySymbol, projectedRevenue,
 	)
 
 	// Define the HTML filename
@@ -1952,7 +2165,7 @@ func generateDashboard() {
             border-radius: 10px;
             width: 90%;
         }
-        .iframe-container {
+        .container {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
@@ -1960,7 +2173,7 @@ func generateDashboard() {
             margin: 5px auto;
             width: 90%;
         }
-        .iframe-container.row {
+        .row {
             flex-wrap: nowrap;
         }
         iframe {
@@ -1970,41 +2183,19 @@ func generateDashboard() {
             border: 2px solid LightGray;
             border-radius: 10px;
         }
-        .iframe-container.row iframe {
-            height: 530px;
-        }
-        .iframe-container.no-border iframe {
+        .no-border iframe {
             border: none;
         }
-        .column iframe {
+        .tall-iframe {
+            height: 530px;
+        }
+        .medium-iframe {
             height: 500px;
         }
-        a {
-            color: white;
-            text-decoration: none;
-        }
-.badge-container {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 20px;
-            margin: 5px auto;
-            width: 90%;
-        }
-        .badge-container.row {
-            flex-wrap: nowrap;
-        }
-        iframe {
-            flex: 1 1 auto;
-            min-width: 200px;
-            width: 100%;
-            border: 2px solid LightGray;
-            border-radius: 10px;
-        }
-        .badge-container.row iframe {
+        .short-iframe {
             height: 400px;
         }
-.back-button {
+        .back-button {
             padding: 12px 24px;
             font-size: 18px;
             color: white;
@@ -2029,11 +2220,11 @@ func generateDashboard() {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights dashboard</span>
+    <span style="font-size: 20px;">Business insights broadsheet</span>
 </header>
 
-<!-- Back Button -->
-<button class="back-button" onclick="goHome()">New dashboard</button>
+<!-- Back Button to create a new dashboard -->
+<button class="back-button" onclick="goHome()">New broadsheet</button>
 
 <script>
     function goHome() {
@@ -2041,106 +2232,90 @@ func generateDashboard() {
     }
 </script>
 
-
-<!-- Header for the totals display -->
-<section class="iframe-container row no-border">
+<!-- Sections with Iframes -->
+<section class="container row no-border">
     <iframe src="seoDashboardHeader.html" title="Totals" style="height: 30px;"></iframe>
 </section>
 
-<!-- Totals of visits, orders & revenue -->
-<section class="iframe-container row no-border">
-    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Totals" style="height: 120px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Totals" style="height: 300px;"></iframe>
 </section>
 
-<!-- Bar chart for revenue & visits and line chart for visits per order -->
-<section class="iframe-container row">
-    <iframe src="seoRevenueVisitsBar.html" title="Revenue & visits"></iframe>
+<section class="container row">
+    <iframe src="seoRevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
 </section>
 
-<!-- Bar chart for revenue & visits and line chart for visits per order -->
-<section class="badge-container row">
-    <iframe src="seoCMGRRevenue.html" title="CMGR Revenue"></iframe>
-    <iframe src="seoCMGRVisits.html" title="CMGR Visits"></iframe>
+<section class="container row">
+    <iframe src="seoCMGRRevenue.html" title="CMGR Revenue" class="short-iframe"></iframe>
+    <iframe src="seoCMGRVisits.html" title="CMGR Visits" class="short-iframe"></iframe>
 </section>
 
-<section class="iframe-container row">
-    <iframe src="seoVisitsPerOrderLine.html" title="Visits per order"></iframe>
+<section class="container row">
+    <iframe src="seoVisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
-<!-- Orders and order value bar charts -->
-<section class="iframe-container row">
-    <iframe src="seoOrdersBar.html" title="No. of orders"></iframe>
+<section class="container row">
+    <iframe src="seoOrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
 </section>
 
-<section class="iframe-container row">
-    <iframe src="seoVisitsPerOrderLineRevenueProjection.html" title="Revenue projection"></iframe>
-    <iframe src="seoVisitsPerOrderLineRevenueProjectionNarrative.html" title="Visits per order"></iframe>
+<section class="container row">
+    <iframe src="seoVisitsPerOrderLineRevenueProjection.html" title="Revenue projection" class="tall-iframe"></iframe>
+    <iframe src="seoVisitsPerOrderLineRevenueProjectionNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
-<section class="badge-container row">
-    <iframe src="seoGauge.html" title="Visits per order gauge"></iframe>
-    <iframe src="seoCMGROrders.html" title="CMGR Orders"></iframe>
+<section class="container row">
+    <iframe src="seoGauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
+    <iframe src="seoCMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
 </section>
 
-<!-- Orders and order value bar charts -->
-<section class="iframe-container row">
-    <iframe src="seoOrderValueBar.html" title="Order value"></iframe>
+<section class="container row">
+    <iframe src="seoOrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
 </section>
 
-<!-- Revenue/Visits river chart and visit value bar chart -->
-<section class="iframe-container row">
-    <iframe src="seoVisitsRevenueRiver.html" title="Revenue & visits"></iframe>
+<section class="container row">
+    <iframe src="seoVisitsRevenueRiver.html" title="Revenue & visits" class="tall-iframe"></iframe>
 </section>
 
-<!-- Revenue/Visits river chart and visit value bar chart -->
-<section class="iframe-container row">
-    <iframe src="seoVisitValueBar.html" title="Organic visit value"></iframe>
+<section class="container row">
+    <iframe src="seoVisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
 </section>
 
-<!-- Revenue/Visits river chart and visit value bar chart -->
-<section class="badge-container row">
-    <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value"></iframe>
-    <iframe src="seoCMGROrderValue.html" title="CMGR Order Value"></iframe>
+<section class="container row">
+    <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
+    <iframe src="seoCMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
 </section>
 
-<!-- KPI details table-->
-<section class="iframe-container row no-border">
-    <iframe src="seoDataInsightDetailKPIs.html" style="height: 630px; title="KPIs"></iframe>
+<section class="container row no-border">
+    <iframe src="seoDataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 630px;"></iframe>
 </section>
 
-<!-- Wordclouds for top keywords -->
-<section class="iframe-container row no-border">
-    <iframe src="seoWordCloudBranded.html" title="Branded Keyword wordcloud" style="height: 700px; font-size: 10px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoWordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
-<!-- Wordclouds for top keywords -->
-<section class="iframe-container row no-border">
-    <iframe src="seoWinningKeywordBranded.html" title="Winning branded keyword" style="height: 190px; font-size: 10px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoWinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
 </section>
 
-<!-- Wordclouds for top keywords -->
-<section class="iframe-container row no-border">
-    <iframe src="seoWordCloudNonBranded.html" title="Non Branded Keyword wordcloud" style="height: 700px; font-size: 10px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoDataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
-<!-- Wordclouds for top keywords -->
-<section class="iframe-container row no-border">
-    <iframe src="seoWinningKeywordNonBranded.html" title="Winning non Branded keyword" style="height: 190px; font-size: 10px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoWordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
-<!-- Keywords insights for top keywords - Branded-->
-<section class="iframe-container row no-border">
-    <iframe src="seoDataInsightKeywordsKPIsBranded.html" title="Branded keyword insights"; style="height: 600px; font-size: 10px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoWinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
 </section>
 
-<!-- Keywords insights for top keywords - Non branded -->
-<section class="iframe-container row no-border">
-    <iframe src="seoDataInsightKeywordsKPIsNonBranded.html" title="Branded keyword insights"; style="height: 600px; font-size: 10px;"></iframe>
+<section class="container row no-border">
+    <iframe src="seoDataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
 <!-- Footer notes -->
-<footer class="iframe-container row">
-    <iframe src="seoFooterNotes.html" title="Footer notes" style="height: 200px; font-size: 10px; border: none;"></iframe>
+<footer class="container row">
+    <iframe src="seoFooterNotes.html" title="Footer notes" class="tall-iframe" style="height: 200px; font-size: 10px; border: none;"></iframe>
 </footer>
 
 <!-- Bottom Banner -->
@@ -2149,7 +2324,8 @@ func generateDashboard() {
 </footer>
 
 </body>
-</html>`
+</html>
+`
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "./go_seo_dashboard.html")
@@ -2422,7 +2598,7 @@ func generateErrorPage(displayMessage string) {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights dashboard</span>
+    <span style="font-size: 20px;">Business insights broadsheet</span>
 </header>
 
 <!-- Back Button -->
@@ -2493,6 +2669,82 @@ func generateLogSessionID(length int) (string, error) {
 	}
 	// Encode bytes to base64 string
 	return base64.URLEncoding.EncodeToString(sessionIDLength), nil
+}
+
+// Get the currency used
+func getCurrency() {
+
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(red+"\nError. getCurrency. Cannot create request:"+reset, err)
+	}
+	// Define the headers
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(red+"\nError. getCurrency. Cannot sent request:"+reset, err)
+	}
+	defer resp.Body.Close()
+
+	responseData, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatal(red+"\nError. getCurrency. Cannot read response body:"+reset, err)
+	}
+
+	var responseObject botifyResponse
+	err = json.Unmarshal(responseData, &responseObject)
+
+	if err != nil {
+		log.Fatal(red+"\nError. getCurrency. Cannot unmarshall JSON:"+reset, err)
+		os.Exit(1)
+	}
+
+	// Display an error if no crawls found
+	if responseObject.Count == 0 {
+		fmt.Println(red + "\nError. getCurrency. Invalid crawl or no crawls found in the project." + reset)
+		os.Exit(1)
+	}
+
+	if len(responseObject.Results) > 0 {
+		for _, currency := range responseObject.Results[0].Features.SemanticMetadata.StructuredData.Currencies.Offer {
+			currencyCode = currency
+		}
+	}
+
+	switch currencyCode {
+	case "USD":
+		currencySymbol = "$" // US Dollar
+	case "EUR":
+		currencySymbol = "€" // Euro
+	case "GBP":
+		currencySymbol = "£" // British Pound
+	case "JPY":
+		currencySymbol = "¥" // Japanese Yen
+	case "AUD":
+		currencySymbol = "A$" // Australian Dollar
+	case "CAD":
+		currencySymbol = "C$" // Canadian Dollar
+	case "CHF":
+		currencySymbol = "CHF" // Swiss Franc
+	case "CNY":
+		currencySymbol = "CN¥" // Chinese Yuan Renminbi
+	case "INR":
+		currencySymbol = "₹" // Indian Rupee
+	case "SGD":
+		currencySymbol = "S$" // Singapore Dollar
+	case "ZAR":
+		currencySymbol = "R" // South African Rand
+	case "AED":
+		currencySymbol = "د.إ" // UAE Dirham
+	default:
+		currencySymbol = currencyCode // Unknown currency defaults to the code
+	}
 }
 
 // Display the welcome banner
