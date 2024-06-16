@@ -23,164 +23,6 @@ import (
 	"time"
 )
 
-type botifyResponse struct {
-	Next     string      `json:"next"`
-	Previous interface{} `json:"previous"`
-	Count    int         `json:"count"`
-	Results  []struct {
-		Owner struct {
-			Login          string      `json:"login"`
-			Email          string      `json:"email"`
-			IsOrganisation bool        `json:"is_organisation"`
-			URL            string      `json:"url"`
-			DateJoined     string      `json:"date_joined"`
-			Status         interface{} `json:"status"`
-			FirstName      string      `json:"first_name"`
-			LastName       string      `json:"last_name"`
-			CompanyName    interface{} `json:"company_name"`
-		} `json:"owner"`
-		Slug              string      `json:"slug"`
-		Name              string      `json:"name"`
-		FriendlyName      interface{} `json:"friendly_name"`
-		URL               string      `json:"url"`
-		Status            string      `json:"status"`
-		ComputingRevision interface{} `json:"computing_revision"`
-		Features          struct {
-			Js struct {
-				Version int `json:"version"`
-			} `json:"js"`
-			Rel struct {
-				ProcessRelAmp       bool `json:"process_rel_amp"`
-				ProcessRelApp       bool `json:"process_rel_app"`
-				ProcessRelAlternate bool `json:"process_rel_alternate"`
-				ProcessRelCanonical bool `json:"process_rel_canonical"`
-				ProcessRelPrevNext  bool `json:"process_rel_prev_next"`
-			} `json:"rel"`
-			Main struct {
-				Lang                          bool  `json:"lang"`
-				HasSw                         *bool `json:"has_sw,omitempty"`
-				ProcessDevice                 bool  `json:"process_device"`
-				CompliantExcludeBadCanonicals bool  `json:"compliant_exclude_bad_canonicals"`
-			} `json:"main"`
-			Links struct {
-				Chains              bool `json:"chains"`
-				PageRank            bool `json:"page_rank"`
-				PrevNext            bool `json:"prev_next"`
-				LinksGraph          bool `json:"links_graph"`
-				TopAnchors          bool `json:"top_anchors"`
-				TopDomains          bool `json:"top_domains"`
-				LinksToNoindex      bool `json:"links_to_noindex"`
-				LinksSegmentGraph   bool `json:"links_segment_graph"`
-				LinksToNonCanonical bool `json:"links_to_non_canonical"`
-			} `json:"links"`
-			Scoring struct {
-				Version       int  `json:"version"`
-				ActionsHash   int  `json:"actions_hash"`
-				ActionsCount  int  `json:"actions_count"`
-				HaveMlActions bool `json:"have_ml_actions"`
-			} `json:"scoring"`
-			Segments struct {
-				Flags  []string `json:"flags"`
-				Names  []string `json:"names"`
-				Values []struct {
-					Name  string `json:"name"`
-					Field string `json:"field"`
-				} `json:"values"`
-				DateCreated string `json:"date_created"`
-			} `json:"segments"`
-			Sitemaps struct {
-				Urls           []string `json:"urls"`
-				DateRetrieved  string   `json:"date_retrieved"`
-				HasOrphansArea bool     `json:"has_orphans_area"`
-			} `json:"sitemaps"`
-			MainImage     interface{} `json:"main_image"`
-			SearchConsole struct {
-				DateEnd   interface{} `json:"date_end"`
-				DateStart interface{} `json:"date_start"`
-			} `json:"search_console"`
-			ContentQuality struct {
-				Samples bool `json:"samples"`
-			} `json:"content_quality"`
-			SemanticMetadata struct {
-				Length         bool `json:"length"`
-				StructuredData struct {
-					Stats struct {
-						Offer      int `json:"offer"`
-						Address    int `json:"address"`
-						Product    int `json:"product"`
-						Breadcrumb int `json:"breadcrumb"`
-					} `json:"stats"`
-					Versions struct {
-						Qa             string `json:"qa"`
-						Car            string `json:"car"`
-						Faq            string `json:"faq"`
-						Book           string `json:"book"`
-						News           string `json:"news"`
-						Dates          string `json:"dates"`
-						Event          string `json:"event"`
-						Movie          string `json:"movie"`
-						Offer          string `json:"offer"`
-						Course         string `json:"course"`
-						Person         string `json:"person"`
-						Rating         string `json:"rating"`
-						Recipe         string `json:"recipe"`
-						Review         string `json:"review"`
-						Address        string `json:"address"`
-						Product        string `json:"product"`
-						AudioBook      string `json:"audio_book"`
-						Breadcrumb     string `json:"breadcrumb"`
-						Restaurant     string `json:"restaurant"`
-						TrainTrip      string `json:"train_trip"`
-						JobPosting     string `json:"job_posting"`
-						VideoObject    string `json:"video_object"`
-						EducationEvent string `json:"education_event"`
-					} `json:"versions"`
-					Currencies struct {
-						Offer []string `json:"offer"`
-					} `json:"currencies"`
-				} `json:"structured_data"`
-			} `json:"semantic_metadata"`
-			DuplicateQueryKvs bool `json:"duplicate_query_kvs"`
-		} `json:"features"`
-		UrlsDone    int `json:"urls_done"`
-		UrlsInQueue int `json:"urls_in_queue"`
-		Config      struct {
-			MaxUrls          int         `json:"max_urls"`
-			MaxUrlsPerSec    int         `json:"max_urls_per_sec"`
-			MaxDepth         interface{} `json:"max_depth"`
-			VirtualRobotsTxt interface{} `json:"virtual_robots_txt"`
-			AllowedDomains   []struct {
-				Domain          string `json:"domain"`
-				Mobile          bool   `json:"mobile"`
-				Protocol        string `json:"protocol"`
-				UserAgent       string `json:"user_agent"`
-				AllowSubdomains bool   `json:"allow_subdomains"`
-			} `json:"allowed_domains"`
-			BlacklistedDomains []string `json:"blacklisted_domains"`
-			StartUrls          []string `json:"start_urls"`
-			StartUrlsURL       []string `json:"start_urls_url"`
-			ExportLimit        int      `json:"export_limit"`
-		} `json:"config"`
-		DateLaunched                string      `json:"date_launched"`
-		DateFinished                string      `json:"date_finished"`
-		DateLastModified            string      `json:"date_last_modified"`
-		DateCreated                 string      `json:"date_created"`
-		DateCrawlDone               string      `json:"date_crawl_done"`
-		Failures                    []string    `json:"failures"`
-		RedButtonDomain             interface{} `json:"red_button_domain"`
-		ImportKeywordsData          bool        `json:"import_keywords_data"`
-		ImportKeywordsDataByCountry bool        `json:"import_keywords_data_by_country"`
-		CrawlLaunchType             string      `json:"crawl_launch_type"`
-		ToBeDeletedAt               string      `json:"to_be_deleted_at"`
-		Comparable                  bool        `json:"comparable"`
-		ExcludedFromTrends          bool        `json:"excluded_from_trends"`
-		Pk                          int         `json:"pk"`
-		HasRawPages                 bool        `json:"has_raw_pages"`
-	} `json:"results"`
-	Page int `json:"page"`
-	Size int `json:"size"`
-}
-
 // Version
 var version = "v0.1"
 
@@ -209,25 +51,11 @@ var kpiColourOrderValue = "MediumSlateBlue"
 // If set to false a link is provided to the analysis project
 var anonymousMode = false
 
-// DateRanges struct used to hold the monthly date ranges
-// Used for revenue and visits data
-type DateRanges struct {
-	MonthlyRanges [][2]time.Time
-}
-
 // Slice used to store the month names
 var startMthNames []string
 
 // Slice used to store projected revenue values
 var projectionRevenue []int
-
-// KeywordsData struct used to store Keywords dimensions and metrics
-type KeywordsData struct {
-	Results []struct {
-		Dimensions []interface{} `json:"dimensions"`
-		Metrics    []*float64    `json:"metrics,omitempty"`
-	} `json:"results"`
-}
 
 // Used for the branded/non branded title in the wordcloud
 var wordcloudTitle = ""
@@ -271,20 +99,6 @@ var totalAverageOrderValue int
 
 // Slices used  to store the visits per order for each month
 var visitsPerOrder []int
-
-// AnalyticsID is used to identify which analytics tool is in use
-type AnalyticsID struct {
-	ID string `json:"id"`
-}
-
-// The Result struct is used to store the revenue, orders and visits
-type Result struct {
-	Dimensions []interface{} `json:"dimensions"`
-	Metrics    []float64     `json:"metrics"`
-}
-type Response struct {
-	Results []Result `json:"results"`
-}
 
 // Project URL. Used to provide a link to the Botify project
 var projectURL = ""
@@ -339,6 +153,49 @@ var projectionVisitIncrementsString []string
 // Project currency
 var currencyCode string
 var currencySymbol string
+
+type botifyResponse struct {
+	Count   int `json:"count"`
+	Results []struct {
+		Features struct {
+			SemanticMetadata struct {
+				StructuredData struct {
+					Currencies struct {
+						Offer []string `json:"offer"`
+					} `json:"currencies"`
+				} `json:"structured_data"`
+			} `json:"semantic_metadata"`
+		} `json:"features"`
+	} `json:"results"`
+}
+
+// KeywordsData struct used to store Keywords dimensions and metrics
+type KeywordsData struct {
+	Results []struct {
+		Dimensions []interface{} `json:"dimensions"`
+		Metrics    []*float64    `json:"metrics,omitempty"`
+	} `json:"results"`
+}
+
+// AnalyticsID is used to identify which analytics tool is in use
+type AnalyticsID struct {
+	ID string `json:"id"`
+}
+
+// The Result struct is used to store the revenue, orders and visits
+type Result struct {
+	Dimensions []interface{} `json:"dimensions"`
+	Metrics    []float64     `json:"metrics"`
+}
+type Response struct {
+	Results []Result `json:"results"`
+}
+
+// DateRanges struct used to hold the monthly date ranges
+// Used for revenue and visits data
+type DateRanges struct {
+	MonthlyRanges [][2]time.Time
+}
 
 func main() {
 
@@ -988,7 +845,6 @@ func tableTotalsVisitsOrdersRevenue() {
             width: 80%;
             max-width: 1200px;
             padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
         }
         .column {

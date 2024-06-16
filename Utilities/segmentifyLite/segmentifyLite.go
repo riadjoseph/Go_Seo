@@ -7,10 +7,12 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -32,7 +34,6 @@ var red = "\033[0;31m"
 var green = "\033[0;32m"
 var bold = "\033[1m"
 var reset = "\033[0m"
-var checkmark = "\u2713"
 
 // Default input and output files
 var urlExtractFile = "siteurlsExport.tmp"
@@ -68,14 +69,10 @@ var slashCountLevel1 = 4
 var slashCountLevel2 = 5
 
 type botifyResponse struct {
-	Next     string      `json:"next"`
-	Previous interface{} `json:"previous"`
-	Count    int         `json:"count"`
-	Results  []struct {
+	Count   int `json:"count"`
+	Results []struct {
 		Slug string `json:"slug"`
 	} `json:"results"`
-	Page int `json:"page"`
-	Size int `json:"size"`
 }
 
 // Define a struct to hold text value and its associated count
@@ -97,138 +94,89 @@ func main() {
 
 	displayBanner()
 
-	checkCredentials()
+	// Serve static files from the current directory
+	fs := http.FileServer(http.Dir("."))
+	http.Handle("/", fs)
 
-	//Generate the list of URLs
-	processURLsInProject()
+	// Define a handler function for form submission
+	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
+		// Retrieve the form data from the request
+		r.ParseForm()
+		orgName = r.Form.Get("organization")
+		projectName = r.Form.Get("project")
 
-	// Generate the output file to store the regex
-	generateRegexFile()
+		// Generate a session ID used for grouping log entries
+		var sessionID string
 
-	//Level1 folders
-	//Get the threshold. Use the level 1 slashCount
-	largestFolderSize, thresholdValueL1 := levelThreshold(urlExtractFile, slashCountLevel1)
-	fmt.Printf(purple + "Calculating level 1 folder threshold\n" + reset)
-	fmt.Printf("Largest level 1 folder size found is %d URLs\n", largestFolderSize)
-	fmt.Printf("Threshold folder size: %d\n", thresholdValueL1)
-
-	//generate the regex
-	fmt.Println(purple + "\nFirst level folders" + reset)
-	segmentFolders(thresholdValueL1, slashCountLevel1)
-
-	//Level2 folders
-	//Get the threshold. Use the level 2 slashCount
-	largestFolderSize, thresholdValueL2 := levelThreshold(urlExtractFile, slashCountLevel2)
-	fmt.Printf(purple + "\nCalculating level 2 folder threshold\n" + reset)
-	fmt.Printf("Largest level 2 folder size found is %d URLs\n", largestFolderSize)
-	fmt.Printf("Threshold folder size: %d\n", thresholdValueL2)
-
-	//Level2 folders
-	fmt.Println(purple + "\nSecond level folders" + reset)
-	segmentFolders(thresholdValueL2, slashCountLevel2)
-
-	//Subdomains
-	subDomains()
-
-	//Parameter keys
-	parameterKeys()
-
-	//Parameter keys utilization
-	parameterUsage()
-
-	//No. of parameter keys
-	noOfParameters()
-
-	//No. of folders
-	noOfFolders()
-
-	// Salesforce Commerce Cloud if detected
-	if sfccDetected {
-		sfccURLs()
-	}
-
-	// Shopify if detected
-	if shopifyDetected {
-		shopifyURLs()
-	}
-
-	//Static resources
-	staticResources()
-
-	// Copy the regex to the clipboard
-	copyRegexToClipboard()
-
-	fmt.Println(green + bold + checkmark + reset + " First level folders" + reset)
-	fmt.Println(green + bold + checkmark + reset + " Second level folders" + reset)
-	fmt.Println(green + bold + checkmark + reset + " Parameter usage" + reset)
-	fmt.Println(green + bold + checkmark + reset + " No. of parameters" + reset)
-	fmt.Println(green + bold + checkmark + reset + " Parameter keys" + reset)
-	fmt.Println(green + bold + checkmark + reset + " No. of folders" + reset)
-	fmt.Println(green + bold + checkmark + reset + " Static resources" + reset)
-
-	if sfccDetected {
-		fmt.Println(green + checkmark + reset + " Salesforce Commerce Cloud" + reset)
-	}
-	if shopifyDetected {
-		fmt.Println(green + checkmark + reset + " Shopify" + reset)
-	}
-	fmt.Println(purple + "\nRegex generation complete" + reset)
-
-	//It's done! segmentifyList has left the building
-	fmt.Println(green+bold+"\nYour regex can be found in:", regexOutputFile+reset)
-	fmt.Println(green + bold + "The regex is also in your clipboard ready to paste directly into Botify's segment editor" + reset)
-
-	// We're done
-	// Clean-up. Delete the temp. file
-	os.Remove(urlExtractFile)
-
-	fmt.Println(purple + "\nsegmentifyLite: Done!\n")
-	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
-	var input string
-	fmt.Scanln(&input)
-	os.Exit(0)
-}
-
-// Check that the org and project names have been specified as command line arguments
-// if not prompt for them
-// Pressing Enter exits
-func checkCredentials() {
-
-	if len(os.Args) < 3 {
-
-		credentialsInput = true
-
-		fmt.Print("\nEnter your project credentials. Press" + green + " Enter " + reset + "to exit segmentifyLite\n")
-
-		fmt.Print(purple + "\nEnter organization name: " + reset)
-		fmt.Scanln(&orgNameInput)
-		// Check if input is empty if so exit
-		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
-			os.Exit(0)
+		sessionID, err := generateLogSessionID(8)
+		if err != nil {
+			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
 
-		fmt.Print(purple + "Enter project name: " + reset)
-		fmt.Scanln(&projectNameInput)
-		// Check if input is empty if so exit
-		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using segmentifyLite. Goodbye!\n")
-			os.Exit(0)
+		// Process URLs
+		processURLsInProject(sessionID)
+
+		// Write to the log
+		writeLog(sessionID, orgName, projectName, "URLs acquired")
+
+		// Generate the output file to store the regex
+		generateRegexFile()
+
+		//Level 1 and 2 folders
+		level1andFolders()
+
+		//Subdomains
+		subDomains()
+
+		//Parameter keys
+		parameterKeys()
+
+		//Parameter keys utilization
+		parameterUsage()
+
+		//No. of parameter keys
+		noOfParameters()
+
+		//No. of folders
+		noOfFolders()
+
+		// Salesforce Commerce Cloud if detected
+		if sfccDetected {
+			// Write to the log
+			writeLog(sessionID, orgName, projectName, "SFCC detected")
+			sfccURLs()
 		}
-	}
+
+		// Shopify if detected
+		if shopifyDetected {
+			// Write to the log
+			writeLog(sessionID, orgName, projectName, "Shopify detected")
+			shopifyURLs()
+		}
+
+		//Static resources
+		staticResources()
+
+		// Write to the log
+		writeLog(sessionID, orgName, projectName, "Regex generated successfully")
+
+		// Generate the HTML used to present the regex
+		generateSegmentationRegex()
+
+		// Display results and clean up
+		cleanUp()
+
+		// Respond to the client with a success message or redirect to another page
+		http.Redirect(w, r, "go_seo_segmentifyLite.html", http.StatusFound)
+	})
+
+	// Start the HTTP server
+	http.ListenAndServe(":8080", nil)
+
 }
 
 // Use the API to get the first 300k URLs and export them to a temp file
-func processURLsInProject() {
-
-	// If the credentials have been provided on the command line use them
-	if !credentialsInput {
-		orgName = os.Args[1]
-		projectName = os.Args[2]
-	} else {
-		orgName = orgNameInput
-		projectName = projectNameInput
-	}
+func processURLsInProject(sessionID string) {
 
 	//Get the last analysis slug
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
@@ -263,11 +211,11 @@ func processURLsInProject() {
 	//Display an error if no crawls found
 	if responseObject.Count == 0 {
 		fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
-		os.Exit(1)
+		return
 	}
 
 	//Display the welcome message
-	fmt.Println(purple + "\nProcessing URLs" + reset)
+	fmt.Println(purple + "\nRequest received" + reset)
 
 	//Create a file for writing
 	file, errorCheck := os.Create(urlExtractFile)
@@ -279,14 +227,12 @@ func processURLsInProject() {
 
 	//Initialize total count
 	totalCount := 0
-	fmt.Println("Maximum No. of URLs to be processed is", maxURLsToProcess, "k")
-	fmt.Println("Organisation name:", orgName)
-	fmt.Println("Project name:", projectName)
-	fmt.Println("Latest analysis slug:", responseObject.Results[0].Slug)
+	fmt.Println(sessionID+": Organisation name:", orgName)
+	fmt.Println(sessionID+": Project name:", projectName)
+	fmt.Println(sessionID+": Latest analysis slug:", responseObject.Results[0].Slug)
+	println()
 
 	analysisSlug := responseObject.Results[0].Slug
-	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, analysisSlug)
-	fmt.Println("End point:", urlEndpoint, "\n")
 
 	//Iterate through pages 1 through to the maximum no of pages defined by maxURLsToProcess
 	//Each page returns 1000 URLs
@@ -351,28 +297,35 @@ func processURLsInProject() {
 
 		//If there are no more URLS process exit the function
 		if count == 0 {
-			//Print total number of URLs saved
-			fmt.Printf("\nTotal URLs processed: %d\n", totalCount)
-			if sfccDetected {
-				fmt.Printf(bold + "\nNote: Salesforce Commerce Cloud has been detected. Regex will be generated\n" + reset)
-			}
-			if shopifyDetected {
-				fmt.Printf(bold + "\nNote: Shopify has been detected. Regex will be generated\n" + reset)
-			}
-			fmt.Println(purple + "\nURLs processed. Generating regex...\n" + reset)
-			// Check if SFCC is used. This bool us used to deterline if SFCC regex is generated
 			break
 		}
 
-		//Max. number of URLs (200k) has been reached
-		if totalCount > 190000 {
+		//Max. number of URLs has been reached
+		if totalCount > maxURLsToProcess {
 			fmt.Printf("\n\nLimit of %d URLs reached. Generating regex...\n\n", totalCount)
 			break
 		}
 
-		fmt.Printf("\nPage %d: %d URLs processed\n", page, count)
+		fmt.Printf(" Page %d: %d URLs processed\n", page, count)
 	}
+}
 
+// Generate regex for level 1 and 2 folders
+func level1andFolders() {
+
+	//Level1 folders
+	//Get the threshold. Use the level 1 slashCount
+	_, thresholdValueL1 := levelThreshold(urlExtractFile, slashCountLevel1)
+
+	//generate the regex
+	segmentFolders(thresholdValueL1, slashCountLevel1)
+
+	//Level2 folders
+	//Get the threshold. Use the level 2 slashCount
+	_, thresholdValueL2 := levelThreshold(urlExtractFile, slashCountLevel2)
+
+	//Level2 folders
+	segmentFolders(thresholdValueL2, slashCountLevel2)
 }
 
 func generateRegexFile() {
@@ -440,19 +393,11 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Counter to track the number of folders excluded from the regex
 	noFoldersExcluded := 0
 
-	//Display welcome message
-	fmt.Printf("Folders with less than %d URLs will be excluded\n", thresholdValue)
-
 	//Iterate through each line in the file
 	for scanner.Scan() {
 		line := scanner.Text()
 		totalRecords++
 		recordCounter++
-
-		//Display a block for each 1000 records scanned
-		if recordCounter%1000 == 0 {
-			fmt.Print("#")
-		}
 
 		//Check if the line contains a quotation mark, if yes, skip to the next line
 		if strings.Contains(line, "\"") {
@@ -495,13 +440,6 @@ func segmentFolders(thresholdValue int, slashCount int) {
 
 	//Sort the slice based on counts
 	sort.Sort(ByCount(sortedCounts))
-
-	//Display the counts for each unique value
-	for _, folderValueCount := range sortedCounts {
-		fmt.Printf("%s (URLs: %d)\n", folderValueCount.Text, folderValueCount.Count)
-	}
-
-	fmt.Printf("\nNo. of folders excluded %d\n", noFoldersExcluded)
 
 	//Open the file in append mode, create if it doesn't exist
 	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
@@ -555,8 +493,6 @@ func segmentFolders(thresholdValue int, slashCount int) {
 		fmt.Printf(red+"\nsegmentFolders. Error: Cannot flush writer: %v\n", errorCheck)
 		os.Exit(1)
 	}
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex for subdomains
@@ -581,18 +517,10 @@ func subDomains() {
 	//Counter to track the number of records scanned
 	recordCounter := 0
 
-	//Display welcome message
-	fmt.Println(purple + "\nSubdomains" + reset)
-
 	for scanner.Scan() {
 		line := scanner.Text()
 		totalRecords++
 		recordCounter++
-
-		//Display a block for each 1000 records scanned
-		if recordCounter%1000 == 0 {
-			fmt.Print("#")
-		}
 
 		//Check if the line contains a quotation mark, if yes, skip to the next line
 		if strings.Contains(line, "\"") {
@@ -617,8 +545,6 @@ func subDomains() {
 		}
 	}
 
-	fmt.Printf("\n")
-
 	//Create a slice to hold FolderCount structs
 	var sortedCounts []FolderCount
 
@@ -629,11 +555,6 @@ func subDomains() {
 
 	//Sort the slice based on counts
 	sort.Sort(ByCount(sortedCounts))
-
-	//Display the counts for each unique value
-	for _, folderValueCount := range sortedCounts {
-		fmt.Printf("%s (URLs: %d)\n", folderValueCount.Text, folderValueCount.Count)
-	}
 
 	//Open the file in append mode, create if it doesn't exist
 	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
@@ -683,8 +604,6 @@ func subDomains() {
 		fmt.Printf(red+"\nsubDomains. Error: Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex to identify which parameter keys are used
@@ -709,18 +628,10 @@ func parameterKeys() {
 	//Counter to track the number of records scanned
 	recordCounter := 0
 
-	//Display welcome message
-	fmt.Println(purple + "\nParameter keys" + reset)
-
 	for scanner.Scan() {
 		line := scanner.Text()
 		totalRecords++
 		recordCounter++
-
-		//Display a block for each 1000 records scanned
-		if recordCounter%1000 == 0 {
-			fmt.Print("#")
-		}
 
 		//Check if the line contains a quotation mark, if yes, skip to the next line
 		if strings.Contains(line, "\"") {
@@ -763,11 +674,6 @@ func parameterKeys() {
 	//Sort the slice based on counts
 	sort.Sort(ByCount(sortedCounts))
 
-	//Display the counts for each unique value
-	for _, folderValueCount := range sortedCounts {
-		fmt.Printf("%s (URLs: %d)\n", folderValueCount.Text, folderValueCount.Count)
-	}
-
 	//Open the file in append mode, create if it doesn't exist
 	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if errorCheck != nil {
@@ -809,8 +715,6 @@ func parameterKeys() {
 		fmt.Printf(red+"\nparameterKeys. Error: Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex to identify of a parameter key is used in the URL
@@ -828,15 +732,11 @@ path /*
 
 # ----End of sl_parameter_usage----`
 
-	//Parameter usage message
-	fmt.Println(purple + "\nParameter usage" + reset)
 	errParamaterUsage := insertStaticRegex(paramaterUsageRegex)
 	if errParamaterUsage != nil {
 		panic(errParamaterUsage)
 	}
 
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Regex to count the number of parameters in the URL
@@ -870,15 +770,10 @@ path /*
 
 # ----End of sl_no_of_parameters----`
 
-	//No. of parameters message
-	fmt.Println(purple + "Number of parameters" + reset)
 	errParamaterNoRegex := insertStaticRegex(paramaterNoRegex)
 	if errParamaterNoRegex != nil {
 		panic(errParamaterNoRegex)
 	}
-
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -887,8 +782,6 @@ func noOfFolders() {
 
 	//Number of folders
 	folderNoRegex := `
-
-
 [segment:sl_no_of_folders]
 @Home
 path /
@@ -914,14 +807,10 @@ path /*
 # ----End of sl_no_of_folders----`
 
 	//No. of folders message
-	fmt.Println(purple + "Number of folders" + reset)
 	errFolderNoRegex := insertStaticRegex(folderNoRegex)
 	if errFolderNoRegex != nil {
 		panic(errFolderNoRegex)
 	}
-
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -950,9 +839,6 @@ path /*
 	if errSfccURLs != nil {
 		panic(errSfccURLs)
 	}
-
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 
 }
 
@@ -991,9 +877,6 @@ path /*
 		panic(errShopify)
 	}
 
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
-
 }
 
 // Static resources
@@ -1001,8 +884,6 @@ func staticResources() {
 
 	// Static resources
 	staticResources := `
-
-
 [segment:s_Static_Resources]  
 @true  
 or (  
@@ -1057,15 +938,11 @@ path /*
 
 # ----End of sl_static_resources----`
 
-	// Static resources message
-	fmt.Println(purple + "Static resources" + reset)
 	errStaticResources := insertStaticRegex(staticResources)
 	if errStaticResources != nil {
 		panic(errStaticResources)
 	}
 
-	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
 }
 
 // Get the folder size threshold for level 1 & 2 folders
@@ -1145,6 +1022,19 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 	return largestValueSize, fivePercentValue
 }
 
+// Display the resuts and cleanup
+func cleanUp() {
+
+	// We're done
+	// Clean-up. Delete the temp. file
+	os.Remove(urlExtractFile)
+	os.Remove("segment.txt")
+
+	fmt.Println(green + "segmentifyLite: Done!")
+
+	return
+}
+
 // Write the static Regex to the segments file
 func insertStaticRegex(regexText string) error {
 
@@ -1173,6 +1063,225 @@ func insertStaticRegex(regexText string) error {
 	}
 
 	return errorCheck
+}
+
+func writeLog(sessionID, orgName, projectName, statusDescription string) {
+	// Define log file name
+	fileName := "_seoSegmentifyLitelogfile.log"
+
+	// Check if the log file exists
+	fileExists := true
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		fileExists = false
+	}
+
+	// Open or create the log file
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf(red+"Error. writeLog. Cannot oprn log file: %s"+reset, err)
+	}
+	defer file.Close()
+
+	// Get current time
+	currentTime := time.Now().Format("2006-01-02 15:04:05")
+
+	// Construct log record
+	logRecord := fmt.Sprintf("%s,%s,%s,%s,%s\n",
+		sessionID, currentTime, orgName, projectName, statusDescription)
+
+	// If the file doesn't exist, write header first
+	if !fileExists {
+		header := "SessionID,Date,Organisation,Project,Status\n"
+		if _, err := file.WriteString(header); err != nil {
+			log.Fatalf(red+"Error. writeLog. Failed to write log header: %s"+reset, err)
+		}
+	}
+
+	// Write log record to file
+	if _, err := file.WriteString(logRecord); err != nil {
+		log.Fatalf(red+"Error. writeLog. Cannot write to log file: %s", err)
+	}
+}
+
+func generateLogSessionID(length int) (string, error) {
+	// Generate random bytes
+	sessionIDLength := make([]byte, length)
+	if _, err := rand.Read(sessionIDLength); err != nil {
+		return "", err
+	}
+	// Encode bytes to base64 string
+	return base64.URLEncoding.EncodeToString(sessionIDLength), nil
+}
+
+// Generate the HTML pages used to present the segmentation regex
+func generateSegmentationRegex() {
+
+	htmlContent := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go_Seo Dashboard</title>
+ <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: Cornsilk;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .banner {
+            background-color: DeepSkyBlue;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+        .banner.top {
+            font-size: 24px;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 50%;
+            height: 100%;
+            background-color: Khaki;
+            color: white;
+        }
+        iframe {
+            width: 80vw;
+            height: 80vh;
+            border: 2px solid LightGray;
+            border-radius: 10px;
+        }
+        .no-border iframe {
+            border: none;
+        }
+        .back-button {
+            padding: 12px 24px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Banner -->
+<header class="banner top">
+    <span>Go_Seo</span><br>
+    <span style="font-size: 20px;">segmentifyLite. Segment regex generation</span>
+</header>
+
+<!-- Back Button to create a new dashboard -->
+<button class="back-button" onclick="goHome()">New segmentation</button>
+
+<script>
+    function goHome() {
+        window.open('http://localhost:8080/', '_blank');
+    }
+</script>
+
+<!-- Sections with Iframes -->
+<section class="container row no-border">
+    <iframe src="seo_segmentHTML.html" title="Segmentation regex"></iframe>
+</section>
+
+</body>
+</html>
+`
+	// Generate the URL to link to the segment editor in the project
+	projectURL := "https://app.botify.com/" + orgName + "/" + projectName + "/segmentation"
+
+	htmlContent += fmt.Sprintf("<div style='text-align: center;'>\n")
+	htmlContent += fmt.Sprintf("<h2 style='color: deepskyblue;'>Segmentation regex generation is complete</h2>\n")
+	htmlContent += fmt.Sprintf("<h3 style='color: dimgray;'>The regex has been copied into your clipboard ready for pasting directly into your Botify project.</h3>\n")
+	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, orgName)
+
+	htmlContent += fmt.Sprintf("</div>\n")
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, "./go_seo_segmentifyLite.html")
+
+	// Generate the HTML containing the segmentation regex
+	generateSegmentHTML()
+
+	// Copy the regex to the clipboard
+	copyRegexToClipboard()
+
+}
+
+// Copy Regex to the clipboard
+func generateSegmentHTML() {
+	// Read the contents of segment.txt
+	content, err := ioutil.ReadFile("segment.txt")
+	if err != nil {
+		log.Fatalf("Failed to read segment.txt: %v", err)
+	}
+
+	// HTML template with the content
+	htmlContent := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segment Content</title>
+</head>
+<body>
+    <pre>%s</pre>
+</body>
+</html>`
+
+	// Create the HTML file
+	file, err := os.Create("seo_segmentHTML.html")
+	if err != nil {
+		log.Fatalf("Failed to create HTML file: %v", err)
+	}
+	defer file.Close()
+
+	// Write the formatted HTML content to the file
+	_, err = file.WriteString(
+		fmt.Sprintf(htmlContent, content),
+	)
+	if err != nil {
+		log.Fatalf("Failed to write to HTML file: %v", err)
+	}
+}
+
+// Function used to generate and save the HTML content to a file
+func saveHTML(genHTML string, genFilename string) {
+
+	file, err := os.Create(genFilename)
+	if err != nil {
+		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
+		return
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(genHTML)
+	if err != nil {
+		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, genFilename, err)
+		return
+	}
 }
 
 // Copy Regex to the clipboard
@@ -1204,7 +1313,17 @@ func displayBanner() {
 
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
 	fmt.Println(green + `
+ ██████╗  ██████╗         ███████╗███████╗ ██████╗ 
+██╔════╝ ██╔═══██╗        ██╔════╝██╔════╝██╔═══██╗
+██║  ███╗██║   ██║        ███████╗█████╗  ██║   ██║
+██║   ██║██║   ██║        ╚════██║██╔══╝  ██║   ██║
+╚██████╔╝╚██████╔╝███████╗███████║███████╗╚██████╔╝
+ ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝
+`)
+
+	fmt.Println(purple + `
 ███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
 ██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
 ███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██║█████╗   ╚████╔╝ ██║     ██║   ██║   █████╗
@@ -1216,6 +1335,15 @@ func displayBanner() {
 	//Display welcome message
 	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
 	fmt.Println(purple+"Version:"+reset, version, "\n")
+
+	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
+
+	now := time.Now()
+	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(green + "Server started at " + formattedTime + reset)
+	fmt.Println(green+"Maximum No. of URLs to be processed is"+reset, maxURLsToProcess, "k")
+
+	fmt.Println(green + "\n... waiting for requests\n" + reset)
 
 }
 
