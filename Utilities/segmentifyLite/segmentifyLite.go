@@ -1497,7 +1497,7 @@ func displayBanner() {
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 
-	fmt.Println(green + `
+	fmt.Print(green + `
  ██████╗  ██████╗         ███████╗███████╗ ██████╗ 
 ██╔════╝ ██╔═══██╗        ██╔════╝██╔════╝██╔═══██╗
 ██║  ███╗██║   ██║        ███████╗█████╗  ██║   ██║
@@ -1505,7 +1505,7 @@ func displayBanner() {
 ╚██████╔╝╚██████╔╝███████╗███████║███████╗╚██████╔╝
  ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝`)
 
-	fmt.Println(purple + `
+	fmt.Print(purple + `
 ███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
 ██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
 ███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██║█████╗   ╚████╔╝ ██║     ██║   ██║   █████╗
@@ -1514,8 +1514,9 @@ func displayBanner() {
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝`)
 
 	//Display welcome message
+	fmt.Println()
+	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
 
 	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
 
