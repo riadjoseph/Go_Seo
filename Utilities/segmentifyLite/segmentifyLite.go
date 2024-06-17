@@ -528,17 +528,23 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	}
 
 	//Write the footer lines
-	writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 	_, err := writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 	if err != nil {
-		fmt.Printf("Error writing segment to writer: %v\n", err)
+		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n", err)
 		// Handle or return the error as needed
 	}
 
 	//Insert the number of URLs found in each folder as comments
-	writer.WriteString("\n# ----Folder URL analysis----\n")
+	_, err = writer.WriteString("\n# ----Folder URL analysis----\n")
+	if err != nil {
+		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n"+reset, err)
+		// Handle or return the error as needed
+	}
 	for _, folderValueCount := range sortedCounts {
-		writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
+		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
+		if err != nil {
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n"+reset, err)
+		}
 	}
 
 	//Flush the writer to ensure all data is written to the file
@@ -631,7 +637,10 @@ func subDomains() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
+	_, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
+	if err != nil {
+		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
+	}
 
 	//Write the regex
 	for _, folderValueCount := range sortedCounts {
@@ -640,20 +649,26 @@ func subDomains() {
 			parts := strings.SplitN(folderValueCount.Text, "/", 4)
 			if len(parts) >= 3 && parts[2] != "" {
 				folderLabel := parts[2] //Extract the text between the third and fourth forward-slashes
-				writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
-				if errorCheck != nil {
-					fmt.Printf(red+"\nError. subDomains. Cannot write to output file: %v\n"+reset, errorCheck)
-					os.Exit(1)
+				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
+				if err != nil {
+					fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
+					// Handle or return the error as needed
 				}
 			}
 		}
 	}
 
 	//Write the footer lines
-	writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
+	_, err := writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
+	if err != nil {
+		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
+	}
 
 	//Insert the number of URLs found in each folder as comments
-	writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
+	_, err := writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
+	if err != nil {
+		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
+	}
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
@@ -759,7 +774,10 @@ func parameterKeys() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameter_keys]\n"))
+	_, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameter_keys]\n"))
+	if err != nil {
+		fmt.Printf(red+"Error. parameterKeys. Cannot write segment to writer: %v\n"+reset, err)
+	}
 
 	//Write the regex
 	for _, folderValueCount := range sortedCounts {
@@ -771,10 +789,18 @@ func parameterKeys() {
 	}
 
 	//Write the footer lines
-	writer.WriteString("@~Other\npath /*\n# ----End of parameterKeys Segment----\n")
+	_, err = writer.WriteString("@~Other\npath /*\n# ----End of parameterKeys Segment----\n")
+	if err != nil {
+		fmt.Printf(red+"Error. parameterKeys. Cannot write segment to writer: %v\n"+reset, err)
+		// Handle or return the error as needed
+	}
 
 	//Insert the number of URLs found in each folder as comments
-	writer.WriteString("\n# ----parameterKeys URL analysis----\n")
+	_, err = writer.WriteString("\n# ----parameterKeys URL analysis----\n")
+	if err != nil {
+		fmt.Printf(red+"Error. parameterKeys. Cannot write segment to writer: %v\n"+reset, err)
+		// Handle or return the error as needed
+	}
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
