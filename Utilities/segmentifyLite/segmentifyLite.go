@@ -1,6 +1,5 @@
 // segmentifyLite. Generate the regex for a specified crawl
 // See the readme for details on segments generated
-// Segmentation based on the first 300k records
 // Written by Jason Vicinanza
 
 package main
@@ -67,6 +66,10 @@ var hostname string
 var port string
 var fullHost = hostname + ":" + port
 
+// Name of the cache folder used to store the generated HTML
+var cacheFolder string
+var cacheFolderRoot = "./_cache"
+
 type botifyResponse struct {
 	Count   int `json:"count"`
 	Results []struct {
@@ -102,7 +105,6 @@ func main() {
 		// Retrieve the form data from the request
 		err := r.ParseForm()
 		if err != nil {
-			// Handle the error appropriately, e.g., log it and return an error response
 			fmt.Println(red+"Error. Cannot parse form:"+reset, err)
 			return
 		}
@@ -112,10 +114,14 @@ func main() {
 		// Generate a session ID used for grouping log entries
 		var sessionID string
 
-		sessionID, err = generateLogSessionID(16)
+		sessionID, err = generateLogSessionID(8)
 		if err != nil {
 			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
+
+		// Create the cache folder for the generated HTML if it does not exist
+		cacheFolder = cacheFolderRoot + "/" + sessionID
+		createCacheFolder()
 
 		// Process URLs
 		processURLsInProject(sessionID)
@@ -168,10 +174,10 @@ func main() {
 		generateSegmentationRegex()
 
 		// Display results and clean up
-		cleanUp()
+		cleanUp(sessionID)
 
 		// Respond to the client with a success message or redirect to another page
-		http.Redirect(w, r, "go_seo_segmentifyLite.html", http.StatusFound)
+		http.Redirect(w, r, cacheFolder+"/go_seo_segmentifyLite.html", http.StatusFound)
 	})
 
 	// Start the HTTP server
@@ -190,7 +196,7 @@ func processURLsInProject(sessionID string) {
 
 	req, errorCheck := http.NewRequest("GET", url, nil)
 	if errorCheck != nil {
-		log.Fatal("\nError creating request: "+reset, errorCheck)
+		log.Fatal(red+"\nError creating request: "+reset, errorCheck)
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botifyAPIToken)
@@ -202,7 +208,7 @@ func processURLsInProject(sessionID string) {
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (1):"+reset, err)
+			fmt.Println(red+"Error. processURLsInProject. Closing (1):"+reset, err)
 		}
 	}()
 
@@ -236,15 +242,15 @@ func processURLsInProject(sessionID string) {
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (2):"+reset, err)
+			fmt.Println(red+"Error. processURLsInProject. Closing (2):"+reset, err)
 		}
 	}()
 
 	//Initialize total count
 	totalCount := 0
-	fmt.Println(sessionID+": Organisation name:", orgName)
-	fmt.Println(sessionID+": Project name:", projectName)
-	fmt.Println(sessionID+": Latest analysis slug:", responseObject.Results[0].Slug)
+	fmt.Println("("+sessionID+") Organisation name:", orgName)
+	fmt.Println("("+sessionID+") Project name:", projectName)
+	fmt.Println("("+sessionID+") Latest analysis slug:", responseObject.Results[0].Slug)
 	println()
 
 	analysisSlug := responseObject.Results[0].Slug
@@ -320,12 +326,12 @@ func processURLsInProject(sessionID string) {
 			break
 		}
 
-		fmt.Printf(" Page %d: %d URLs processed\n", page, count)
+		fmt.Printf("\n"+"("+sessionID+") "+"Page %d: %d URLs processed"+"\n", page, count)
 	}
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (3):"+reset, err)
+			fmt.Println(red+"Error. processURLsInProject. Closing (3):"+reset, err)
 		}
 	}()
 }
@@ -359,7 +365,7 @@ func generateRegexFile() {
 
 	defer func() {
 		if err := outputFile.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (4):"+reset, err)
+			fmt.Println(red+"Error. generateRegexFile. Closing (4):"+reset, err)
 		}
 	}()
 
@@ -415,7 +421,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (5):"+reset, err)
+			fmt.Println(red+"Error. segmentFolders. Closing (5):"+reset, err)
 		}
 	}()
 
@@ -490,7 +496,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 
 	defer func() {
 		if err := outputFile.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (6):"+reset, err)
+			fmt.Println(red+"Error. segmentFolders. Closing (6):"+reset, err)
 		}
 	}()
 
@@ -500,14 +506,18 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Write the segment name
 	// SlashCount = 4 signals level 1 folders
 	// SlashCount = 5 signals level 2 folders
+
+	// Level 1
 	if slashCount == 4 {
 		if _, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_folders]\n@Home\npath /\n\n")); err != nil {
-			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 4: %v\n"+reset, err)
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Level 1 folders: %v\n"+reset, err)
 		}
 	}
+
+	// Level 2
 	if slashCount == 5 {
 		if _, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_folders]\n@Home\npath /\n\n")); err != nil {
-			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 5: %v\n"+reset, err)
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Level 2 folders: %v\n"+reset, err)
 		}
 	}
 
@@ -564,7 +574,7 @@ func subDomains() {
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (7):"+reset, err)
+			fmt.Println(red+"Error. subDomains. Closing (7):"+reset, err)
 		}
 	}()
 
@@ -627,7 +637,7 @@ func subDomains() {
 
 	defer func() {
 		if err := outputFile.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (8):"+reset, err)
+			fmt.Println(red+"Error. subDomains. Closing (8):"+reset, err)
 		}
 	}()
 
@@ -694,7 +704,7 @@ func parameterKeys() {
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (9):"+reset, err)
+			fmt.Println(red+"Error. parameterKeys. Closing (9):"+reset, err)
 		}
 	}()
 
@@ -764,7 +774,7 @@ func parameterKeys() {
 
 	defer func() {
 		if err := outputFile.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (10):"+reset, err)
+			fmt.Println(red+"Error. parameterKeys. Closing (10):"+reset, err)
 		}
 	}()
 
@@ -1055,7 +1065,7 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (11):"+reset, err)
+			fmt.Println(red+"Error. levelThreshold. Closing (11):"+reset, err)
 		}
 	}()
 
@@ -1127,7 +1137,7 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 }
 
 // Display the results and cleanup
-func cleanUp() {
+func cleanUp(sessionID string) {
 
 	// Clean-up. Delete the temp. file
 	err := os.Remove(urlExtractFile)
@@ -1144,6 +1154,7 @@ func cleanUp() {
 
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(purple + "\nSession ID: " + sessionID)
 	fmt.Println(purple + "\nsegmentifyLite: Done at " + formattedTime)
 	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, orgName, projectName)
 
@@ -1165,7 +1176,7 @@ func insertStaticRegex(regexText string) error {
 
 	defer func() {
 		if err := outputFile.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (12):"+reset, err)
+			fmt.Println(red+"Error. insertStaticRegex. Closing (12):"+reset, err)
 		}
 	}()
 
@@ -1207,7 +1218,7 @@ func writeLog(sessionID, orgName, projectName, statusDescription string) {
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (13):"+reset, err)
+			fmt.Println(red+"Error. writeLog. Closing (13):"+reset, err)
 		}
 	}()
 
@@ -1339,7 +1350,7 @@ func generateSegmentationRegex() {
 
 <!-- Sections with Iframes -->
 <section class="container row no-border">
-    <iframe src="seo_segmentHTML.html" title="Segmentation regex"></iframe>
+    <iframe src="seo_segmentationRegex.html" title="Segmentation regex"></iframe>
 </section>
 
 </body>
@@ -1357,7 +1368,7 @@ func generateSegmentationRegex() {
 	htmlContent += fmt.Sprintf("</div>\n")
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./go_seo_segmentifyLite.html")
+	saveHTML(htmlContent, "/go_seo_segmentifyLite.html")
 
 	// Generate the HTML containing the segmentation regex
 	generateSegmentHTML()
@@ -1392,14 +1403,14 @@ func generateSegmentHTML() {
 </html>`
 
 	// Create the HTML file
-	file, err := os.Create("seo_segmentHTML.html")
+	file, err := os.Create(cacheFolder + "/seo_segmentationRegex.html")
 	if err != nil {
-		log.Fatalf("Failed to create HTML file: %v", err)
+		log.Fatalf(red+"Error. generateSegmentHTML. Failed to create HTML file: %v"+reset, err)
 	}
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (14):"+reset, err)
+			fmt.Println(red+"Error. generateSegmentHTML. Closing (14):"+reset, err)
 		}
 	}()
 
@@ -1415,7 +1426,8 @@ func generateSegmentHTML() {
 // Function used to generate and save the HTML content to a file
 func saveHTML(genHTML string, genFilename string) {
 
-	file, err := os.Create(genFilename)
+	file, err := os.Create(cacheFolder + genFilename)
+	println(genFilename)
 	if err != nil {
 		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
 		return
@@ -1423,7 +1435,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. Closing (15):"+reset, err)
+			fmt.Println(red+"Error. saveHTML. Closing (15):"+reset, err)
 		}
 	}()
 
@@ -1459,6 +1471,20 @@ func copyRegexToClipboard() {
 	}
 }
 
+func createCacheFolder() {
+
+	cacheDir := cacheFolder
+
+	// Check if the directory already exists
+	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
+		// Create the directory and any necessary parents
+		err := os.MkdirAll(cacheDir, 0755)
+		if err != nil {
+			log.Fatalf(red+"Error. Failed to create the cache directory: %v"+reset, err)
+		}
+	}
+}
+
 func getHostnamePort() {
 
 	// Load the INI file
@@ -1470,6 +1496,7 @@ func getHostnamePort() {
 	// Get values from the INI file
 	hostname = cfg.Section("").Key("hostname").String()
 	port = cfg.Section("").Key("port").String()
+	fullHost = hostname + ":" + port
 
 	// Save the values to variables
 	var serverHostname, serverPort string

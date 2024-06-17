@@ -219,7 +219,11 @@ func main() {
 	// Define a handler function for form submission
 	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
 		// Retrieve the form data from the request
-		r.ParseForm()
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Println(red+"Error. Cannot parse form:"+reset, err)
+			return
+		}
 		organization := r.Form.Get("organization")
 		project := r.Form.Get("project")
 
@@ -230,7 +234,7 @@ func main() {
 		projectName = project
 
 		// Generate a session ID used for grouping log entries
-		sessionID, err := generateLogSessionID(16)
+		sessionID, err := generateLogSessionID(8)
 		if err != nil {
 			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
@@ -266,7 +270,7 @@ func main() {
 		}
 
 		// Generate the dashboard HTML
-		goSeoDashboard()
+		goSeoDashboard(sessionID)
 
 		// Write to the log
 		writeLog(sessionID, orgName, projectName, "-", "Dashboard generated")
@@ -279,7 +283,7 @@ func main() {
 	http.ListenAndServe(":"+port, nil)
 }
 
-func goSeoDashboard() {
+func goSeoDashboard(sessionID string) {
 
 	// Start of charts
 
@@ -320,9 +324,9 @@ func goSeoDashboard() {
 	wordCloudBrandedUnbranded(false)
 
 	// Winning branded keyword
-	winningKeywords(true)
+	winningKeywords(true, sessionID)
 	// Winning non branded keyword
-	winningKeywords(false)
+	winningKeywords(false, sessionID)
 
 	// Detailed keyword insights - Branded
 	generateHTMLDetailedKeywordsInsights(true)
@@ -352,6 +356,7 @@ func goSeoDashboard() {
 	// We're done
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(purple + "\nSession ID: " + sessionID)
 	fmt.Println(purple + "\ngo_seo_dashboard: Done at " + formattedTime)
 	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, orgName, projectName)
 
@@ -383,6 +388,7 @@ func getSeoInsights(sessionID string) string {
 	// Identify which analytics tool is used
 	analyticsID := getAnalyticsID()
 	fmt.Println("Analytics identified:", analyticsID)
+	fmt.Println()
 
 	// Error checking
 	// Exit if no project has been found
@@ -413,7 +419,7 @@ func getSeoInsights(sessionID string) string {
 	}
 
 	// Get the revenue data
-	getRevenueDataStatus := getRevenueData(analyticsID, startMthDates, endMthDates)
+	getRevenueDataStatus := getRevenueData(analyticsID, startMthDates, endMthDates, sessionID)
 
 	// Error checking
 	if getRevenueDataStatus == "errorNoEAFound" {
@@ -434,7 +440,7 @@ func getSeoInsights(sessionID string) string {
 	writeLog(sessionID, orgName, projectName, analyticsID, "Keyword data acquired")
 
 	// Calculate the CMGR values
-	calculateCMGR()
+	calculateCMGR(sessionID)
 
 	// Calculate the projections
 	projectionDataCompute()
@@ -477,7 +483,7 @@ func resetMetrics() {
 }
 
 // Get the revenue, orders and visits data
-func getRevenueData(analyticsID string, startMthDates []string, endMthDates []string) string {
+func getRevenueData(analyticsID string, startMthDates []string, endMthDates []string, sessionID string) string {
 
 	var metricsOrders = 0
 	var metricsRevenue = 0
@@ -518,7 +524,7 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		formatInteger := message.NewPrinter(language.English)
 
 		// Display the KPIs
-		fmt.Printf(green+"\nDate Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
+		fmt.Printf(green+"("+sessionID+") Date Start: %s End: %s\n"+reset, startMthDates[i], endMthDates[i])
 		formattedOrders := formatInteger.Sprintf("%d", metricsOrders)
 		formattedRevenue := formatInteger.Sprintf("%d", metricsRevenue)
 		formattedVisits := formatInteger.Sprintf("%d", metricsVisits)
@@ -576,7 +582,7 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		totalAverageOrderValue = totalOrderValue / len(seoOrderValue)
 	}
 
-	fmt.Println(green + "\nTotals" + reset)
+	fmt.Println(green + "\n" + "(" + sessionID + ") Totals" + reset)
 	fmt.Println("Total visits:", totalVisits)
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
@@ -1501,7 +1507,7 @@ func tableDataDetail() {
 
 }
 
-func winningKeywords(brandedMode bool) {
+func winningKeywords(brandedMode bool, sessionID string) {
 
 	var htmlFileName = ""
 
@@ -1523,7 +1529,7 @@ func winningKeywords(brandedMode bool) {
 		htmlSecondPlaceKW = kwKeywords[1]
 		htmlCTR = kwMetricsCTR[0]
 		htmlAvgPosition = kwMetricsAvgPosition[0]
-		fmt.Printf(green + "\nBranded keywords\n" + reset)
+		fmt.Printf(green + "\n" + "(" + sessionID + ") Branded keywords\n" + reset)
 		for i := 0; i < len(kwKeywords); i++ {
 			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
 				kwKeywords[i], kwMetricsCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i])
@@ -1537,7 +1543,7 @@ func winningKeywords(brandedMode bool) {
 		htmlSecondPlaceKW = kwKeywordsNB[1]
 		htmlCTR = kwMetricsCTRNB[0]
 		htmlAvgPosition = kwMetricsAvgPositionNB[0]
-		fmt.Printf(green + "\nNon Branded keywords\n" + reset)
+		fmt.Printf(green + "\n" + "(" + sessionID + ") Non Branded keywords\n" + reset)
 		for i := 0; i < len(kwKeywords); i++ {
 			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
 				kwKeywordsNB[i], kwMetricsCountClicksNB[i], kwMetricsCTRNB[i], kwMetricsAvgPositionNB[i])
@@ -1851,9 +1857,9 @@ func lineChartRevenueProjection() {
 			Smooth: opts.Bool(true),
 		}),
 		charts.WithMarkPointNameTypeItemOpts(
-			opts.MarkPointNameTypeItem{Name: "Maximum revenue", Type: "max"},
-			opts.MarkPointNameTypeItem{Name: "Average revenue", Type: "average"},
-			opts.MarkPointNameTypeItem{Name: "Minimum revenue", Type: "min"},
+			opts.MarkPointNameTypeItem{Name: "Top end", Type: "max"},
+			opts.MarkPointNameTypeItem{Name: "Mid range", Type: "average"},
+			opts.MarkPointNameTypeItem{Name: "Low end", Type: "min"},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{Label: &opts.Label{Show: opts.Bool(true)}},
@@ -1950,7 +1956,7 @@ func footerNotes() {
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
-		"These current month is not included in the analysis, only full months are reported on",
+		"The current month is not included in the analysis, only full months are reported on",
 		"Compound growth rate refers to CMGR. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
 	}
 
@@ -2217,7 +2223,6 @@ func generateDashboard() {
 </html>
 `, width90, width90, width100, fullHost)
 
-	// to be put in correct folder
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_dashboard.html")
 
@@ -2269,7 +2274,7 @@ func executeBQL(returnSize int, bqlToExecute string) []byte {
 }
 
 // CMGR
-func calculateCMGR() {
+func calculateCMGR(sessionID string) {
 
 	// Revenue
 	// Convert slice of integers to slice of floats for CMGR compute
@@ -2277,6 +2282,7 @@ func calculateCMGR() {
 	for _, v := range seoMetricsRevenue {
 		seoMetricsRevenueFloat = append(seoMetricsRevenueFloat, float64(v))
 	}
+
 	cmgrRevenue = computeCMGR(seoMetricsRevenueFloat)
 
 	// Visits
@@ -2307,7 +2313,7 @@ func calculateCMGR() {
 	}
 	cmgrOrdersValueValue := computeCMGR(seoMetricsOrdersValueFloat)
 
-	fmt.Printf(green + "\nCompound Monthly Growth Rate\n" + reset)
+	fmt.Printf(green + "\n" + "(" + sessionID + ") Compound Monthly Growth Rate\n" + reset)
 	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
 	fmt.Printf("Visits: %.2f\n", cmgrVisits)
 	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
@@ -2325,7 +2331,7 @@ func computeCMGR(values []float64) float64 {
 	initialValue := values[0]
 
 	// The final period value is not included as it is not a full month
-	finalValue := values[len(values)-2]
+	finalValue := values[len(values)-1]
 	numberOfPeriods := float64(len(values))
 
 	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
@@ -2563,6 +2569,7 @@ func generateLogSessionID(length int) (string, error) {
 	if _, err := rand.Read(sessionIDLength); err != nil {
 		return "", err
 	}
+
 	// Encode bytes to base64 string
 	return base64.URLEncoding.EncodeToString(sessionIDLength), nil
 }
@@ -2650,7 +2657,7 @@ func createCacheFolder() {
 		// Create the directory and any necessary parents
 		err := os.MkdirAll(cacheDir, 0755)
 		if err != nil {
-			log.Fatalf("Error. Failed to create the cache directory: %v", err)
+			log.Fatalf(red+"Error. Failed to create the cache directory: %v"+reset, err)
 		}
 	}
 }
