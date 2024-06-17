@@ -2495,7 +2495,7 @@ func generateErrorPage(displayMessage string) {
 
 func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription string) {
 	// Define log file name
-	fileName := "_seoBroadsheetlogfile.log"
+	fileName := "_seoBroadsheetLogfile.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -2572,13 +2572,11 @@ func getCurrency() {
 
 	if err != nil {
 		log.Fatal(red+"\nError. getCurrency. Cannot unmarshall JSON:"+reset, err)
-		os.Exit(1)
 	}
 
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
 		fmt.Println(red + "\nError. getCurrency. Invalid crawl or no crawls found in the project." + reset)
-		os.Exit(1)
 	}
 
 	if len(responseObject.Results) > 0 {
@@ -2603,7 +2601,7 @@ func getCurrency() {
 	case "CHF":
 		currencySymbol = "CHF" // Swiss Franc
 	case "CNY":
-		currencySymbol = "CN¥" // Chinese Yuan Renminbi
+		currencySymbol = "CN¥" // Chinese Yuan
 	case "INR":
 		currencySymbol = "₹" // Indian Rupee
 	case "SGD":
