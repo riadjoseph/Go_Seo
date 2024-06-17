@@ -1045,6 +1045,7 @@ path /*
 
 // Get the folder size threshold for level 1 & 2 folders
 func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fivePercentValue int) {
+
 	// Open the input file
 	file, errorCheck := os.Open(inputFilename)
 	if errorCheck != nil {
@@ -1188,6 +1189,7 @@ func insertStaticRegex(regexText string) error {
 }
 
 func writeLog(sessionID, orgName, projectName, statusDescription string) {
+
 	// Define log file name
 	fileName := "_seoSegmentifyLitelogfile.log"
 
@@ -1231,6 +1233,7 @@ func writeLog(sessionID, orgName, projectName, statusDescription string) {
 }
 
 func generateLogSessionID(length int) (string, error) {
+
 	// Generate random bytes
 	sessionIDLength := make([]byte, length)
 	if _, err := rand.Read(sessionIDLength); err != nil {
@@ -1366,6 +1369,7 @@ func generateSegmentationRegex() {
 
 // Copy Regex to the clipboard
 func generateSegmentHTML() {
+
 	// Read the contents of segment.txt
 	content, err := os.ReadFile("segment.txt")
 
@@ -1432,6 +1436,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 // Copy Regex to the clipboard
 func copyRegexToClipboard() {
+
 	content, err := os.ReadFile(regexOutputFile)
 	if err != nil {
 		panic(err)
@@ -1455,6 +1460,7 @@ func copyRegexToClipboard() {
 }
 
 func getHostnamePort() {
+
 	// Load the INI file
 	cfg, err := ini.Load("go_seo_segmentifyLite.ini")
 	if err != nil {
@@ -1477,6 +1483,7 @@ func getHostnamePort() {
 
 // Function to clear the screen
 func clearScreen() {
+
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
@@ -1517,7 +1524,6 @@ func displayBanner() {
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
-
 	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
 
 	now := time.Now()
@@ -1529,5 +1535,4 @@ func displayBanner() {
 	getHostnamePort()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
-
 }

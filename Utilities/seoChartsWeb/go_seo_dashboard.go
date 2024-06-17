@@ -443,6 +443,7 @@ func getSeoInsights(sessionID string) string {
 }
 
 func resetMetrics() {
+
 	// Reset slices
 	startMthDates = nil
 	endMthDates = nil
@@ -990,6 +991,7 @@ func barChartRevenueVisits() {
 }
 
 func lineChartVisitsPerOrder() {
+
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
@@ -1038,6 +1040,7 @@ func lineChartVisitsPerOrder() {
 
 // Function to generate line chart items from an array of float64 values
 func generateLineItems(visitsPerOrder []int) []opts.LineData {
+
 	items := make([]opts.LineData, len(visitsPerOrder))
 	for i, val := range visitsPerOrder {
 		items[i] = opts.LineData{Value: val}
@@ -1047,6 +1050,7 @@ func generateLineItems(visitsPerOrder []int) []opts.LineData {
 
 // Visit value bar chart
 func barChartVisitValue() {
+
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1125,6 +1129,7 @@ func barChartOrders() {
 
 // Bar chart. No. of Orders
 func barChartOrderValue() {
+
 	// create a new bar instance
 	bar := charts.NewBar()
 
@@ -1461,6 +1466,7 @@ func gaugeBase() *charts.Gauge {
 
 // Generate an HTML table containing the detailed KPI insights
 func tableDataDetail() {
+
 	var detailedKPITableData [][]string
 
 	// Use the printer to format an integer (or a float)
@@ -1606,6 +1612,7 @@ func winningKeywords(brandedMode bool) {
 
 // generateHTML generates the HTML content for the table
 func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
+
 	htmlContent := `
 <!DOCTYPE html>
 <html>
@@ -1809,6 +1816,7 @@ func projectionDataCompute() {
 
 // Revenue projection line chart
 func lineChartRevenueProjection() {
+
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
@@ -1858,6 +1866,7 @@ func lineChartRevenueProjection() {
 
 // Populate the chart with the revenue projection data
 func generateLineItemsRevenueProjection(projectionRevenue []int) []opts.LineData {
+
 	items := make([]opts.LineData, len(projectionRevenue))
 	for i, val := range projectionRevenue {
 		items[i] = opts.LineData{Value: val}
@@ -1973,6 +1982,7 @@ func footerNotes() {
 
 // formatDate converts date from YYYYMMDD to Month-Year format
 func formatDate(dateStr string) string {
+
 	date, err := time.Parse("20060102", dateStr)
 	if err != nil {
 		fmt.Println(red+"Error. formatDate. Cannot parse date:"+reset, err)
@@ -2214,6 +2224,7 @@ func generateDashboard() {
 }
 
 func executeBQL(returnSize int, bqlToExecute string) []byte {
+
 	// If a size needs to be added to the URL, define it here
 	var returnSizeAppend string
 	if returnSize > 0 {
@@ -2328,6 +2339,7 @@ func computeCMGR(values []float64) float64 {
 
 // Get the analytics ID
 func getAnalyticsID() string {
+
 	// First identify which analytics tool is integrated
 	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
 	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
@@ -2375,6 +2387,7 @@ func getAnalyticsID() string {
 
 // Get the date ranges for the revenue and visits
 func calculateDateRanges() DateRanges {
+
 	currentTime := time.Now()
 	dateRanges := make([][2]time.Time, 12)
 
@@ -2505,6 +2518,7 @@ func generateErrorPage(displayMessage string) {
 }
 
 func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription string) {
+
 	// Define log file name
 	fileName := "_seoDashboardLogfile.log"
 
@@ -2543,6 +2557,7 @@ func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription st
 }
 
 func generateLogSessionID(length int) (string, error) {
+
 	// Generate random bytes
 	sessionIDLength := make([]byte, length)
 	if _, err := rand.Read(sessionIDLength); err != nil {
@@ -2641,6 +2656,7 @@ func createCacheFolder() {
 }
 
 func getHostnamePort() {
+
 	// Load the INI file
 	cfg, err := ini.Load("go_seo_dashboard.ini")
 	if err != nil {
@@ -2685,7 +2701,7 @@ func displayBanner() {
 	//Display welcome message
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
-
+	fmt.Println(purple + "\nGo_Seo Dashboard server: Business insights for SEO\n" + reset)
 	fmt.Println(green + "\nThe Go_Seo dashboard server is ON.\n" + reset)
 
 	now := time.Now()
