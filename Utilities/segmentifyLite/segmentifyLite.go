@@ -27,7 +27,7 @@ import (
 var version = "v0.1"
 
 // Specify your Botify API token here
-var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var botifyAPIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours & text formatting
 var purple = "\033[0;35m"
@@ -177,7 +177,7 @@ func main() {
 	// Start the HTTP server
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		fmt.Println(red+"Error. main. Cannot start HTTP server.:"+red, err)
+		fmt.Println(red+"Error. main. Cannot start HTTP server.:"+reset, err)
 		os.Exit(1)
 	}
 }
@@ -193,7 +193,7 @@ func processURLsInProject(sessionID string) {
 		log.Fatal("\nError creating request: "+reset, errorCheck)
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Authorization", "token "+botifyAPIToken)
 
 	res, errorCheck := http.DefaultClient.Do(req)
 	if errorCheck != nil {
@@ -261,7 +261,7 @@ func processURLsInProject(sessionID string) {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+botifyApiToken)
+		req.Header.Add("Authorization", "token "+botifyAPIToken)
 
 		res, errorCheck := http.DefaultClient.Do(req)
 		if errorCheck != nil {
@@ -384,17 +384,17 @@ func generateRegexFile() {
 
 	_, err := writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
 	if err != nil {
-		errMsg := fmt.Errorf(red+"Error. Cannot write organisation name in Regex file: %w", err)
+		errMsg := fmt.Errorf(red+"Error. Cannot write organisation name in Regex file: %w"+reset, err)
 		println(errMsg)
 	}
 	_, err = writer.WriteString(fmt.Sprintf("# Project name: %s\n", projectName))
 	if err != nil {
-		errMsg := fmt.Errorf(red+"Error. Cannot write project name in Regex file: %w", err)
+		errMsg := fmt.Errorf(red+"Error. Cannot write project name in Regex file: %w"+reset, err)
 		println(errMsg)
 	}
 	_, err = writer.WriteString(fmt.Sprintf("# Generated %s", currentTime.Format(time.RFC1123)))
 	if err != nil {
-		errMsg := fmt.Errorf(red+"Error. Cannot write generate date/time name in Regex file: %w", err)
+		errMsg := fmt.Errorf(red+"Error. Cannot write generate date/time name in Regex file: %w"+reset, err)
 		println(errMsg)
 	}
 
@@ -502,12 +502,12 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	// SlashCount = 5 signals level 2 folders
 	if slashCount == 4 {
 		if _, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_folders]\n@Home\npath /\n\n")); err != nil {
-			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 4: %v\n", err)
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 4: %v\n"+reset, err)
 		}
 	}
 	if slashCount == 5 {
 		if _, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_folders]\n@Home\npath /\n\n")); err != nil {
-			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 5: %v\n", err)
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 5: %v\n"+reset, err)
 		}
 	}
 
@@ -530,15 +530,13 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Write the footer lines
 	_, err := writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 	if err != nil {
-		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n", err)
-		// Handle or return the error as needed
+		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n"+reset, err)
 	}
 
 	//Insert the number of URLs found in each folder as comments
 	_, err = writer.WriteString("\n# ----Folder URL analysis----\n")
 	if err != nil {
 		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n"+reset, err)
-		// Handle or return the error as needed
 	}
 	for _, folderValueCount := range sortedCounts {
 		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
@@ -659,13 +657,13 @@ func subDomains() {
 	}
 
 	//Write the footer lines
-	_, err := writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
+	_, err = writer.WriteString("@~Other\npath /*\n# ----End of subDomains Segment----\n")
 	if err != nil {
 		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
 	}
 
 	//Insert the number of URLs found in each folder as comments
-	_, err := writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
+	_, err = writer.WriteString("\n# ----subDomains Folder URL analysis----\n")
 	if err != nil {
 		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
 	}
@@ -1131,8 +1129,14 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 func cleanUp() {
 
 	// Clean-up. Delete the temp. file
-	os.Remove(urlExtractFile)
-	os.Remove("segment.txt")
+	err := os.Remove(urlExtractFile)
+	if err != nil {
+		fmt.Printf(red+"Error. cleanUp. Cannot delete extract file %s: %v\n"+reset, urlExtractFile, err)
+	}
+	err = os.Remove("segment.txt")
+	if err != nil {
+		fmt.Printf(red+"Error. cleanUp. Cannot delete segment.txt %s: %v\n"+reset, urlExtractFile, err)
+	}
 
 	// We're done
 	fmt.Println(lineSeparator)
@@ -1481,7 +1485,10 @@ func clearScreen() {
 		cmd = exec.Command("clear")
 	}
 	cmd.Stdout = os.Stdout
-	cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf(red+"Error. clearScreen. Cannot run CMD to clear screen: %v\n"+reset, err)
+	}
 }
 
 // Display the welcome banner

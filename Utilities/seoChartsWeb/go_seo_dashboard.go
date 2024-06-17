@@ -28,7 +28,7 @@ import (
 var version = "v0.1"
 
 // Botify API token
-var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var botifyAPIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours, symbols etc
 var purple = "\033[0;35m"
@@ -2234,7 +2234,7 @@ func executeBQL(returnSize int, bqlToExecute string) []byte {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Authorization", "token "+botifyAPIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request
@@ -2334,7 +2334,7 @@ func getAnalyticsID() string {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Authorization", "token "+botifyAPIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	if errorCheck != nil {
@@ -2563,7 +2563,7 @@ func getCurrency() {
 	}
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyApiToken)
+	req.Header.Add("Authorization", "token "+botifyAPIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
