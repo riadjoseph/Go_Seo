@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"gopkg.in/ini.v1"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -35,6 +34,7 @@ var purple = "\033[0;35m"
 var red = "\033[0;31m"
 var green = "\033[0;32m"
 var reset = "\033[0m"
+var lineSeparator = "█" + strings.Repeat("█", 129)
 
 // Default input and output files
 var urlExtractFile = "siteurlsExport.tmp"
@@ -100,14 +100,19 @@ func main() {
 	// Define a handler function for form submission
 	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
 		// Retrieve the form data from the request
-		r.ParseForm()
+		err := r.ParseForm()
+		if err != nil {
+			// Handle the error appropriately, e.g., log it and return an error response
+			fmt.Println(red+"Error. Cannot parse form:"+reset, err)
+			return
+		}
 		orgName = r.Form.Get("organization")
 		projectName = r.Form.Get("project")
 
 		// Generate a session ID used for grouping log entries
 		var sessionID string
 
-		sessionID, err := generateLogSessionID(8)
+		sessionID, err = generateLogSessionID(16)
 		if err != nil {
 			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
@@ -170,8 +175,11 @@ func main() {
 	})
 
 	// Start the HTTP server
-	http.ListenAndServe(":"+port, nil)
-
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		fmt.Println(red+"Error. main. Cannot start HTTP server.:"+red, err)
+		os.Exit(1)
+	}
 }
 
 // Use the API to get the first 300k URLs and export them to a temp file
@@ -191,7 +199,12 @@ func processURLsInProject(sessionID string) {
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. processURLsInProject. Check your network connection: "+reset, errorCheck)
 	}
-	defer res.Body.Close()
+
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (1):"+reset, err)
+		}
+	}()
 
 	responseData, errorCheck := io.ReadAll(res.Body)
 	if errorCheck != nil {
@@ -220,7 +233,12 @@ func processURLsInProject(sessionID string) {
 		fmt.Println(red+"\nError creating file: "+reset, errorCheck)
 		os.Exit(1)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (2):"+reset, err)
+		}
+	}()
 
 	//Initialize total count
 	totalCount := 0
@@ -274,7 +292,7 @@ func processURLsInProject(sessionID string) {
 					if strings.Contains(url, "/demandware/") {
 						sfccDetected = true
 					}
-					// Check if Shopify is used. This bool us used to deterline if the Shopify regex is generated
+					// Check if Shopify is used. This bool us used to determine if the Shopify regex is generated
 					if strings.Contains(url, "/collections/") && strings.Contains(url, "/products/") {
 						shopifyDetected = true
 					}
@@ -291,8 +309,6 @@ func processURLsInProject(sessionID string) {
 			}
 		}
 
-		defer res.Body.Close()
-
 		//If there are no more URLS process exit the function
 		if count == 0 {
 			break
@@ -306,6 +322,12 @@ func processURLsInProject(sessionID string) {
 
 		fmt.Printf(" Page %d: %d URLs processed\n", page, count)
 	}
+
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (3):"+reset, err)
+		}
+	}()
 }
 
 // Generate regex for level 1 and 2 folders
@@ -334,7 +356,12 @@ func generateRegexFile() {
 		fmt.Printf(red+"\nError. generateRegexFile. Cannot create output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-	defer outputFile.Close()
+
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (4):"+reset, err)
+		}
+	}()
 
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
@@ -355,9 +382,21 @@ func generateRegexFile() {
 		os.Exit(1)
 	}
 
-	writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
-	writer.WriteString(fmt.Sprintf("# Project name: %s\n", projectName))
-	writer.WriteString(fmt.Sprintf("# Generated %s", currentTime.Format(time.RFC1123)))
+	_, err := writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
+	if err != nil {
+		errMsg := fmt.Errorf(red+"Error. Cannot write organisation name in Regex file: %w", err)
+		println(errMsg)
+	}
+	_, err = writer.WriteString(fmt.Sprintf("# Project name: %s\n", projectName))
+	if err != nil {
+		errMsg := fmt.Errorf(red+"Error. Cannot write project name in Regex file: %w", err)
+		println(errMsg)
+	}
+	_, err = writer.WriteString(fmt.Sprintf("# Generated %s", currentTime.Format(time.RFC1123)))
+	if err != nil {
+		errMsg := fmt.Errorf(red+"Error. Cannot write generate date/time name in Regex file: %w", err)
+		println(errMsg)
+	}
 
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
@@ -374,7 +413,11 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	if errorCheck != nil {
 		os.Exit(1)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (5):"+reset, err)
+		}
+	}()
 
 	//Create a scanner to read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -444,7 +487,12 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
-	defer outputFile.Close()
+
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (6):"+reset, err)
+		}
+	}()
 
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
@@ -501,7 +549,12 @@ func subDomains() {
 	if errorCheck != nil {
 		os.Exit(1)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (7):"+reset, err)
+		}
+	}()
 
 	//Create a scanner to read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -559,7 +612,12 @@ func subDomains() {
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
-	defer outputFile.Close()
+
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (8):"+reset, err)
+		}
+	}()
 
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
@@ -612,7 +670,12 @@ func parameterKeys() {
 	if errorCheck != nil {
 		os.Exit(1)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (9):"+reset, err)
+		}
+	}()
 
 	//Create a scanner to read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -677,7 +740,12 @@ func parameterKeys() {
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
-	defer outputFile.Close()
+
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (10):"+reset, err)
+		}
+	}()
 
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
@@ -719,7 +787,7 @@ func parameterKeys() {
 func parameterUsage() {
 
 	//URLs containing parameters
-	paramaterUsageRegex := `
+	parameterUsageRegex := `
 
 [segment:sl_parameter_usage]
 @Parameters
@@ -730,9 +798,9 @@ path /*
 
 # ----End of sl_parameter_usage----`
 
-	errParamaterUsage := insertStaticRegex(paramaterUsageRegex)
-	if errParamaterUsage != nil {
-		panic(errParamaterUsage)
+	errParameterUsage := insertStaticRegex(parameterUsageRegex)
+	if errParameterUsage != nil {
+		panic(errParameterUsage)
 	}
 
 }
@@ -740,8 +808,8 @@ path /*
 // Regex to count the number of parameters in the URL
 func noOfParameters() {
 
-	//Number of paramaters
-	paramaterNoRegex := `
+	//Number of parameters
+	parameterNoRegex := `
 
 
 [segment:sl_no_of_parameters]
@@ -768,7 +836,7 @@ path /*
 
 # ----End of sl_no_of_parameters----`
 
-	errParamaterNoRegex := insertStaticRegex(paramaterNoRegex)
+	errParamaterNoRegex := insertStaticRegex(parameterNoRegex)
 	if errParamaterNoRegex != nil {
 		panic(errParamaterNoRegex)
 	}
@@ -951,7 +1019,12 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 		fmt.Printf(red+"\nError. levelThreshhold. Cannot open input file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (11):"+reset, err)
+		}
+	}()
 
 	// Create a scanner to read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -1020,15 +1093,24 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 	return largestValueSize, fivePercentValue
 }
 
-// Display the resuts and cleanup
+// Display the results and cleanup
 func cleanUp() {
 
-	// We're done
 	// Clean-up. Delete the temp. file
 	os.Remove(urlExtractFile)
 	os.Remove("segment.txt")
 
-	fmt.Println(green + "segmentifyLite: Done!")
+	// We're done
+	fmt.Println(lineSeparator)
+
+	now := time.Now()
+	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(purple + "\nsegmentifyLite: Done at " + formattedTime)
+	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, orgName, projectName)
+
+	// Make a tidy display
+	fmt.Println()
+	fmt.Println(lineSeparator)
 
 	return
 }
@@ -1041,7 +1123,12 @@ func insertStaticRegex(regexText string) error {
 	if errorCheck != nil {
 		panic(errorCheck)
 	}
-	defer outputFile.Close()
+
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (12):"+reset, err)
+		}
+	}()
 
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
@@ -1077,7 +1164,12 @@ func writeLog(sessionID, orgName, projectName, statusDescription string) {
 	if err != nil {
 		log.Fatalf(red+"Error. writeLog. Cannot oprn log file: %s"+reset, err)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (13):"+reset, err)
+		}
+	}()
 
 	// Get current time
 	currentTime := time.Now().Format("2006-01-02 15:04:05")
@@ -1218,7 +1310,7 @@ func generateSegmentationRegex() {
 
 	htmlContent += fmt.Sprintf("<div style='text-align: center;'>\n")
 	htmlContent += fmt.Sprintf("<h2 style='color: deepskyblue;'>Segmentation regex generation is complete</h2>\n")
-	htmlContent += fmt.Sprintf("<h3 style='color: dimgray;'>The regex has been copied into your clipboard ready for pasting directly into your Botify project.</h3>\n")
+	htmlContent += fmt.Sprintf("<h3 style='color: dimgray; padding-left: 20px; padding-right: 20px;'>The regex has been copied into the clipboard ready for pasting directly into your Botify project.</h3>\n")
 	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, orgName)
 
 	htmlContent += fmt.Sprintf("</div>\n")
@@ -1237,7 +1329,7 @@ func generateSegmentationRegex() {
 // Copy Regex to the clipboard
 func generateSegmentHTML() {
 	// Read the contents of segment.txt
-	content, err := ioutil.ReadFile("segment.txt")
+	content, err := os.ReadFile("segment.txt")
 
 	if err != nil {
 		log.Fatalf(red+"Error. generateSegmentationRegex. Failed to read segment.txt: %v"+reset, err)
@@ -1262,7 +1354,12 @@ func generateSegmentHTML() {
 	if err != nil {
 		log.Fatalf("Failed to create HTML file: %v", err)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (14):"+reset, err)
+		}
+	}()
 
 	// Write the formatted HTML content to the file
 	_, err = file.WriteString(
@@ -1281,7 +1378,12 @@ func saveHTML(genHTML string, genFilename string) {
 		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
 		return
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. Closing (15):"+reset, err)
+		}
+	}()
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
@@ -1292,7 +1394,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 // Copy Regex to the clipboard
 func copyRegexToClipboard() {
-	content, err := ioutil.ReadFile(regexOutputFile)
+	content, err := os.ReadFile(regexOutputFile)
 	if err != nil {
 		panic(err)
 	}
