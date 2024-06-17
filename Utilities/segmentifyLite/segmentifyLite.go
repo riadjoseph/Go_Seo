@@ -10,6 +10,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/ini.v1"
+	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -26,13 +28,12 @@ import (
 var version = "v0.1"
 
 // Specify your Botify API token here
-var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var botifyApiToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours & text formatting
 var purple = "\033[0;35m"
 var red = "\033[0;31m"
 var green = "\033[0;32m"
-var bold = "\033[1m"
 var reset = "\033[0m"
 
 // Default input and output files
@@ -40,7 +41,7 @@ var urlExtractFile = "siteurlsExport.tmp"
 var regexOutputFile = "segment.txt"
 
 // Maximum No. of URLs to process. (300 = 300k).
-var maxURLsToProcess = 300
+var maxURLsToProcess = 300000
 
 // Percentage threshold for level 1 & level 2 folders
 var thresholdPercent = 0.05
@@ -55,18 +56,16 @@ var shopifyDetected = false
 var orgName string
 var projectName string
 
-// Strings used to store the input project credentials
-var orgNameInput string
-var projectNameInput string
-
-// Boolean to signal if the project credentials have been entered by the user
-var credentialsInput = false
-
 // Number of forward-slashes in the URL to count in order to identify the folder level
 // 4 = level 1
 // 5 = level 2
 var slashCountLevel1 = 4
 var slashCountLevel2 = 5
+
+// Host name and port the web server runs on
+var hostname string
+var port string
+var fullHost = hostname + ":" + port
 
 type botifyResponse struct {
 	Count   int `json:"count"`
@@ -75,13 +74,13 @@ type botifyResponse struct {
 	} `json:"results"`
 }
 
-// Define a struct to hold text value and its associated count
+// FolderCount defines a struct to hold text value and its associated count
 type FolderCount struct {
 	Text  string
 	Count int
 }
 
-// Implement sorting interface for FolderCount slice
+// byCount implements a sorting interface for FolderCount slice
 type ByCount []FolderCount
 
 func (a ByCount) Len() int           { return len(a) }
@@ -171,7 +170,7 @@ func main() {
 	})
 
 	// Start the HTTP server
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":"+port, nil)
 
 }
 
@@ -186,31 +185,29 @@ func processURLsInProject(sessionID string) {
 		log.Fatal("\nError creating request: "+reset, errorCheck)
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+botifyApiToken)
 
 	res, errorCheck := http.DefaultClient.Do(req)
 	if errorCheck != nil {
-		log.Fatal(red+"\nError: Check your network connection: "+reset, errorCheck)
+		log.Fatal(red+"\nError. processURLsInProject. Check your network connection: "+reset, errorCheck)
 	}
 	defer res.Body.Close()
 
-	responseData, errorCheck := ioutil.ReadAll(res.Body)
+	responseData, errorCheck := io.ReadAll(res.Body)
 	if errorCheck != nil {
-		log.Fatal(red+"\nError reading response body: "+reset, errorCheck)
-		os.Exit(1)
+		log.Fatal(red+"\nError. generateURLsInProject. Cannot read response body: "+reset, errorCheck)
 	}
 
 	var responseObject botifyResponse
 	errorCheck = json.Unmarshal(responseData, &responseObject)
 
 	if errorCheck != nil {
-		log.Fatal(red+"\nError: Cannot unmarshall JSON: "+reset, errorCheck)
-		os.Exit(1)
+		log.Fatal(red+"\nError. generateURLsInProject. Cannot unmarshall JSON: "+reset, errorCheck)
 	}
 
 	//Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
+		fmt.Println(red + "\nError. processURLsInProject. Invalid credentials or no crawls found in the project" + reset)
 		return
 	}
 
@@ -246,26 +243,25 @@ func processURLsInProject(sessionID string) {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+botify_api_token)
+		req.Header.Add("Authorization", "token "+botifyApiToken)
 
 		res, errorCheck := http.DefaultClient.Do(req)
 		if errorCheck != nil {
-			fmt.Println(red+"\nError: Cannot connect to the API: "+reset, errorCheck)
+			fmt.Println(red+"\nError. processURLsInProject. Cannot connect to the API: "+reset, errorCheck)
 			os.Exit(1)
 		}
-		defer res.Body.Close()
 
 		//Decode JSON response
 		var response map[string]interface{}
 		if errorCheck := json.NewDecoder(res.Body).Decode(&response); errorCheck != nil {
-			fmt.Println(red+"\nError: Cannot decode JSON: "+reset, errorCheck)
+			fmt.Println(red+"\nError. processURLsInProject. Cannot decode JSON: "+reset, errorCheck)
 			os.Exit(1)
 		}
 
 		//Extract URLs from the "results" key
 		results, ok := response["results"].([]interface{})
 		if !ok {
-			fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
+			fmt.Println(red + "\nError. processURLsInProject. Invalid credentials or no crawls found in the project" + reset)
 			os.Exit(1)
 		}
 
@@ -274,7 +270,7 @@ func processURLsInProject(sessionID string) {
 		for _, result := range results {
 			if resultMap, ok := result.(map[string]interface{}); ok {
 				if url, ok := resultMap["url"].(string); ok {
-					// Check if SFCC is used. This bool us used to deterline if the SFCC regex is generated
+					// Check if SFCC is used. This bool us used to determine if the SFCC regex is generated
 					if strings.Contains(url, "/demandware/") {
 						sfccDetected = true
 					}
@@ -283,7 +279,7 @@ func processURLsInProject(sessionID string) {
 						shopifyDetected = true
 					}
 					if _, errorCheck := file.WriteString(url + "\n"); errorCheck != nil {
-						fmt.Println(red+"\nError: Cannot write to file: "+reset, errorCheck)
+						fmt.Println(red+"\nError. processURLsInProject. Cannot write to file: "+reset, errorCheck)
 						os.Exit(1)
 					}
 					count++
@@ -294,6 +290,8 @@ func processURLsInProject(sessionID string) {
 				}
 			}
 		}
+
+		defer res.Body.Close()
 
 		//If there are no more URLS process exit the function
 		if count == 0 {
@@ -333,7 +331,7 @@ func generateRegexFile() {
 	//Always create the file.
 	outputFile, errorCheck := os.Create(regexOutputFile)
 	if errorCheck != nil {
-		fmt.Printf(red+"\nsegment1stLevel. Error: Cannot create output file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nError. generateRegexFile. Cannot create output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 	defer outputFile.Close()
@@ -353,7 +351,7 @@ func generateRegexFile() {
 	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with love using segmentifyLite %s\n", version))
 
 	if errorCheck != nil {
-		fmt.Printf(red+"\nsegment1stLevel. Error: Cannot write header to output file: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nError. generateRegexFile. Cannot write header to output file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 
@@ -364,7 +362,7 @@ func generateRegexFile() {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"\ngenerateRegexFile. Error: Cannot flush writer: %v\n", errorCheck)
+		fmt.Printf(red+"\nError. generateRegexFile. Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -471,7 +469,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 				folderLabel := parts[3] //Extract the text between the third and fourth forward-slashes
 				_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
 				if errorCheck != nil {
-					fmt.Printf(red+"\nsegmentFolders. Error: Cannot write to output file: %v\n"+reset, errorCheck)
+					fmt.Printf(red+"\nError. segmentFolders. Cannot write to output file: %v\n"+reset, errorCheck)
 					os.Exit(1)
 				}
 			}
@@ -490,7 +488,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"\nsegmentFolders. Error: Cannot flush writer: %v\n", errorCheck)
+		fmt.Printf(red+"\nError. segmentFolders. Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -578,7 +576,7 @@ func subDomains() {
 				folderLabel := parts[2] //Extract the text between the third and fourth forward-slashes
 				writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
 				if errorCheck != nil {
-					fmt.Printf(red+"\nsubDomains. Error: Cannot write to output file: %v\n"+reset, errorCheck)
+					fmt.Printf(red+"\nError. subDomains. Cannot write to output file: %v\n"+reset, errorCheck)
 					os.Exit(1)
 				}
 			}
@@ -593,7 +591,7 @@ func subDomains() {
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
-			fmt.Printf(red+"\nsubDomains. Error: Cannot write to output file: %v\n"+reset, errorCheck)
+			fmt.Printf(red+"\nError. subDomains. Cannot write to output file: %v\n"+reset, errorCheck)
 			os.Exit(1)
 		}
 	}
@@ -601,7 +599,7 @@ func subDomains() {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"\nsubDomains. Error: Cannot flush writer: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nError. subDomains. Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -691,7 +689,7 @@ func parameterKeys() {
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nquery *%s=*\n\n", folderValueCount.Text, folderValueCount.Text))
 		if errorCheck != nil {
-			fmt.Printf(red+"\nparameterKeys. Error: Cannot write to output file: %v\n"+reset, errorCheck)
+			fmt.Printf(red+"\nError. parameterKeys. Cannot write to output file: %v\n"+reset, errorCheck)
 			os.Exit(1)
 		}
 	}
@@ -704,7 +702,7 @@ func parameterKeys() {
 	for _, folderValueCount := range sortedCounts {
 		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
 		if errorCheck != nil {
-			fmt.Printf(red+"\nparameterKeys. Error: Cannot write to output file: %v\n"+reset, errorCheck)
+			fmt.Printf(red+"\nError. parameterKeys. Cannot write to output file: %v\n"+reset, errorCheck)
 			os.Exit(1)
 		}
 	}
@@ -712,7 +710,7 @@ func parameterKeys() {
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"\nparameterKeys. Error: Cannot flush writer: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nError. parameterKeys. Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 }
@@ -950,7 +948,7 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 	// Open the input file
 	file, errorCheck := os.Open(inputFilename)
 	if errorCheck != nil {
-		fmt.Printf("\nError: Cannot open input file: %v\n", errorCheck)
+		fmt.Printf(red+"\nError. levelThreshhold. Cannot open input file: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -1050,15 +1048,14 @@ func insertStaticRegex(regexText string) error {
 
 	_, errorCheck = writer.WriteString(regexText)
 	if errorCheck != nil {
-		fmt.Printf(red+"\ninsertStaticRegex. Error: Cannot write to outputfile: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nError. insertStaticRegex. Cannot write to outputfile: %v\n"+reset, errorCheck)
 		panic(errorCheck)
-		os.Exit(1)
 	}
 
 	//Flush the writer to ensure all data is written to the file
 	errorCheck = writer.Flush()
 	if errorCheck != nil {
-		fmt.Printf(red+"\ninsertStaticRegex. Error: Cannot flush writer: %v\n"+reset, errorCheck)
+		fmt.Printf(red+"\nError. insertStaticRegex. Cannot flush writer: %v\n"+reset, errorCheck)
 		os.Exit(1)
 	}
 
@@ -1099,7 +1096,7 @@ func writeLog(sessionID, orgName, projectName, statusDescription string) {
 
 	// Write log record to file
 	if _, err := file.WriteString(logRecord); err != nil {
-		log.Fatalf(red+"Error. writeLog. Cannot write to log file: %s", err)
+		log.Fatalf(red+"Error. writeLog. Cannot write to log file: %s"+reset, err)
 	}
 }
 
@@ -1116,7 +1113,11 @@ func generateLogSessionID(length int) (string, error) {
 // Generate the HTML pages used to present the segmentation regex
 func generateSegmentationRegex() {
 
-	htmlContent := `
+	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
+	width50 := "50%"
+	width100 := "100%"
+
+	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1140,7 +1141,8 @@ func generateSegmentationRegex() {
             padding: 15px 0;
             position: absolute;
             top: 0;
-            width: 100%;
+			/* Width set to 100percent */
+            width: %s;
         }
         .banner.top {
             font-size: 24px;
@@ -1149,8 +1151,10 @@ func generateSegmentationRegex() {
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 50%;
-            height: 100%;
+			/* Width set to 100percent */
+            width: %s;
+			/* Width set to 100percent */
+            height: %s;
             background-color: Khaki;
             color: white;
         }
@@ -1196,7 +1200,7 @@ func generateSegmentationRegex() {
 
 <script>
     function goHome() {
-        window.open('http://localhost:8080/', '_blank');
+        window.open('http://%s/', '_blank');
     }
 </script>
 
@@ -1207,7 +1211,8 @@ func generateSegmentationRegex() {
 
 </body>
 </html>
-`
+`, width100, width50, width100, fullHost)
+
 	// Generate the URL to link to the segment editor in the project
 	projectURL := "https://app.botify.com/" + orgName + "/" + projectName + "/segmentation"
 
@@ -1233,8 +1238,9 @@ func generateSegmentationRegex() {
 func generateSegmentHTML() {
 	// Read the contents of segment.txt
 	content, err := ioutil.ReadFile("segment.txt")
+
 	if err != nil {
-		log.Fatalf("Failed to read segment.txt: %v", err)
+		log.Fatalf(red+"Error. generateSegmentationRegex. Failed to read segment.txt: %v"+reset, err)
 	}
 
 	// HTML template with the content
@@ -1308,57 +1314,76 @@ func copyRegexToClipboard() {
 	}
 }
 
-	// Function to clear the screen
-	func
-	clearScreen()
-	{
-		var cmd *exec.Cmd
-		switch runtime.GOOS {
-		case "windows":
-			cmd = exec.Command("cmd", "/c", "cls")
-		default:
-			cmd = exec.Command("clear")
-		}
-		cmd.Stdout = os.Stdout
-		cmd.Run()
+func getHostnamePort() {
+	// Load the INI file
+	cfg, err := ini.Load("go_seo_segmentifyLite.ini")
+	if err != nil {
+		log.Fatalf(red+"Error. getHostnamePort. Failed to read go_seo_segmentifyLite.ini file: %v"+reset, err)
 	}
 
-	// Display the welcome banner
-	func displayBanner()
-	{
+	// Get values from the INI file
+	hostname = cfg.Section("").Key("hostname").String()
+	port = cfg.Section("").Key("port").String()
 
-		//Banner
-		//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+	// Save the values to variables
+	var serverHostname, serverPort string
+	serverHostname = hostname
+	serverPort = port
 
-		fmt.Println(green + `
+	// Print the values (for demonstration purposes)
+	fmt.Printf(green+"\nHostname: %s\n"+reset, serverHostname)
+	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
+}
+
+// Function to clear the screen
+func clearScreen() {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "cls")
+	default:
+		cmd = exec.Command("clear")
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
+// Display the welcome banner
+func displayBanner() {
+
+	//Banner
+	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
+	fmt.Println(green + `
  ██████╗  ██████╗         ███████╗███████╗ ██████╗ 
 ██╔════╝ ██╔═══██╗        ██╔════╝██╔════╝██╔═══██╗
 ██║  ███╗██║   ██║        ███████╗█████╗  ██║   ██║
 ██║   ██║██║   ██║        ╚════██║██╔══╝  ██║   ██║
 ╚██████╔╝╚██████╔╝███████╗███████║███████╗╚██████╔╝
- ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝
-`)
+ ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝`)
 
-		fmt.Println(purple + `
+	fmt.Println(purple + `
 ███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
 ██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
 ███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██║█████╗   ╚████╔╝ ██║     ██║   ██║   █████╗
 ╚════██║██╔══╝  ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   ██║██╔══╝    ╚██╔╝  ██║     ██║   ██║   ██╔══╝
 ███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║██║        ██║   ███████╗██║   ██║   ███████╗
-╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
-`)
+╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝`)
 
-		//Display welcome message
-		fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
-		fmt.Println(purple+"Version:"+reset, version, "\n")
+	//Display welcome message
+	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
+	fmt.Println(purple+"Version:"+reset, version, "\n")
 
-		fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
+	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
 
-		now := time.Now()
-		formattedTime := now.Format("15:04 02/01/2006")
-		fmt.Println(green + "Server started at " + formattedTime + reset)
-		fmt.Println(green+"Maximum No. of URLs to be processed is"+reset, maxURLsToProcess, "k")
+	now := time.Now()
+	formattedTime := now.Format("15:04 02/01/2006")
+	fmt.Println(green + "Server started at " + formattedTime + reset)
+	fmt.Println(green+"Maximum No. of URLs to be processed is"+reset, maxURLsToProcess, "k")
 
-		fmt.Println(green + "\n... waiting for requests\n" + reset)
+	// Get the hostname and port
+	getHostnamePort()
 
-	}
+	fmt.Println(green + "\n... waiting for requests\n" + reset)
+
+}

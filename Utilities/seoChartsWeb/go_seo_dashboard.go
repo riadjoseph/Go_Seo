@@ -162,6 +162,7 @@ var cacheFolderRoot = "./_cache"
 // Host name and port the web server runs on
 var hostname string
 var port string
+var fullHost = hostname + ":" + port
 
 type botifyResponse struct {
 	Count   int `json:"count"`
@@ -268,14 +269,14 @@ func main() {
 		goSeoDashboard()
 
 		// Write to the log
-		writeLog(sessionID, orgName, projectName, "-", "Broadsheet generated")
+		writeLog(sessionID, orgName, projectName, "-", "Dashboard generated")
 
 		// Respond to the client with a success message or redirect to another page
 		http.Redirect(w, r, cacheFolder+"/go_seo_dashboard.html", http.StatusFound)
 	})
 
 	// Start the HTTP server
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":"+port, nil)
 }
 
 func goSeoDashboard() {
@@ -1911,6 +1912,7 @@ func projectionNarrative() {
 <body>
 	<div class="content">
 		<p class="keyword-font">
+			<b>Example scenario:</b>
 			On average the number of visits required in order to generate one order is 
 			<span class="blueText">%d</span>. For each additional 
 			<span class="blueText">%d</span> visits, we can project 
@@ -1991,7 +1993,9 @@ func saveHTML(genHTML string, genFilename string) {
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, cacheFolder+genFilename, err)
+		fullDirectory := cacheFolder + genFilename
+		fmt.Printf(red+"Error. saveHTML. Cannot write HTML file: %s", fullDirectory)
+		fmt.Printf(red+"Error. saveHTML. Error %s:", err)
 		return
 	}
 }
@@ -1999,7 +2003,11 @@ func saveHTML(genHTML string, genFilename string) {
 // Define the HTML for the go_seo_dashboard.html container. Used to consolidate the generated charts into a single page.
 func generateDashboard() {
 
-	htmlContent := `
+	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
+	width90 := "90%"
+	width100 := "100%"
+
+	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2032,7 +2040,8 @@ func generateDashboard() {
             margin: 5px auto;
             font-size: 22px;
             border-radius: 10px;
-            width: 90%;
+			/* Width set to 90percent */
+            width: %s;
         }
         .container {
             display: flex;
@@ -2040,7 +2049,8 @@ func generateDashboard() {
             align-items: center;
             gap: 20px;
             margin: 5px auto;
-            width: 90%;
+			/* Width set to 90percent */
+            width: %s 
         }
         .row {
             flex-wrap: nowrap;
@@ -2048,7 +2058,8 @@ func generateDashboard() {
         iframe {
             flex: 1 1 auto;
             min-width: 200px;
-            width: 100%;
+			/* Width set to 100percent */
+            width: %s; 
             border: 2px solid LightGray;
             border-radius: 10px;
         }
@@ -2097,7 +2108,7 @@ func generateDashboard() {
 
 <script>
     function goHome() {
-        window.open('http://localhost:8080/', '_blank');
+        window.open('http://%s/', '_blank');
     }
 </script>
 
@@ -2194,7 +2205,7 @@ func generateDashboard() {
 
 </body>
 </html>
-`
+`, width90, width90, width100, fullHost)
 
 	// to be put in correct folder
 	// Save the HTML to a file
@@ -2495,7 +2506,7 @@ func generateErrorPage(displayMessage string) {
 
 func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription string) {
 	// Define log file name
-	fileName := "_seoBroadsheetLogfile.log"
+	fileName := "_seoDashboardLogfile.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -2662,8 +2673,7 @@ func displayBanner() {
 ██║  ███╗██║   ██║        ███████╗█████╗  ██║   ██║
 ██║   ██║██║   ██║        ╚════██║██╔══╝  ██║   ██║
 ╚██████╔╝╚██████╔╝███████╗███████║███████╗╚██████╔╝
- ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝
-`)
+ ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝`)
 
 	fmt.Println(purple + `
 ██████╗  █████╗ ███████╗██╗  ██╗██████╗  ██████╗  █████╗ ██████╗ ██████╗     ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
@@ -2671,8 +2681,7 @@ func displayBanner() {
 ██║  ██║███████║███████╗███████║██████╔╝██║   ██║███████║██████╔╝██║  ██║    ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
 ██║  ██║██╔══██║╚════██║██╔══██║██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║    ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
 ██████╔╝██║  ██║███████║██║  ██║██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
-  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝     ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝ 
-`)
+  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝     ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝`)
 	//Display welcome message
 	fmt.Println(purple+"Version:"+reset, version)
 
