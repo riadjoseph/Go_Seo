@@ -529,6 +529,11 @@ func segmentFolders(thresholdValue int, slashCount int) {
 
 	//Write the footer lines
 	writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
+	_, err := writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
+	if err != nil {
+		fmt.Printf("Error writing segment to writer: %v\n", err)
+		// Handle or return the error as needed
+	}
 
 	//Insert the number of URLs found in each folder as comments
 	writer.WriteString("\n# ----Folder URL analysis----\n")
