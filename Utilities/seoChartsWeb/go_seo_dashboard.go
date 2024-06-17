@@ -14,6 +14,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+	"gopkg.in/ini.v1"
 	"io"
 	"log"
 	"math"
@@ -154,6 +155,14 @@ var projectionVisitIncrementsString []string
 var currencyCode string
 var currencySymbol string
 
+// Name of the cache folder used to store the generated HTML
+var cacheFolder string
+var cacheFolderRoot = "./_cache"
+
+// Host name and port the web server runs on
+var hostname string
+var port string
+
 type botifyResponse struct {
 	Count   int `json:"count"`
 	Results []struct {
@@ -220,7 +229,7 @@ func main() {
 		projectName = project
 
 		// Generate a session ID used for grouping log entries
-		sessionID, err := generateLogSessionID(8)
+		sessionID, err := generateLogSessionID(16)
 		if err != nil {
 			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
@@ -259,10 +268,10 @@ func main() {
 		goSeoDashboard()
 
 		// Write to the log
-		writeLog(sessionID, orgName, projectName, "-", "Dashboard generated")
+		writeLog(sessionID, orgName, projectName, "-", "Broadsheet generated")
 
 		// Respond to the client with a success message or redirect to another page
-		http.Redirect(w, r, "go_seo_dashboard.html", http.StatusFound)
+		http.Redirect(w, r, cacheFolder+"/go_seo_dashboard.html", http.StatusFound)
 	})
 
 	// Start the HTTP server
@@ -358,6 +367,10 @@ func getSeoInsights(sessionID string) string {
 
 	fmt.Println(purple + bold + "\nGetting SEO insights" + reset)
 	fmt.Println("Session ID:", sessionID)
+
+	// Create the cache folder for the generated HTML if it does not exist
+	cacheFolder = cacheFolderRoot + "/" + sessionID
+	createCacheFolder()
 
 	// Get the currency used
 	getCurrency()
@@ -790,7 +803,7 @@ func dashboardHeader() {
 `
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./seoDashboardHeader.html")
+	saveHTML(htmlContent, "/seoDashboardHeader.html")
 
 }
 
@@ -927,9 +940,9 @@ func tableTotalsVisitsOrdersRevenue() {
 </body>
 </html>
 `
-	//bloo
+
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./seoTableTotalsVisitsOrdersRevenue.html")
+	saveHTML(htmlContent, "/seoTableTotalsVisitsOrdersRevenue.html")
 
 }
 
@@ -971,7 +984,7 @@ func barChartRevenueVisits() {
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
 		))
 
-	f, _ := os.Create("./seoRevenueVisitsBar.html")
+	f, _ := os.Create(cacheFolder + "/seoRevenueVisitsBar.html")
 	bar.Render(f)
 }
 
@@ -1018,7 +1031,7 @@ func lineChartVisitsPerOrder() {
 		),
 	)
 
-	f, _ := os.Create("./seoVisitsPerOrderLine.html")
+	f, _ := os.Create(cacheFolder + "/seoVisitsPerOrderLine.html")
 	line.Render(f)
 }
 
@@ -1066,7 +1079,7 @@ func barChartVisitValue() {
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
 		))
 
-	f, _ := os.Create("./seoVisitValueBar.html")
+	f, _ := os.Create(cacheFolder + "/seoVisitValueBar.html")
 	bar.Render(f)
 }
 
@@ -1105,7 +1118,7 @@ func barChartOrders() {
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
 		))
 
-	f, _ := os.Create("./seoOrdersBar.html")
+	f, _ := os.Create(cacheFolder + "/seoOrdersBar.html")
 	bar.Render(f)
 }
 
@@ -1144,7 +1157,7 @@ func barChartOrderValue() {
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
 		))
 
-	f, _ := os.Create("./seoOrderValueBar.html")
+	f, _ := os.Create(cacheFolder + "/seoOrderValueBar.html")
 	bar.Render(f)
 }
 
@@ -1177,8 +1190,8 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32) {
 
 	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
 	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
-	badgeFileName := fmt.Sprintf("./seoCMGR%s.html", badgeKPI)
-	f, err := os.Create(badgeFileName)
+	badgeFileName := fmt.Sprintf("/seoCMGR%s.html", badgeKPI)
+	f, err := os.Create(cacheFolder + badgeFileName)
 	if err != nil {
 		panic(err)
 	}
@@ -1228,7 +1241,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(true),
 		)
-		f, err := os.Create("./seoWordCloudBranded.html")
+		f, err := os.Create(cacheFolder + "/seoWordCloudBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1241,7 +1254,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(false),
 		)
-		f, err := os.Create("./seoWordCloudNonBranded.html")
+		f, err := os.Create(cacheFolder + "/seoWordCloudNonBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1335,7 +1348,7 @@ func riverCharRevenueVisits() {
 	page.AddCharts(
 		generateRiverTime(),
 	)
-	f, err := os.Create("./seoVisitsRevenueRiver.html")
+	f, err := os.Create(cacheFolder + "/seoVisitsRevenueRiver.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1416,7 +1429,7 @@ func gaugeVisitsPerOrder() {
 		gaugeBase(),
 	)
 
-	f, err := os.Create("./seoGauge.html")
+	f, err := os.Create(cacheFolder + "/seoGauge.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1477,7 +1490,7 @@ func tableDataDetail() {
 	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPITableData)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./seoDataInsightDetailKPIs.html")
+	saveHTML(htmlContent, "/seoDataInsightDetailKPIs.html")
 
 }
 
@@ -1581,9 +1594,9 @@ func winningKeywords(brandedMode bool) {
 
 	// Define the HTML filename
 	if brandedMode {
-		htmlFileName = "./seoWinningKeywordBranded.html"
+		htmlFileName = "/seoWinningKeywordBranded.html"
 	} else {
-		htmlFileName = "./seoWinningKeywordNonBranded.html"
+		htmlFileName = "/seoWinningKeywordNonBranded.html"
 	}
 
 	// Save the HTML to a file
@@ -1760,11 +1773,11 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 	// Save the HTML to a file
 	// Branded keywords details
 	if brandedMode {
-		saveHTML(htmlContent, "./seoDataInsightKeywordsKPIsBranded.html")
+		saveHTML(htmlContent, "/seoDataInsightKeywordsKPIsBranded.html")
 	}
 	// Branded keywords details
 	if !brandedMode {
-		saveHTML(htmlContent, "./seoDataInsightKeywordsKPIsNonBranded.html")
+		saveHTML(htmlContent, "/seoDataInsightKeywordsKPIsNonBranded.html")
 	}
 }
 
@@ -1838,7 +1851,7 @@ func lineChartRevenueProjection() {
 		),
 	)
 
-	f, _ := os.Create("./seoVisitsPerOrderLineRevenueProjection.html")
+	f, _ := os.Create(cacheFolder + "/seoVisitsPerOrderLineRevenueProjection.html")
 	line.Render(f)
 }
 
@@ -1914,7 +1927,7 @@ func projectionNarrative() {
 	)
 
 	// Define the HTML filename
-	htmlFileName = "./seoVisitsPerOrderLineRevenueProjectionNarrative.html"
+	htmlFileName = "/seoVisitsPerOrderLineRevenueProjectionNarrative.html"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
@@ -1952,7 +1965,7 @@ func footerNotes() {
 	htmlContent += "</ul>\n</body>\n</html>"
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./seoFooterNotes.html")
+	saveHTML(htmlContent, "/seoFooterNotes.html")
 
 }
 
@@ -1969,16 +1982,16 @@ func formatDate(dateStr string) string {
 // Function used to generate and save the HTML content to a file
 func saveHTML(genHTML string, genFilename string) {
 
-	file, err := os.Create(genFilename)
+	file, err := os.Create(cacheFolder + genFilename)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
+		fmt.Println(red+"Error. saveHTML. Cannot create :"+reset, genFilename, err)
 		return
 	}
 	defer file.Close()
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, genFilename, err)
+		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, cacheFolder+genFilename, err)
 		return
 	}
 }
@@ -2183,8 +2196,9 @@ func generateDashboard() {
 </html>
 `
 
+	// to be put in correct folder
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./go_seo_dashboard.html")
+	saveHTML(htmlContent, "/go_seo_dashboard.html")
 
 }
 
@@ -2475,13 +2489,13 @@ func generateErrorPage(displayMessage string) {
 </html>`, displayMessage)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "./go_seo_errorPage.html")
+	saveHTML(htmlContent, "/go_seo_errorPage.html")
 
 }
 
 func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription string) {
 	// Define log file name
-	fileName := "_seoDashboardlogfile.log"
+	fileName := "_seoBroadsheetlogfile.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -2603,6 +2617,41 @@ func getCurrency() {
 	}
 }
 
+func createCacheFolder() {
+
+	cacheDir := cacheFolder
+
+	// Check if the directory already exists
+	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
+		// Create the directory and any necessary parents
+		err := os.MkdirAll(cacheDir, 0755)
+		if err != nil {
+			log.Fatalf("Error. Failed to create the cache directory: %v", err)
+		}
+	}
+}
+
+func getHostnamePort() {
+	// Load the INI file
+	cfg, err := ini.Load("go_seo_dashboard.ini")
+	if err != nil {
+		log.Fatalf(red+"Error. getHostnamePort. Failed to read go_seo_dashboard.ini file: %v", err)
+	}
+
+	// Get values from the INI file
+	hostname = cfg.Section("").Key("hostname").String()
+	port = cfg.Section("").Key("port").String()
+
+	// Save the values to variables
+	var serverHostname, serverPort string
+	serverHostname = hostname
+	serverPort = port
+
+	// Print the values (for demonstration purposes)
+	fmt.Printf(green+"\nHostname: %s\n"+reset, serverHostname)
+	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
+}
+
 // Display the welcome banner
 func displayBanner() {
 
@@ -2634,6 +2683,9 @@ func displayBanner() {
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
 	fmt.Println(green + "Server started at " + formattedTime + reset)
+
+	// Get the hostname and port
+	getHostnamePort()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 

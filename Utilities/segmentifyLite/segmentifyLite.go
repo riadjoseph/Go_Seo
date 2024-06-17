@@ -1308,13 +1308,29 @@ func copyRegexToClipboard() {
 	}
 }
 
-// Display the welcome banner
-func displayBanner() {
+	// Function to clear the screen
+	func
+	clearScreen()
+	{
+		var cmd *exec.Cmd
+		switch runtime.GOOS {
+		case "windows":
+			cmd = exec.Command("cmd", "/c", "cls")
+		default:
+			cmd = exec.Command("clear")
+		}
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
 
-	//Banner
-	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+	// Display the welcome banner
+	func displayBanner()
+	{
 
-	fmt.Println(green + `
+		//Banner
+		//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
+		fmt.Println(green + `
  ██████╗  ██████╗         ███████╗███████╗ ██████╗ 
 ██╔════╝ ██╔═══██╗        ██╔════╝██╔════╝██╔═══██╗
 ██║  ███╗██║   ██║        ███████╗█████╗  ██║   ██║
@@ -1323,7 +1339,7 @@ func displayBanner() {
  ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝
 `)
 
-	fmt.Println(purple + `
+		fmt.Println(purple + `
 ███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
 ██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
 ███████╗█████╗  ██║  ███╗██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ██║█████╗   ╚████╔╝ ██║     ██║   ██║   █████╗
@@ -1332,30 +1348,17 @@ func displayBanner() {
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
 `)
 
-	//Display welcome message
-	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
+		//Display welcome message
+		fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
+		fmt.Println(purple+"Version:"+reset, version, "\n")
 
-	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
+		fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
 
-	now := time.Now()
-	formattedTime := now.Format("15:04 02/01/2006")
-	fmt.Println(green + "Server started at " + formattedTime + reset)
-	fmt.Println(green+"Maximum No. of URLs to be processed is"+reset, maxURLsToProcess, "k")
+		now := time.Now()
+		formattedTime := now.Format("15:04 02/01/2006")
+		fmt.Println(green + "Server started at " + formattedTime + reset)
+		fmt.Println(green+"Maximum No. of URLs to be processed is"+reset, maxURLsToProcess, "k")
 
-	fmt.Println(green + "\n... waiting for requests\n" + reset)
+		fmt.Println(green + "\n... waiting for requests\n" + reset)
 
-}
-
-// Function to clear the screen
-func clearScreen() {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
 	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
-}
