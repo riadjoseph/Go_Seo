@@ -501,11 +501,14 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	// SlashCount = 4 signals level 1 folders
 	// SlashCount = 5 signals level 2 folders
 	if slashCount == 4 {
-		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_folders]\n@Home\npath /\n\n"))
+		if _, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level1_folders]\n@Home\npath /\n\n")); err != nil {
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 4: %v\n", err)
+		}
 	}
-
 	if slashCount == 5 {
-		writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_folders]\n@Home\npath /\n\n"))
+		if _, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_level2_folders]\n@Home\npath /\n\n")); err != nil {
+			fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer. Slash count 5: %v\n", err)
+		}
 	}
 
 	//Write the regex
@@ -836,9 +839,9 @@ path /*
 
 # ----End of sl_no_of_parameters----`
 
-	errParamaterNoRegex := insertStaticRegex(parameterNoRegex)
-	if errParamaterNoRegex != nil {
-		panic(errParamaterNoRegex)
+	errParameterNoRegex := insertStaticRegex(parameterNoRegex)
+	if errParameterNoRegex != nil {
+		panic(errParameterNoRegex)
 	}
 
 }
