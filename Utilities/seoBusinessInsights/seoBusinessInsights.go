@@ -1590,12 +1590,11 @@ func winningKeywords(brandedMode bool, sessionID string) {
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: Cornsilk;
         }
         .content {
             max-width: 600px;
             text-align: center;  
-            padding-bottom: 40px; 
+            padding-bottom: 50px; 
         }
         .blueText {
             color: DeepSkyBlue;
@@ -1624,6 +1623,7 @@ func winningKeywords(brandedMode bool, sessionID string) {
     </span>
 	</p>
 	</div>
+
 </body>
 </html>
 `, htmlKeyword, htmlLastMonthName, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
@@ -1989,7 +1989,7 @@ func footerNotes() {
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on",
-		"CMGR refers to the Compound Monthly Growth Rate of the metric. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
+		"CMGR refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
 	}
 
 	// Generate HTML content
@@ -2066,7 +2066,6 @@ func generateDashboard() {
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: Cornsilk;
         }
         .banner {
             background-color: DeepSkyBlue;
@@ -2251,6 +2250,7 @@ func generateDashboard() {
     Go_Seo. Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_SEO">https://github.com/flaneur7508/Go_SEO</a>
 </footer>
 
+<body style="background-color:rgba(204, 255, 204, 0.5);">
 </body>
 </html>
 `, width90, width90, width100, fullHost)
