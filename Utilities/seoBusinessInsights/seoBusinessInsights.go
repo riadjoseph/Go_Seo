@@ -144,7 +144,7 @@ var gaugeDefaultWidth = "96vw"
 var gaugeDefaultHeight = "96vh"
 
 // Define the increment and the maximum value
-var projectionIncrement = 10000
+var projectionIncrement = 100000
 var projectionMaxVisits = 1000000
 
 // Slices used to store the visit increment values
@@ -276,7 +276,7 @@ func main() {
 		writeLog(sessionID, orgName, projectName, "-", "Dashboard generated")
 
 		// Respond to the client with a success message or redirect to another page
-		http.Redirect(w, r, cacheFolder+"/seoBusinessInsights_error.html", http.StatusFound)
+		http.Redirect(w, r, cacheFolder+"/seoBusinessInsights.html", http.StatusFound)
 	})
 
 	// Start the HTTP server
@@ -346,7 +346,7 @@ func goSeoDashboard(sessionID string) {
 	// Footer notes
 	footerNotes()
 
-	// Generate seoBusinessInsights_error.html container
+	// Generate seoBusinessInsights.html container
 	generateDashboard()
 
 	// Make a tidy display
@@ -963,7 +963,7 @@ func barChartRevenueVisits() {
 	bar.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
-			Subtitle: "Understand your organic visit performance and how much revenue those visits are generating.",
+			Subtitle: "How much revenue do organic visits generate.",
 			Link:     projectURL,
 		}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1850,7 +1850,7 @@ func lineChartRevenueProjection() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue projection",
-			Subtitle: "What is the revenue potential of increasing the number of organic visits?",
+			Subtitle: "Projected revenue potential with increased organic visits",
 			Link:     projectURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1912,6 +1912,11 @@ func projectionNarrative() {
 	var noOfOrderVisits = projectionIncrement / totalAverageVisitsPerOrder
 	var projectedRevenue = noOfOrderVisits * totalAverageOrderValue
 
+	// Format the integers with commas
+	formatInteger := message.NewPrinter(language.English)
+	formattedProjectionIncrement := formatInteger.Sprintf("%d", projectionIncrement)
+	formattedProjectedRevenue := formatInteger.Sprintf("%d", projectedRevenue)
+
 	// HTML content for the revenue projection narrative
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -1931,7 +1936,9 @@ func projectionNarrative() {
         .content {
             max-width: 600px;
             text-align: center;  
-            padding-bottom: 40px; 
+            padding-bottom: 40px;
+			padding-left: 30px;
+			padding-right: 30px;
         }
         .blueText {
             color: DeepSkyBlue;
@@ -1953,19 +1960,19 @@ func projectionNarrative() {
 	<div class="content">
 		<p class="keyword-font">
 			<b>Example scenario:</b>
-			On average the number of visits before an order is placed is  
-			<span class="blueText">%d</span>. For each additional 
-			<span class="blueText">%d</span> visits, we can project 
+			On average an order is placed every
+			<span class="blueText">%d</span> organic visits. For each additional 
+			<span class="blueText">%s</span> organic visits, we can forecast  
 			<span class="blueText">%d</span> orders will be placed. With an average 
 			order value of <span class="blueText">%s%d</span>, the projected 
-			incremental revenue from <span class="blueText">%d</span> additional visits will be 
-			<span class="blueText">%s%d</span>.
+			incremental revenue from <span class="blueText">%s</span> additional visits will be 
+			<span class="blueText">%s%s</span>
 		</p>
 	</div>
 </body>
 </html>
-`, totalAverageVisitsPerOrder, projectionIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
-		projectionIncrement, currencySymbol, projectedRevenue,
+`, totalAverageVisitsPerOrder, formattedProjectionIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
+		formattedProjectionIncrement, currencySymbol, formattedProjectedRevenue,
 	)
 
 	// Define the HTML filename
@@ -2041,7 +2048,7 @@ func saveHTML(genHTML string, genFilename string) {
 	}
 }
 
-// Define the HTML for the seoBusinessInsights_error.html container. Used to consolidate the generated charts into a single page.
+// Define the HTML for the seoBusinessInsights.html container. Used to consolidate the generated charts into a single page.
 func generateDashboard() {
 
 	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
@@ -2249,7 +2256,7 @@ func generateDashboard() {
 `, width90, width90, width100, fullHost)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoBusinessInsights_error.html")
+	saveHTML(htmlContent, "/seoBusinessInsights.html")
 
 }
 
@@ -2544,7 +2551,7 @@ func generateErrorPage(displayMessage string) {
 </html>`, displayMessage)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoBusinessInsights_error.html")
+	saveHTML(htmlContent, "/seoBusinessInsights.html")
 
 }
 
