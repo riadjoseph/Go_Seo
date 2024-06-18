@@ -1292,10 +1292,7 @@ func displayBanner() {
 ██████╔╝╚██████╔╝███████╗██║   ███████╗███████║   ██║   ███████╗██║  ██║
 ╚═════╝  ╚══▀▀═╝ ╚══════╝╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 `)
-
-	//Display welcome message
 	fmt.Println(purple+"Version:"+reset, version+"\n")
-
 	fmt.Println(purple + "bqlTester: Test Botify BQL.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)

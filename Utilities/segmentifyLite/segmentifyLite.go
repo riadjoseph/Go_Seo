@@ -34,6 +34,7 @@ var red = "\033[0;31m"
 var green = "\033[0;32m"
 var reset = "\033[0m"
 var lineSeparator = "█" + strings.Repeat("█", 129)
+var clearScreen = "\033[H\033[2J"
 
 // Default input and output files
 var urlExtractFile = "siteurlsExport.tmp"
@@ -91,8 +92,6 @@ func (a ByCount) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
-
-	clearScreen()
 
 	displayBanner()
 
@@ -1508,28 +1507,14 @@ func getHostnamePort() {
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
 }
 
-// Function to clear the screen
-func clearScreen() {
-
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf(red+"Error. clearScreen. Cannot run CMD to clear screen: %v\n"+reset, err)
-	}
-}
-
 // Display the welcome banner
 func displayBanner() {
 
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
+	// Clear the screen
+	fmt.Print(clearScreen)
 
 	fmt.Print(green + `
  ██████╗  ██████╗         ███████╗███████╗ ██████╗ 
@@ -1547,7 +1532,6 @@ func displayBanner() {
 ███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║██║        ██║   ███████╗██║   ██║   ███████╗
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝`)
 
-	//Display welcome message
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)

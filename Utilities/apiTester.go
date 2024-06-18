@@ -936,10 +936,7 @@ func displayBanner() {
 ██║  ██║██║     ██║   ██║   ███████╗███████║   ██║   ███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝     ╚═╝   ╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 `)
-
-	//Display welcome message
 	fmt.Println(purple+"Version:"+reset, version+"\n")
-
 	fmt.Println(purple + "apiTester: Test Botify APIs\n" + reset)
 	fmt.Println(purple + "This utility calls a range of Botify APIs and displays the results.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)

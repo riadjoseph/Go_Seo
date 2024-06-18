@@ -22,6 +22,14 @@ var version = "v0.1"
 // Specify your Botify API token here
 var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
+// Colours
+var purple = "\033[0;35m"
+var green = "\033[0;32m"
+var red = "\033[0;31m"
+var bold = "\033[1m"
+var reset = "\033[0m"
+var clearScreen = "\033[H\033[2J"
+
 type botifyResponse struct {
 	Next     string      `json:"next"`
 	Previous interface{} `json:"previous"`
@@ -191,13 +199,6 @@ type botifyResponse struct {
 	Size int `json:"size"`
 }
 
-// Colours
-var purple = "\033[0;35m"
-var green = "\033[0;32m"
-var red = "\033[0;31m"
-var bold = "\033[1m"
-var reset = "\033[0m"
-
 // Strings used to store the project credentials for API access
 var orgName string
 var projectName string
@@ -210,8 +211,6 @@ var projectNameInput string
 var credentialsInput = false
 
 func main() {
-
-	clearScreen()
 
 	displayBanner()
 
@@ -432,6 +431,9 @@ func copyURLsToClipboard() {
 // Display the welcome banner
 func displayBanner() {
 
+	// Clear the screen
+	fmt.Print(clearScreen)
+
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Print(green + `
@@ -442,22 +444,6 @@ func displayBanner() {
 ███████╗██║███████║   ██║   ╚██████╔╝██║  ██║███████╗███████║
 ╚══════╝╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
 `)
-
-	//Display welcome message
-	fmt.Println(purple + "listURLs: Export URLs from a project\n" + reset)
 	fmt.Println(purple+"Version:"+reset, version)
-
-}
-
-// Function to clear the screen
-func clearScreen() {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	fmt.Println(purple + "listURLs: Export URLs from a project\n" + reset)
 }

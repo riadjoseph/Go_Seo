@@ -1298,7 +1298,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	// Generate the branded wordcloud
 	if brandedMode {
-		wc.AddSeries("Keywords", generateWCData(kwKeywords, kwMetricsCountClicks)).
+		wc.AddSeries("Clicks", generateWCData(kwKeywords, kwMetricsCountClicks)).
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
@@ -1310,7 +1310,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	// Generate the non-branded wordcloud
 	if !brandedMode {
-		wc.AddSeries("Keywords", generateWCDataNB(kwKeywordsNB, kwMetricsCountClicksNB)).
+		wc.AddSeries("Clicks", generateWCDataNB(kwKeywordsNB, kwMetricsCountClicksNB)).
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
@@ -1928,7 +1928,7 @@ func projectionNarrative() {
 	<div class="content">
 		<p class="keyword-font">
 			<b>Example scenario:</b>
-			On average the number of visits required in order to generate one order is 
+			On average the number of visits before an order is placed is  
 			<span class="blueText">%d</span>. For each additional 
 			<span class="blueText">%d</span> visits, we can project 
 			<span class="blueText">%d</span> orders will be placed. With an average 
@@ -2705,7 +2705,7 @@ func displayBanner() {
 ██║  ██║██╔══██║╚════██║██╔══██║██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║    ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
 ██████╔╝██║  ██║███████║██║  ██║██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
   ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝     ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝`)
-	//Display welcome message
+
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "\nGo_Seo Dashboard server: Business insights for SEO\n" + reset)

@@ -367,6 +367,7 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 func displayBanner() {
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
 	fmt.Print(green + `
 ███████╗ ██████╗ ██╗     ██████╗ ███████╗██████╗  ██████╗ ██████╗ ██╗   ██╗███╗   ██╗████████╗
 ██╔════╝██╔═══██╗██║     ██╔══██╗██╔════╝██╔══██╗██╔════╝██╔═══██╗██║   ██║████╗  ██║╚══██╔══╝
@@ -375,8 +376,8 @@ func displayBanner() {
 ██║     ╚██████╔╝███████╗██████╔╝███████╗██║  ██║╚██████╗╚██████╔╝╚██████╔╝██║ ╚████║   ██║   
 ╚═╝      ╚═════╝ ╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝   ╚═╝
 `)
-	fmt.Println(purple + "folderCount: Count the number of URLs found in each first level folder.\n" + reset)
 	fmt.Println(purple+"Version:"+reset, version, "\n")
+	fmt.Println(purple + "folderCount: Count the number of URLs found in each first level folder.\n" + reset)
 }
 
 // Function to clear the screen

@@ -12,8 +12,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strings"
 )
@@ -30,6 +28,7 @@ var green = "\033[0;32m"
 var red = "\033[0;31m"
 var bold = "\033[1m"
 var reset = "\033[0m"
+var clearScreen = "\033[H\033[2J"
 
 // Strings used to store the project credentials for API access
 var orgName string
@@ -69,8 +68,6 @@ func (a ByCount) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
-
-	clearScreen()
 
 	displayBanner()
 
@@ -380,6 +377,10 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 func displayBanner() {
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
+	// Clear the screen
+	fmt.Print(clearScreen)
+
 	fmt.Print(green + `
 ██████╗  █████╗ ██████╗  █████╗ ███╗   ███╗ ██████╗ ██████╗ ██╗   ██╗███╗   ██╗████████╗
 ██╔══██╗██╔══██╗██╔══██╗██╔══██╗████╗ ████║██╔════╝██╔═══██╗██║   ██║████╗  ██║╚══██╔══╝
@@ -388,19 +389,6 @@ func displayBanner() {
 ██║     ██║  ██║██║  ██║██║  ██║██║ ╚═╝ ██║╚██████╗╚██████╔╝╚██████╔╝██║ ╚████║   ██║   
 ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝   ╚═╝
 `)
-	fmt.Println(purple + "paramCount: Count the number of parameter keys found.\n" + reset)
 	fmt.Println(purple+"Version:"+reset, version, "\n")
-}
-
-// Function to clear the screen
-func clearScreen() {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	fmt.Println(purple + "paramCount: Count the number of parameter keys found.\n" + reset)
 }

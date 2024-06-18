@@ -1204,6 +1204,7 @@ func displayBanner() {
 
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
+
 	fmt.Print(green + `
 ███████╗███████╗ ██████╗ ███╗   ███╗███████╗███╗   ██╗████████╗██╗███████╗██╗   ██╗██╗     ██╗████████╗███████╗
 ██╔════╝██╔════╝██╔════╝ ████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝╚██╗ ██╔╝██║     ██║╚══██╔══╝██╔════╝
@@ -1212,10 +1213,8 @@ func displayBanner() {
 ███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║██║        ██║   ███████╗██║   ██║   ███████╗
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
 `)
-
-	//Display welcome message
-	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
 	fmt.Println(purple+"Version:"+reset, version, "\n")
+	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
 
 }
 
