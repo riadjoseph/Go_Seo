@@ -41,7 +41,7 @@ var urlExtractFile = "siteurlsExport.tmp"
 var regexOutputFile = "segment.txt"
 
 // Maximum No. of URLs to process. (300 = 300k).
-var maxURLsToProcess = 300000
+var maxURLsToProcess = 100000
 
 // Percentage threshold for level 1 & level 2 folders
 var thresholdPercent = 0.05
@@ -1201,7 +1201,7 @@ func insertStaticRegex(regexText string) error {
 func writeLog(sessionID, orgName, projectName, statusDescription string) {
 
 	// Define log file name
-	fileName := "_seoSegmentifyLitelogfile.log"
+	fileName := "_seoSegmentifyLite.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -1487,7 +1487,7 @@ func createCacheFolder() {
 func getHostnamePort() {
 
 	// Load the INI file
-	cfg, err := ini.Load("go_seo_segmentifyLite.ini")
+	cfg, err := ini.Load("segmentifyLite.ini")
 	if err != nil {
 		log.Fatalf(red+"Error. getHostnamePort. Failed to read go_seo_segmentifyLite.ini file: %v"+reset, err)
 	}
