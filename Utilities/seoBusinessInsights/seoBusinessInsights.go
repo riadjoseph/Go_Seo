@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,9 @@ var version = "v0.1"
 
 // Botify API token
 var botifyAPIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+
+// Declare the mutex
+var mu sync.Mutex
 
 // Colours, symbols etc
 var purple = "\033[0;35m"
@@ -43,20 +47,16 @@ var lineSeparator = "█" + strings.Repeat("█", 129)
 var kpiColourRevenue = "Coral"
 var kpiColourVisits = "Green"
 var kpiColourVisitsPerOrder = "DarkGoldenRod"
-var kpiColourRevenueProjection = "Orange"
+var kpiColourRevenueForecast = "Orange"
 var kpiColourOrganicVisitValue = "CornflowerBlue"
 var kpiColourNoOfOrders = "IndianRed"
 var kpiColourOrderValue = "MediumSlateBlue"
-
-// Anonymous mode. When set to true the URL to the project defaults to 'https://www.botify.com'
-// If set to false a link is provided to the analysis project
-var anonymousMode = false
 
 // Slice used to store the month names
 var startMthNames []string
 
 // Slice used to store projected revenue values
-var projectionRevenue []int
+var forecastRevenue []int
 
 // Used for the branded/non branded title in the wordcloud
 var wordcloudTitle = ""
@@ -102,14 +102,11 @@ var totalAverageOrderValue int
 var visitsPerOrder []int
 
 // Project URL. Used to provide a link to the Botify project
-var projectURL = ""
-
-// Organization name used for display purposes
-var displayOrgName = ""
+var projectURL string
 
 // Strings used to store the project credentials for API access
-var orgName string
-var projectName string
+var organization string
+var project string
 
 // Variables used to store the min and max visits per order
 var minVisitsPerOrder = 0
@@ -144,12 +141,12 @@ var gaugeDefaultWidth = "96vw"
 var gaugeDefaultHeight = "96vh"
 
 // Define the increment and the maximum value
-var projectionIncrement = 100000
-var projectionMaxVisits = 1000000
+var forecastIncrement = 100000
+var forecastMaxVisits = 1000000
 
 // Slices used to store the visit increment values
-var projectionVisitIncrements []int
-var projectionVisitIncrementsString []string
+var forecastVisitIncrements []int
+var forecastVisitIncrementsString []string
 
 // Project currency
 var currencyCode string
@@ -189,7 +186,8 @@ type KeywordsData struct {
 
 // AnalyticsID is used to identify which analytics tool is in use
 type AnalyticsID struct {
-	ID string `json:"id"`
+	ID                 string `json:"id"`
+	AnalyticsDateStart string `json:"date_start"`
 }
 
 // The Result struct is used to store the revenue, orders and visits
@@ -205,6 +203,7 @@ type Response struct {
 // Used for revenue and visits data
 type DateRanges struct {
 	MonthlyRanges [][2]time.Time
+	NoOfMonths    int
 }
 
 func main() {
@@ -218,20 +217,21 @@ func main() {
 
 	// Define a handler function for form submission
 	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
-		// Retrieve the form data from the request
+
+		// Lock the function until it's complete to prevent race conditions
+		mu.Lock()
+		defer mu.Unlock()
+
+		// Retrieve the form data from the request (org and username)
 		err := r.ParseForm()
 		if err != nil {
 			fmt.Println(red+"Error. Cannot parse form:"+reset, err)
 			return
 		}
-		organization := r.Form.Get("organization")
-		project := r.Form.Get("project")
+		organization = r.Form.Get("organization")
+		project = r.Form.Get("project")
 
 		fmt.Printf("\nOrganization: %s, Project: %s\n", organization, project)
-
-		// Set the organization and project name
-		orgName = organization
-		projectName = project
 
 		// Generate a session ID used for grouping log entries
 		sessionID, err := generateLogSessionID(8)
@@ -242,41 +242,41 @@ func main() {
 		// Get revenue, visits, orders and keyword data
 		dataStatus := getSeoInsights(sessionID)
 
+		// Evaluate the results of getSeoInsights before generating the dashboard
+		// All good! Generate the dashboard
+		if dataStatus == "success" {
+			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
+			// Generate the dashboard HTML
+			goSeoDashboard(sessionID)
+			writeLog(sessionID, organization, project, "-", "Dashboard generated")
+			// Respond to the client with a success message or redirect to another page
+			http.Redirect(w, r, cacheFolder+"/seoBusinessInsights.html", http.StatusFound)
+		}
+
+		// Manage errors
 		// An invalid org/project name has been specified
 		if dataStatus == "errorNoProjectFound" {
-			// Write to the log
-			writeLog(sessionID, orgName, projectName, "-", "No project found")
-			generateErrorPage("No project found. Try another organisation and project name. (" + orgName + "/" + projectName + ")")
-			http.Redirect(w, r, "seoBusinessInsights_error.html", http.StatusFound)
+			writeLog(sessionID, organization, project, "-", "No project found")
+			generateErrorPage("No project found. Try another organisation and project name. (" + organization + "/" + project + ")")
+			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
 		// No analytics tool has been integrated
 		if dataStatus == "errorNoAnalyticsIntegrated" {
-			// Write to the log
-			writeLog(sessionID, orgName, projectName, "-", "No analytics found")
-			generateErrorPage("No analytics tool has been integrated into the specified project (" + orgName + "/" + projectName + ")")
-			http.Redirect(w, r, "seoBusinessInsights_error.html", http.StatusFound)
+			writeLog(sessionID, organization, project, "-", "No analytics found")
+			generateErrorPage("No analytics tool has been integrated into the specified project (" + organization + "/" + project + ")")
+			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
 		// Engagement analytics has not been configured
 		if dataStatus == "errorNoEAFound" {
-			// Write to the log
-			writeLog(sessionID, orgName, projectName, "-", "No revenue data found")
-			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + orgName + "/" + projectName + ")")
-			http.Redirect(w, r, "seoBusinessInsights_error.html", http.StatusFound)
+			writeLog(sessionID, organization, project, "-", "No revenue data found")
+			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + organization + "/" + project + ")")
+			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
 			return
 		}
-
-		// Generate the dashboard HTML
-		goSeoDashboard(sessionID)
-
-		// Write to the log
-		writeLog(sessionID, orgName, projectName, "-", "Dashboard generated")
-
-		// Respond to the client with a success message or redirect to another page
-		http.Redirect(w, r, cacheFolder+"/seoBusinessInsights.html", http.StatusFound)
 	})
 
 	// Start the HTTP server
@@ -285,12 +285,10 @@ func main() {
 
 func goSeoDashboard(sessionID string) {
 
-	// Start of charts
-
-	// Generate the header
+	// Page header
 	dashboardHeader()
 
-	// Total vales
+	// Totals
 	tableTotalsVisitsOrdersRevenue()
 
 	// Badges for CMGR KPIs
@@ -318,9 +316,9 @@ func goSeoDashboard(sessionID string) {
 	riverCharRevenueVisits()
 
 	// Wordclouds
-	// Branded keywords
+	// Branded
 	wordCloudBrandedUnbranded(true)
-	// Non branded keywords
+	// Non branded
 	wordCloudBrandedUnbranded(false)
 
 	// Winning branded keyword
@@ -336,14 +334,13 @@ func goSeoDashboard(sessionID string) {
 	// KPI details table
 	tableDataDetail()
 
-	// Revenue projection
-	// Revenue projection line chart
-	lineChartRevenueProjection()
+	// Revenue forecast line chart
+	lineChartRevenueForecast()
 
-	// Projection narrative
-	projectionNarrative()
+	// Forecast forecast
+	forecastNarrative()
 
-	// Footer notes
+	// Footer
 	footerNotes()
 
 	// Generate seoBusinessInsights.html container
@@ -358,7 +355,7 @@ func goSeoDashboard(sessionID string) {
 	formattedTime := now.Format("15:04 02/01/2006")
 	fmt.Println(purple + "\nSession ID: " + sessionID)
 	fmt.Println(purple + "\nseoBusinessInsights: Done at " + formattedTime)
-	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, orgName, projectName)
+	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, organization, project)
 
 	// Make a tidy display
 	fmt.Println()
@@ -366,13 +363,11 @@ func goSeoDashboard(sessionID string) {
 
 	// Wait for the next request
 	return
-
 }
 
 func getSeoInsights(sessionID string) string {
 
 	fmt.Println(purple + bold + "\nGetting SEO insights" + reset)
-	fmt.Println("Session ID:", sessionID)
 
 	// Create the cache folder for the generated HTML if it does not exist
 	cacheFolder = cacheFolderRoot + "/" + sessionID
@@ -381,31 +376,34 @@ func getSeoInsights(sessionID string) string {
 	// Get the currency used
 	getCurrency()
 
-	// Get the date ranges
-	dateRanges := calculateDateRanges()
-	// Iterate over the MonthlyRanges and print each range
+	// Identify the analytics tool in use
+	analyticsID, analyticsDateStart := getAnalyticsID()
+	fmt.Println("("+sessionID+") Analytics identified:", analyticsID)
+	fmt.Println("("+sessionID+") Data available from:", analyticsDateStart)
 
-	// Identify which analytics tool is used
-	analyticsID := getAnalyticsID()
-	fmt.Println("Analytics identified:", analyticsID)
 	fmt.Println()
 
 	// Error checking
 	// Exit if no project has been found
 	if analyticsID == "errorNoProjectFound" {
-		fmt.Println(red+"Error. getSeoInsights. No project found for", orgName+"/"+projectName+reset)
+		fmt.Println(red+"Error. getSeoInsights. No project found for", organization+"/"+project+reset)
 		return analyticsID
 	}
+
 	// Exit if no analytics tool has been detected
 	if analyticsID == "errorNoAnalyticsIntegrated" {
-		fmt.Println(red+"Error. getSeoInsights. No analytics tool integrated for", orgName+"/"+projectName+reset)
+		fmt.Println(red+"Error. getSeoInsights. No analytics tool integrated for", organization+"/"+project+reset)
 		return analyticsID
 	}
 
-	// Reset the dates slice
+	// Reset the metics to their default values
 	resetMetrics()
 
-	// Populate the slice with string versions of the dates ready for use in the BQL
+	// Get the date ranges
+	dateRanges := calculateDateRanges(analyticsDateStart)
+
+	//bloo
+	// Populate the slice with string versions of the dates for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
 		startMthDate := dateRange[0].Format("20060102")
 		endMthDate := dateRange[1].Format("20060102")
@@ -426,8 +424,7 @@ func getSeoInsights(sessionID string) string {
 		return getRevenueDataStatus
 	}
 
-	// Write to the log. Data acquired
-	writeLog(sessionID, orgName, projectName, analyticsID, "Revenue data acquired")
+	writeLog(sessionID, organization, project, analyticsID, "Revenue data acquired")
 
 	// Get the keywords data
 	// Get last months' date range
@@ -436,14 +433,13 @@ func getSeoInsights(sessionID string) string {
 
 	getKeywordsCloudData(kwStartDate, kwEndDate)
 
-	// Write to the log. Data acquired
-	writeLog(sessionID, orgName, projectName, analyticsID, "Keyword data acquired")
+	writeLog(sessionID, organization, project, analyticsID, "Keyword data acquired")
 
 	// Calculate the CMGR values
 	calculateCMGR(sessionID)
 
-	// Calculate the projections
-	projectionDataCompute()
+	// Calculate the forecasts
+	forecastDataCompute()
 
 	return "success"
 }
@@ -491,6 +487,10 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
+	//bloo
+	for _, date := range startMthDates {
+		fmt.Println(date)
+	}
 	// Get monthly insights
 	for i := range startMthDates {
 
@@ -520,7 +520,6 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 		totalVisits += metricsVisits
 		totalOrders += metricsOrders
 
-		// Use the printer to format an integer
 		formatInteger := message.NewPrinter(language.English)
 
 		// Display the KPIs
@@ -601,7 +600,6 @@ func getKeywordsCloudData(startMthDates string, endMthDates string) {
 
 	// Non-branded keywords
 	generateKeywordsCloudBQL(startMthDates, endMthDates, "false")
-
 }
 
 // Execute the BQL to acquire keywords data
@@ -748,7 +746,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
-		fmt.Println(red+"Error. generateRevenueBQL. No engagement analytics (revenue, transactions & visits) has been configured for", orgName+"/"+projectName+reset)
+		fmt.Println(red+"Error. generateRevenueBQL. No engagement analytics (revenue, transactions & visits) has been configured for", organization+"/"+project+reset)
 		getRevenueDataStatus := "errorNoEAFound"
 		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
 	} else {
@@ -766,18 +764,6 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 // Header for the dashboard
 func dashboardHeader() {
 
-	// 	Anonymous mode
-	if anonymousMode {
-		displayOrgName = "anonymized"
-		projectURL = "https://www.botify.com"
-	}
-
-	// 	Not anonymous mode
-	if !anonymousMode {
-		displayOrgName = orgName
-		projectURL = "https://app.botify.com/" + orgName + "/" + projectName
-	}
-
 	htmlContent := `
 <!DOCTYPE html>
 <html>
@@ -785,7 +771,6 @@ func dashboardHeader() {
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
             margin: 0;
             height: 100pv;
             overflow: hidden;
@@ -803,19 +788,17 @@ func dashboardHeader() {
 <body>
     <div class="content">
         <span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
-		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + displayOrgName + `)
-
+		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
+        <span class="header-font">Click the chart headers below to access the related Botify report.</span>
     </div>
 </body>
 </html>
 `
-
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/seoDashboardHeader.html")
-
 }
 
-// Badges
+// CMGR Badges
 func badgeCMGR() {
 
 	cmgrRevenue32 := float32(cmgrRevenue)
@@ -825,17 +808,21 @@ func badgeCMGR() {
 	cmgrOrdersValueValue32 := float32(cmgrOrdersValueValue)
 
 	// Generate the badges
-	liquidBadge("Revenue", cmgrRevenue32)
-	liquidBadge("Visits", cmgrVisits32)
-	liquidBadge("Visit Value", cmgrVisitValue32)
-	liquidBadge("Orders", cmgrOrdersValue32)
-	liquidBadge("Order Value", cmgrOrdersValueValue32)
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	liquidBadge("Revenue", cmgrRevenue32, clickURL)
+	clickURL = projectURL + "/crawl/visits"
+	liquidBadge("Visits", cmgrVisits32, clickURL)
+	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
+	liquidBadge("Visit Value", cmgrVisitValue32, clickURL)
+	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
+	liquidBadge("Orders", cmgrOrdersValue32, clickURL)
+	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
+	liquidBadge("Order Value", cmgrOrdersValueValue32, clickURL)
 }
 
-// Table for total Visits, Orders & Revenue
+// Total Visits, Orders & Revenue
 func tableTotalsVisitsOrdersRevenue() {
 
-	// Use the printer to format an integer
 	formatInteger := message.NewPrinter(language.English)
 
 	totalVisitsFormatted := formatInteger.Sprintf("%d", totalVisits)
@@ -852,7 +839,7 @@ func tableTotalsVisitsOrdersRevenue() {
 <head>
      <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             color: #333;
             display: flex;
             justify-content: center;
@@ -878,8 +865,8 @@ func tableTotalsVisitsOrdersRevenue() {
             border-collapse: collapse;
         }
         th, td {
-            font-size: 22px;
-            padding: 15px;
+            font-size: 30px;
+            padding: 10px;
             border-bottom: 1px solid #eee;
         }
         th {
@@ -951,20 +938,20 @@ func tableTotalsVisitsOrdersRevenue() {
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/seoTableTotalsVisitsOrdersRevenue.html")
-
 }
 
 // Bar chart. Revenue and Visits
 
 func barChartRevenueVisits() {
-	// create a new bar instance
-	bar := charts.NewBar()
 
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+
+	bar := charts.NewBar()
 	bar.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
 			Subtitle: "How much revenue do organic visits generate.",
-			Link:     projectURL,
+			Link:     clickURL,
 		}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1015,14 +1002,17 @@ func barChartRevenueVisits() {
 	bar.Render(f)
 }
 
+// Visits per order line chart
 func lineChartVisitsPerOrder() {
+
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Average visits per order",
 			Subtitle: "On average, how many organic visits are needed to generate one order?",
-			Link:     projectURL,
+			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
 			Type:  "slider",
@@ -1077,12 +1067,13 @@ func generateLineItems(visitsPerOrder []int) []opts.LineData {
 // Visit value bar chart
 func barChartVisitValue() {
 
-	bar := charts.NewBar()
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
 
+	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Organic visit value",
 		Subtitle: "What is the value of a single organic visit?",
-		Link:     projectURL,
+		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1114,15 +1105,16 @@ func barChartVisitValue() {
 	bar.Render(f)
 }
 
-// Bar chart. No. of Orders
+// No. of Orders bar chart
 func barChartOrders() {
 
-	bar := charts.NewBar()
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
 
+	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Number of orders",
 		Subtitle: "How many orders are placed by organic visitors?",
-		Link:     projectURL,
+		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1153,16 +1145,17 @@ func barChartOrders() {
 	bar.Render(f)
 }
 
-// Bar chart. No. of Orders
+// Order value bar chart
 func barChartOrderValue() {
 
-	// create a new bar instance
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Average order value",
 		Subtitle: "What is the average value of an order placed by an organic visitor?",
-		Link:     projectURL,
+		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1213,11 +1206,11 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 	return items
 }
 
-func liquidBadge(badgeKPI string, badgeKPIValue float32) {
+func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string) {
 
 	page := components.NewPage()
 	page.AddCharts(
-		generateLiquidBadge(badgeKPI, badgeKPIValue),
+		generateLiquidBadge(badgeKPI, badgeKPIValue, clickURL),
 	)
 
 	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
@@ -1230,7 +1223,8 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32) {
 	page.Render(io.MultiWriter(f))
 }
 
-func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid {
+// CMGR badges
+func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string) *charts.Liquid {
 
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
@@ -1239,7 +1233,8 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32) *charts.Liquid 
 			Height: badgeDefaultHeight,
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title: "CMGR",
+			Title: "Compound growth",
+			Link:  clickURL,
 		}),
 	)
 
@@ -1297,13 +1292,18 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 	}
 }
 
+// Branded and non-branded wordclouds
 func generateWordCloud(brandedMode bool) *charts.WordCloud {
+
+	var clickURL string
 
 	if brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noOfKWInCloud)
+		clickURL = projectURL + "/keywords/keywords"
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noOfKWInCloud)
+		clickURL = projectURL + "/keywords"
 	}
 
 	wc := charts.NewWordCloud()
@@ -1316,7 +1316,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
 			Title: wordcloudTitle,
-			Link:  projectURL,
+			Link:  clickURL,
 		}))
 
 	// Generate the branded wordcloud
@@ -1346,6 +1346,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 	return wc
 }
 
+// Generate the data for the wordcloud - Branded
 func generateWCData(kwKeywords []string, kwMetricsCountClicks []int) (items []opts.WordCloudData) {
 
 	items = make([]opts.WordCloudData, 0)
@@ -1361,6 +1362,7 @@ func generateWCData(kwKeywords []string, kwMetricsCountClicks []int) (items []op
 	return items
 }
 
+// Generate the data for the wordcloud - Non-branded
 func generateWCDataNB(kwKeywordsNB []string, kwMetricsCountClicksNB []int) (items []opts.WordCloudData) {
 
 	items = make([]opts.WordCloudData, 0)
@@ -1376,7 +1378,7 @@ func generateWCDataNB(kwKeywordsNB []string, kwMetricsCountClicksNB []int) (item
 	return items
 }
 
-// River chart
+// Revenue & visits river chart
 func riverCharRevenueVisits() {
 
 	page := components.NewPage()
@@ -1390,15 +1392,17 @@ func riverCharRevenueVisits() {
 	page.Render(io.MultiWriter(f))
 }
 
-// Theme river chart
+// River chart
 func generateRiverTime() *charts.ThemeRiver {
+
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
 
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
 			Subtitle: "Gain an insight into the fluctuations in organic visitors to a site and the corresponding revenue generation.",
-			Link:     projectURL}),
+			Link:     clickURL}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
 			Bottom: "10%",
@@ -1456,7 +1460,7 @@ func generateRiverTime() *charts.ThemeRiver {
 	return tr
 }
 
-// Gauge chart
+// Visits per order gauge chart
 func gaugeVisitsPerOrder() {
 
 	page := components.NewPage()
@@ -1493,12 +1497,11 @@ func gaugeBase() *charts.Gauge {
 	return gauge
 }
 
-// Generate an HTML table containing the detailed KPI insights
+// Table containing the detailed KPI insights
 func tableDataDetail() {
 
 	var detailedKPITableData [][]string
 
-	// Use the printer to format an integer (or a float)
 	formatInteger := message.NewPrinter(language.English)
 
 	for i := 0; i < len(startMthDates); i++ {
@@ -1530,6 +1533,7 @@ func tableDataDetail() {
 
 }
 
+// Winning keywords, branded & non-branded
 func winningKeywords(brandedMode bool, sessionID string) {
 
 	var htmlFileName = ""
@@ -1542,7 +1546,6 @@ func winningKeywords(brandedMode bool, sessionID string) {
 	var htmlCTR float64
 	var htmlAvgPosition float64
 
-	// Use the printer to format an integer (clicks)
 	formatInteger := message.NewPrinter(language.English)
 
 	if brandedMode {
@@ -1628,7 +1631,6 @@ func winningKeywords(brandedMode bool, sessionID string) {
 </html>
 `, htmlKeyword, htmlLastMonthName, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
 
-	// Define the HTML filename
 	if brandedMode {
 		htmlFileName = "/seoWinningKeywordBranded.html"
 	} else {
@@ -1639,7 +1641,7 @@ func winningKeywords(brandedMode bool, sessionID string) {
 	saveHTML(htmlContent, htmlFileName)
 }
 
-// generateHTML generates the HTML content for the table
+// Generate the HTML for the table
 func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 
 	htmlContent := `
@@ -1718,9 +1720,9 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 	return htmlContent
 }
 
+// Generate the HTML for the keywords insights
 func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 
-	// Use the printer to format an integer (clicks)
 	formatInteger := message.NewPrinter(language.English)
 
 	htmlContent := `<!DOCTYPE html>
@@ -1819,39 +1821,41 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 }
 
 // generate the slice containing the projected revenue data
-func projectionDataCompute() {
+func forecastDataCompute() {
 
 	// First create a slice containing the visit ranges
-	numElements := projectionMaxVisits/projectionIncrement + 1
-	projectionVisitIncrements = make([]int, numElements)
-	projectionVisitIncrementsString = make([]string, numElements)
+	numElements := forecastMaxVisits/forecastIncrement + 1
+	forecastVisitIncrements = make([]int, numElements)
+	forecastVisitIncrementsString = make([]string, numElements)
 
 	// Populate the slice with the visit ranges
 	formatInteger := message.NewPrinter(language.English)
 
 	for i := 0; i < numElements; i++ {
-		projectionVisitIncrements[i] = i * projectionIncrement
+		forecastVisitIncrements[i] = i * forecastIncrement
 		// Create a formatted String version for use in the chart XAxis
-		projectionVisitIncrementsString[i] = formatInteger.Sprintf("%d", projectionVisitIncrements[i])
+		forecastVisitIncrementsString[i] = formatInteger.Sprintf("%d", forecastVisitIncrements[i])
 	}
 
-	// Create a slice to hold the projection revenue values
-	projectionRevenue = make([]int, numElements)
-	// Populate the projection revenue slice
+	// Create a slice to hold the forecast revenue values
+	forecastRevenue = make([]int, numElements)
+	// Populate the forecast revenue slice
 	for i := 0; i < numElements; i++ {
-		projectionRevenue[i] = projectionVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValue
+		forecastRevenue[i] = forecastVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValue
 	}
 }
 
-// Revenue projection line chart
-func lineChartRevenueProjection() {
+// Revenue forecast line chart
+func lineChartRevenueForecast() {
+
+	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Revenue projection",
-			Subtitle: "Projected revenue potential with increased organic visits",
-			Link:     projectURL,
+			Title:    "Revenue forecast",
+			Subtitle: "Forecasted revenue potential with increased organic visits",
+			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
 			Type:  "slider",
@@ -1863,15 +1867,15 @@ func lineChartRevenueProjection() {
 			Height: chartDefaultHeight,
 		}),
 
-		charts.WithColorsOpts(opts.Colors{kpiColourRevenueProjection}),
+		charts.WithColorsOpts(opts.Colors{kpiColourRevenueForecast}),
 		// disable show the legend
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
 	// Pass visitsPerOrder directly to generaLineItems
-	lineVisitsPerOrderValue := generateLineItemsRevenueProjection(projectionRevenue)
+	lineVisitsPerOrderValue := generateLineItemsRevenueForecast(forecastRevenue)
 
-	line.SetXAxis(projectionVisitIncrementsString).AddSeries("Revenue projection", lineVisitsPerOrderValue).SetSeriesOptions(
+	line.SetXAxis(forecastVisitIncrementsString).AddSeries("Revenue forecast", lineVisitsPerOrderValue).SetSeriesOptions(
 
 		charts.WithAreaStyleOpts(opts.AreaStyle{
 			Opacity: 0.2,
@@ -1891,33 +1895,33 @@ func lineChartRevenueProjection() {
 			}),
 	)
 
-	f, _ := os.Create(cacheFolder + "/seoVisitsPerOrderLineRevenueProjection.html")
+	f, _ := os.Create(cacheFolder + "/seoVisitsPerOrderLineRevenueForecast.html")
 	line.Render(f)
 }
 
-// Populate the chart with the revenue projection data
-func generateLineItemsRevenueProjection(projectionRevenue []int) []opts.LineData {
+// Populate the chart with the revenue forecast data
+func generateLineItemsRevenueForecast(forecastRevenue []int) []opts.LineData {
 
-	items := make([]opts.LineData, len(projectionRevenue))
-	for i, val := range projectionRevenue {
+	items := make([]opts.LineData, len(forecastRevenue))
+	for i, val := range forecastRevenue {
 		items[i] = opts.LineData{Value: val}
 	}
 	return items
 }
 
-func projectionNarrative() {
+func forecastNarrative() {
 
 	var htmlFileName = ""
 
-	var noOfOrderVisits = projectionIncrement / totalAverageVisitsPerOrder
+	var noOfOrderVisits = forecastIncrement / totalAverageVisitsPerOrder
 	var projectedRevenue = noOfOrderVisits * totalAverageOrderValue
 
 	// Format the integers with commas
 	formatInteger := message.NewPrinter(language.English)
-	formattedProjectionIncrement := formatInteger.Sprintf("%d", projectionIncrement)
+	formattedForecastIncrement := formatInteger.Sprintf("%d", forecastIncrement)
 	formattedProjectedRevenue := formatInteger.Sprintf("%d", projectedRevenue)
 
-	// HTML content for the revenue projection narrative
+	// HTML content for the revenue forecast narrative
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -1971,25 +1975,24 @@ func projectionNarrative() {
 	</div>
 </body>
 </html>
-`, totalAverageVisitsPerOrder, formattedProjectionIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
-		formattedProjectionIncrement, currencySymbol, formattedProjectedRevenue,
+`, totalAverageVisitsPerOrder, formattedForecastIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
+		formattedForecastIncrement, currencySymbol, formattedProjectedRevenue,
 	)
 
 	// Define the HTML filename
-	htmlFileName = "/seoVisitsPerOrderLineRevenueProjectionNarrative.html"
+	htmlFileName = "/seoVisitsPerOrderLineRevenueForecastNarrative.html"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
-
 }
 
-// Footer notes
+// Footer
 func footerNotes() {
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on",
-		"CMGR refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
+		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
 	}
 
 	// Generate HTML content
@@ -2015,7 +2018,6 @@ func footerNotes() {
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/seoFooterNotes.html")
-
 }
 
 // formatDate converts date from YYYYMMDD to Month-Year format
@@ -2034,7 +2036,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 	file, err := os.Create(cacheFolder + genFilename)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Cannot create :"+reset, genFilename, err)
+		fmt.Println(red+"Error. saveHTML. Cannot create:"+reset, genFilename, err)
 		return
 	}
 	defer file.Close()
@@ -2147,7 +2149,7 @@ func generateDashboard() {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights broadsheet</span>
+    <span style="font-size: 20px;">Business insights broadsheet (Beta)</span>
 </header>
 
 <!-- Back Button to create a new dashboard -->
@@ -2186,8 +2188,8 @@ func generateDashboard() {
 </section>
 
 <section class="container row">
-    <iframe src="seoVisitsPerOrderLineRevenueProjection.html" title="Revenue projection" class="tall-iframe"></iframe>
-    <iframe src="seoVisitsPerOrderLineRevenueProjectionNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
+    <iframe src="seoVisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
+    <iframe src="seoVisitsPerOrderLineRevenueForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -2260,6 +2262,7 @@ func generateDashboard() {
 
 }
 
+// Execute the BQL
 func executeBQL(returnSize int, bqlToExecute string) []byte {
 
 	// If a size needs to be added to the URL, define it here
@@ -2269,7 +2272,7 @@ func executeBQL(returnSize int, bqlToExecute string) []byte {
 	}
 
 	// Define the URL
-	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query%s", orgName, projectName, returnSizeAppend)
+	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query%s", organization, project, returnSizeAppend)
 
 	// Define the body
 	httpBody := []byte(bqlToExecute)
@@ -2305,7 +2308,7 @@ func executeBQL(returnSize int, bqlToExecute string) []byte {
 	return responseData
 }
 
-// CMGR
+// Compute the CMGR
 func calculateCMGR(sessionID string) {
 
 	// Revenue
@@ -2353,7 +2356,6 @@ func calculateCMGR(sessionID string) {
 	fmt.Printf("Order value: %.2f\n", cmgrOrdersValueValue)
 }
 
-// Calculate the Compound Monthly Growth Rate
 func computeCMGR(values []float64) float64 {
 
 	if len(values) < 2 {
@@ -2376,10 +2378,10 @@ func computeCMGR(values []float64) float64 {
 }
 
 // Get the analytics ID
-func getAnalyticsID() string {
+func getAnalyticsID() (string, string) {
 
 	// First identify which analytics tool is integrated
-	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + orgName + "/" + projectName + "/collections"
+	urlAPIAnalyticsID := "https://api.botify.com/v1/projects/" + organization + "/" + project + "/collections"
 	req, errorCheck := http.NewRequest("GET", urlAPIAnalyticsID, nil)
 
 	// Define the headers
@@ -2410,21 +2412,22 @@ func getAnalyticsID() string {
 	var analyticsIDs []AnalyticsID
 	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
 		fmt.Println(red+"Error. getAnalyticsID. The organisation and/or project name are probably incorrect. Cannot unmarshall the JSON:: "+reset, err)
-		return "errorNoProjectFound"
+		return "errorNoProjectFound", ""
 	}
 
 	// Find and print the name value when the ID contains the word "visit"
 	// Assume the first instance of "visit" contains the analytics ID
 	for _, analyticsID := range analyticsIDs {
 		if strings.Contains(analyticsID.ID, "visit") {
-			return analyticsID.ID
+			return analyticsID.ID, analyticsID.AnalyticsDateStart
 		}
 	}
-	return "errorNoAnalyticsIntegrated"
+	return "errorNoAnalyticsIntegrated", ""
 }
 
 // Get the date ranges for the revenue and visits
-func calculateDateRanges() DateRanges {
+// Get the date ranges for the revenue and visits
+func calculateDateRanges(analyticsStartsDate string) DateRanges {
 
 	currentTime := time.Now()
 	dateRanges := make([][2]time.Time, 12)
@@ -2469,7 +2472,7 @@ func generateErrorPage(displayMessage string) {
 
 	// If displayMessage is empty or nil display a default error message.
 	if displayMessage == "" {
-		displayMessage = "An Unknown error has occurred" // Provide a default message if needed
+		displayMessage = "An Unknown error has occurred"
 	}
 
 	htmlContent := fmt.Sprintf(`
@@ -2530,7 +2533,7 @@ func generateErrorPage(displayMessage string) {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights broadsheet</span>
+    <span style="font-size: 20px;">Business insights broadsheet (Beta)</span>
 </header>
 
 <!-- Back Button -->
@@ -2551,11 +2554,11 @@ func generateErrorPage(displayMessage string) {
 </html>`, displayMessage)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoBusinessInsights.html")
+	saveHTML(htmlContent, "/seoBusinessInsights_error.html")
 
 }
 
-func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription string) {
+func writeLog(sessionID, organization, project, analyticsID, statusDescription string) {
 
 	// Define log file name
 	fileName := "_seoBusinessInsights.log"
@@ -2578,7 +2581,7 @@ func writeLog(sessionID, orgName, projectName, analyticsID, statusDescription st
 
 	// Construct log record
 	logRecord := fmt.Sprintf("%s,%s,%s,%s,%s,%s\n",
-		sessionID, currentTime, orgName, projectName, analyticsID, statusDescription)
+		sessionID, currentTime, organization, project, analyticsID, statusDescription)
 
 	// If the file doesn't exist, write header first
 	if !fileExists {
@@ -2609,7 +2612,7 @@ func generateLogSessionID(length int) (string, error) {
 // Get the currency used
 func getCurrency() {
 
-	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", organization, project)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -2705,6 +2708,7 @@ func getHostnamePort() {
 	// Get values from the INI file
 	hostname = cfg.Section("").Key("hostname").String()
 	port = cfg.Section("").Key("port").String()
+	fullHost = hostname + ":" + port
 
 	// Save the values to variables
 	var serverHostname, serverPort string
@@ -2732,12 +2736,14 @@ func displayBanner() {
  ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝`)
 
 	fmt.Print(purple + `
-██████╗  █████╗ ███████╗██╗  ██╗██████╗  ██████╗  █████╗ ██████╗ ██████╗     ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
-██╔══██╗██╔══██╗██╔════╝██║  ██║██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██╔══██╗    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
-██║  ██║███████║███████╗███████║██████╔╝██║   ██║███████║██████╔╝██║  ██║    ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
-██║  ██║██╔══██║╚════██║██╔══██║██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║    ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
-██████╔╝██║  ██║███████║██║  ██║██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
-  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝     ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝`)
+
+██████╗ ██╗   ██╗███████╗██╗███╗   ██╗███████╗███████╗███████╗██╗███╗   ██╗███████╗██╗ ██████╗ ██╗  ██╗████████╗███████╗
+██╔══██╗██║   ██║██╔════╝██║████╗  ██║██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔════╝██║██╔════╝ ██║  ██║╚══██╔══╝██╔════╝
+██████╔╝██║   ██║███████╗██║██╔██╗ ██║█████╗  ███████╗███████╗██║██╔██╗ ██║███████╗██║██║  ███╗███████║   ██║   ███████╗
+██╔══██╗██║   ██║╚════██║██║██║╚██╗██║██╔══╝  ╚════██║╚════██║██║██║╚██╗██║╚════██║██║██║   ██║██╔══██║   ██║   ╚════██║
+██████╔╝╚██████╔╝███████║██║██║ ╚████║███████╗███████║███████║██║██║ ╚████║███████║██║╚██████╔╝██║  ██║   ██║   ███████║
+╚═════╝  ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ 
+`)
 
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)

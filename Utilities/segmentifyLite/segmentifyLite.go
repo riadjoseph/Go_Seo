@@ -65,7 +65,7 @@ var slashCountLevel2 = 5
 // Host name and port the web server runs on
 var hostname string
 var port string
-var fullHost = hostname + ":" + port
+var fullHost string
 
 // Name of the cache folder used to store the generated HTML
 var cacheFolder string
