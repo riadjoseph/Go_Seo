@@ -193,16 +193,16 @@ func processURLsInProject(sessionID string) {
 	//Get the last analysis slug
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
 
-	req, errorCheck := http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError creating request: "+reset, errorCheck)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(red+"\nError creating request: "+reset, err)
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+botifyAPIToken)
 
-	res, errorCheck := http.DefaultClient.Do(req)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. processURLsInProject. Check your network connection: "+reset, errorCheck)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(red+"\nError. processURLsInProject. Check your network connection: "+reset, err)
 	}
 
 	defer func() {
@@ -211,16 +211,16 @@ func processURLsInProject(sessionID string) {
 		}
 	}()
 
-	responseData, errorCheck := io.ReadAll(res.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. generateURLsInProject. Cannot read response body: "+reset, errorCheck)
+	responseData, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(red+"\nError. generateURLsInProject. Cannot read response body: "+reset, err)
 	}
 
 	var responseObject botifyResponse
-	errorCheck = json.Unmarshal(responseData, &responseObject)
+	err = json.Unmarshal(responseData, &responseObject)
 
-	if errorCheck != nil {
-		log.Fatal(red+"\nError. generateURLsInProject. Cannot unmarshall JSON: "+reset, errorCheck)
+	if err != nil {
+		log.Fatal(red+"\nError. generateURLsInProject. Cannot unmarshall JSON: "+reset, err)
 	}
 
 	//Display an error if no crawls found
@@ -233,9 +233,9 @@ func processURLsInProject(sessionID string) {
 	fmt.Println(purple + "\nRequest received" + reset)
 
 	//Create a file for writing
-	file, errorCheck := os.Create(urlExtractFile)
-	if errorCheck != nil {
-		fmt.Println(red+"\nError creating file: "+reset, errorCheck)
+	file, err := os.Create(urlExtractFile)
+	if err != nil {
+		fmt.Println(red+"\nError creating file: "+reset, err)
 		os.Exit(1)
 	}
 
@@ -268,16 +268,16 @@ func processURLsInProject(sessionID string) {
 		req.Header.Add("content-type", "application/json")
 		req.Header.Add("Authorization", "token "+botifyAPIToken)
 
-		res, errorCheck := http.DefaultClient.Do(req)
-		if errorCheck != nil {
-			fmt.Println(red+"\nError. processURLsInProject. Cannot connect to the API: "+reset, errorCheck)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Println(red+"\nError. processURLsInProject. Cannot connect to the API: "+reset, err)
 			os.Exit(1)
 		}
 
 		//Decode JSON response
 		var response map[string]interface{}
-		if errorCheck := json.NewDecoder(res.Body).Decode(&response); errorCheck != nil {
-			fmt.Println(red+"\nError. processURLsInProject. Cannot decode JSON: "+reset, errorCheck)
+		if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+			fmt.Println(red+"\nError. processURLsInProject. Cannot decode JSON: "+reset, err)
 			os.Exit(1)
 		}
 
@@ -301,8 +301,8 @@ func processURLsInProject(sessionID string) {
 					if strings.Contains(url, "/collections/") && strings.Contains(url, "/products/") {
 						shopifyDetected = true
 					}
-					if _, errorCheck := file.WriteString(url + "\n"); errorCheck != nil {
-						fmt.Println(red+"\nError. processURLsInProject. Cannot write to file: "+reset, errorCheck)
+					if _, err := file.WriteString(url + "\n"); err != nil {
+						fmt.Println(red+"\nError. processURLsInProject. Cannot write to file: "+reset, err)
 						os.Exit(1)
 					}
 					count++
@@ -356,9 +356,9 @@ func level1andFolders() {
 func generateRegexFile() {
 
 	//Always create the file.
-	outputFile, errorCheck := os.Create(regexOutputFile)
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. generateRegexFile. Cannot create output file: %v\n"+reset, errorCheck)
+	outputFile, err := os.Create(regexOutputFile)
+	if err != nil {
+		fmt.Printf(red+"\nError. generateRegexFile. Cannot create output file: %v\n"+reset, err)
 		os.Exit(1)
 	}
 
@@ -372,22 +372,22 @@ func generateRegexFile() {
 	writer := bufio.NewWriter(outputFile)
 
 	// Get the user's local time zone for the header
-	userLocation, errorCheck := time.LoadLocation("") // Load the default local time zone
-	if errorCheck != nil {
-		fmt.Println("\nError loading user's location:", errorCheck)
+	userLocation, err := time.LoadLocation("") // Load the default local time zone
+	if err != nil {
+		fmt.Println("\nError loading user's location:", err)
 		return
 	}
 	// Get the current date and time in the user's local time zone
 	currentTime := time.Now().In(userLocation)
 
-	_, errorCheck = writer.WriteString(fmt.Sprintf("# Regex made with love using segmentifyLite %s\n", version))
+	_, err = writer.WriteString(fmt.Sprintf("# Regex made with love using segmentifyLite %s\n", version))
 
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. generateRegexFile. Cannot write header to output file: %v\n"+reset, errorCheck)
+	if err != nil {
+		fmt.Printf(red+"\nError. generateRegexFile. Cannot write header to output file: %v\n"+reset, err)
 		os.Exit(1)
 	}
 
-	_, err := writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
+	_, err = writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
 	if err != nil {
 		errMsg := fmt.Errorf(red+"Error. Cannot write organisation name in Regex file: %w"+reset, err)
 		println(errMsg)
@@ -404,9 +404,9 @@ func generateRegexFile() {
 	}
 
 	//Flush the writer to ensure all data is written to the file
-	errorCheck = writer.Flush()
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. generateRegexFile. Cannot flush writer: %v\n"+reset, errorCheck)
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf(red+"\nError. generateRegexFile. Cannot flush writer: %v\n"+reset, err)
 		os.Exit(1)
 	}
 }
@@ -414,8 +414,8 @@ func generateRegexFile() {
 func segmentFolders(thresholdValue int, slashCount int) {
 
 	//Open the input file
-	file, errorCheck := os.Open(urlExtractFile)
-	if errorCheck != nil {
+	file, err := os.Open(urlExtractFile)
+	if err != nil {
 		os.Exit(1)
 	}
 	defer func() {
@@ -488,9 +488,9 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	sort.Sort(ByCount(sortedCounts))
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if errorCheck != nil {
-		panic(errorCheck)
+	outputFile, err := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
 	}
 
 	defer func() {
@@ -527,9 +527,9 @@ func segmentFolders(thresholdValue int, slashCount int) {
 			parts := strings.SplitN(folderValueCount.Text, "/", 4)
 			if len(parts) >= 4 && parts[3] != "" {
 				folderLabel := parts[3] //Extract the text between the third and fourth forward-slashes
-				_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
-				if errorCheck != nil {
-					fmt.Printf(red+"\nError. segmentFolders. Cannot write to output file: %v\n"+reset, errorCheck)
+				_, err := writer.WriteString(fmt.Sprintf("@%s\nurl *%s/*\n\n", folderLabel, folderValueCount.Text))
+				if err != nil {
+					fmt.Printf(red+"\nError. segmentFolders. Cannot write to output file: %v\n"+reset, err)
 					os.Exit(1)
 				}
 			}
@@ -537,7 +537,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	}
 
 	//Write the footer lines
-	_, err := writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
+	_, err = writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
 	if err != nil {
 		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n"+reset, err)
 	}
@@ -555,9 +555,9 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	}
 
 	//Flush the writer to ensure all data is written to the file
-	errorCheck = writer.Flush()
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. segmentFolders. Cannot flush writer: %v\n"+reset, errorCheck)
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf(red+"\nError. segmentFolders. Cannot flush writer: %v\n"+reset, err)
 		os.Exit(1)
 	}
 }
@@ -566,8 +566,8 @@ func segmentFolders(thresholdValue int, slashCount int) {
 func subDomains() {
 
 	//Open the input file
-	file, errorCheck := os.Open(urlExtractFile)
-	if errorCheck != nil {
+	file, err := os.Open(urlExtractFile)
+	if err != nil {
 		os.Exit(1)
 	}
 
@@ -629,9 +629,9 @@ func subDomains() {
 	sort.Sort(ByCount(sortedCounts))
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if errorCheck != nil {
-		panic(errorCheck)
+	outputFile, err := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
 	}
 
 	defer func() {
@@ -644,7 +644,7 @@ func subDomains() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	_, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
+	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_subdomains]\n@Home\npath /\n\n"))
 	if err != nil {
 		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
 	}
@@ -677,17 +677,17 @@ func subDomains() {
 		fmt.Printf(red+"Error. subDomains. Cannot write segment to writer: %v\n"+reset, err)
 	}
 	for _, folderValueCount := range sortedCounts {
-		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
-		if errorCheck != nil {
-			fmt.Printf(red+"\nError. subDomains. Cannot write to output file: %v\n"+reset, errorCheck)
+		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
+		if err != nil {
+			fmt.Printf(red+"\nError. subDomains. Cannot write to output file: %v\n"+reset, err)
 			os.Exit(1)
 		}
 	}
 
 	//Flush the writer to ensure all data is written to the file
-	errorCheck = writer.Flush()
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. subDomains. Cannot flush writer: %v\n"+reset, errorCheck)
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf(red+"\nError. subDomains. Cannot flush writer: %v\n"+reset, err)
 		os.Exit(1)
 	}
 }
@@ -696,8 +696,8 @@ func subDomains() {
 func parameterKeys() {
 
 	//Open the input file
-	file, errorCheck := os.Open(urlExtractFile)
-	if errorCheck != nil {
+	file, err := os.Open(urlExtractFile)
+	if err != nil {
 		os.Exit(1)
 	}
 
@@ -766,9 +766,9 @@ func parameterKeys() {
 	sort.Sort(ByCount(sortedCounts))
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if errorCheck != nil {
-		panic(errorCheck)
+	outputFile, err := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
 	}
 
 	defer func() {
@@ -781,16 +781,16 @@ func parameterKeys() {
 	writer := bufio.NewWriter(outputFile)
 
 	//Write the header lines
-	_, err := writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameter_keys]\n"))
+	_, err = writer.WriteString(fmt.Sprintf("\n\n[segment:sl_parameter_keys]\n"))
 	if err != nil {
 		fmt.Printf(red+"Error. parameterKeys. Cannot write segment to writer: %v\n"+reset, err)
 	}
 
 	//Write the regex
 	for _, folderValueCount := range sortedCounts {
-		_, errorCheck := writer.WriteString(fmt.Sprintf("@%s\nquery *%s=*\n\n", folderValueCount.Text, folderValueCount.Text))
-		if errorCheck != nil {
-			fmt.Printf(red+"\nError. parameterKeys. Cannot write to output file: %v\n"+reset, errorCheck)
+		_, err := writer.WriteString(fmt.Sprintf("@%s\nquery *%s=*\n\n", folderValueCount.Text, folderValueCount.Text))
+		if err != nil {
+			fmt.Printf(red+"\nError. parameterKeys. Cannot write to output file: %v\n"+reset, err)
 			os.Exit(1)
 		}
 	}
@@ -809,17 +809,17 @@ func parameterKeys() {
 		// Handle or return the error as needed
 	}
 	for _, folderValueCount := range sortedCounts {
-		_, errorCheck := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
-		if errorCheck != nil {
-			fmt.Printf(red+"\nError. parameterKeys. Cannot write to output file: %v\n"+reset, errorCheck)
+		_, err := writer.WriteString(fmt.Sprintf("# --%s (URLs found: %d)\n", folderValueCount.Text, folderValueCount.Count))
+		if err != nil {
+			fmt.Printf(red+"\nError. parameterKeys. Cannot write to output file: %v\n"+reset, err)
 			os.Exit(1)
 		}
 	}
 
 	//Flush the writer to ensure all data is written to the file
-	errorCheck = writer.Flush()
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. parameterKeys. Cannot flush writer: %v\n"+reset, errorCheck)
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf(red+"\nError. parameterKeys. Cannot flush writer: %v\n"+reset, err)
 		os.Exit(1)
 	}
 }
@@ -1056,9 +1056,9 @@ path /*
 func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fivePercentValue int) {
 
 	// Open the input file
-	file, errorCheck := os.Open(inputFilename)
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. levelThreshhold. Cannot open input file: %v\n"+reset, errorCheck)
+	file, err := os.Open(inputFilename)
+	if err != nil {
+		fmt.Printf(red+"\nError. levelThreshhold. Cannot open input file: %v\n"+reset, err)
 		os.Exit(1)
 	}
 
@@ -1168,9 +1168,9 @@ func cleanUp(sessionID string) {
 func insertStaticRegex(regexText string) error {
 
 	//Open the file in append mode, create if it doesn't exist
-	outputFile, errorCheck := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if errorCheck != nil {
-		panic(errorCheck)
+	outputFile, err := os.OpenFile(regexOutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
 	}
 
 	defer func() {
@@ -1182,20 +1182,20 @@ func insertStaticRegex(regexText string) error {
 	//Create a writer to write to the output file
 	writer := bufio.NewWriter(outputFile)
 
-	_, errorCheck = writer.WriteString(regexText)
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. insertStaticRegex. Cannot write to outputfile: %v\n"+reset, errorCheck)
-		panic(errorCheck)
+	_, err = writer.WriteString(regexText)
+	if err != nil {
+		fmt.Printf(red+"\nError. insertStaticRegex. Cannot write to outputfile: %v\n"+reset, err)
+		panic(err)
 	}
 
 	//Flush the writer to ensure all data is written to the file
-	errorCheck = writer.Flush()
-	if errorCheck != nil {
-		fmt.Printf(red+"\nError. insertStaticRegex. Cannot flush writer: %v\n"+reset, errorCheck)
+	err = writer.Flush()
+	if err != nil {
+		fmt.Printf(red+"\nError. insertStaticRegex. Cannot flush writer: %v\n"+reset, err)
 		os.Exit(1)
 	}
 
-	return errorCheck
+	return err
 }
 
 func writeLog(sessionID, orgName, projectName, statusDescription string) {
@@ -1374,7 +1374,6 @@ func generateSegmentationRegex() {
 
 	// Copy the regex to the clipboard
 	copyRegexToClipboard()
-
 }
 
 // Copy Regex to the clipboard
@@ -1470,6 +1469,7 @@ func copyRegexToClipboard() {
 	}
 }
 
+// Create the cache folder
 func createCacheFolder() {
 
 	cacheDir := cacheFolder
@@ -1484,6 +1484,7 @@ func createCacheFolder() {
 	}
 }
 
+// Get the hostname and port from the .ini
 func getHostnamePort() {
 
 	// Load the INI file

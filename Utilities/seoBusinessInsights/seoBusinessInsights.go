@@ -328,7 +328,7 @@ func goSeoDashboard(sessionID string) {
 
 	// Detailed keyword insights - Branded
 	generateHTMLDetailedKeywordsInsights(true)
-	// Detailed keyword insights - Non branded
+	// Detailed keyword insights - Non-branded
 	generateHTMLDetailedKeywordsInsights(false)
 
 	// KPI details table
@@ -337,7 +337,7 @@ func goSeoDashboard(sessionID string) {
 	// Revenue forecast line chart
 	lineChartRevenueForecast()
 
-	// Forecast forecast
+	// Forecast narrative
 	forecastNarrative()
 
 	// Footer
@@ -396,13 +396,12 @@ func getSeoInsights(sessionID string) string {
 		return analyticsID
 	}
 
-	// Reset the metics to their default values
+	// Reset the KPIs to their default values
 	resetMetrics()
 
 	// Get the date ranges
 	dateRanges := calculateDateRanges(analyticsDateStart)
 
-	//bloo
 	// Populate the slice with string versions of the dates for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
 		startMthDate := dateRange[0].Format("20060102")
@@ -487,7 +486,6 @@ func getRevenueData(analyticsID string, startMthDates []string, endMthDates []st
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
-	//bloo
 	for _, date := range startMthDates {
 		fmt.Println(date)
 	}
@@ -2422,49 +2420,77 @@ func getAnalyticsID() (string, string) {
 			return analyticsID.ID, analyticsID.AnalyticsDateStart
 		}
 	}
+
 	return "errorNoAnalyticsIntegrated", ""
 }
 
 // Get the date ranges for the revenue and visits
-// Get the date ranges for the revenue and visits
-func calculateDateRanges(analyticsStartsDate string) DateRanges {
+func calculateDateRanges(analyticsStartDate string) DateRanges {
 
-	currentTime := time.Now()
+	// Determine if the data available start date is older than 12 months from the last day of the previous month.
+	// If it is, we will get a full 12 months of data
+	// If the data available date is less than 12 months ago, we need to adjust the date periods in order
+	// to start from the date of the data availability to the last day of the previous month
+	startTime, _ := time.Parse("2006-01-02", analyticsStartDate)
+
+	// Get the current year and month
+	currentYear, currentMonth, _ := time.Now().Date()
+
+	// Calculate the last day of the previous month of the current year
+	previousMonth := time.Date(currentYear, currentMonth-1, 1, 0, 0, 0, 0, time.UTC)
+	lastDayOfPreviousMonth := previousMonth.AddDate(0, 1, -1)
+
+	// Compare startTime with lastDayOfPreviousMonth
+	isMoreThan12MonthsDataAvailable := startTime.Before(lastDayOfPreviousMonth)
+
+	if isMoreThan12MonthsDataAvailable {
+		fmt.Printf("%s More than 12 months of data is available relative to the last day of the previous month of this year.\n", analyticsStartDate)
+	} else {
+		fmt.Printf("%s Less than 12 months of data is available relative to the last day of the previous month of this year.\n", analyticsStartDate)
+	}
+	fmt.Printf("The last day of the previous month of this year: %s\n", lastDayOfPreviousMonth.Format("2006-01-02"))
+
 	dateRanges := make([][2]time.Time, 12)
 
-	// Calculate the date ranges for the last 12 months
-	for i := 0; i < 12; i++ {
-		// Calculate the start and end dates for the current range
-		// Adjust to the previous month. We don't count the current month.
-		prevMonth := currentTime.AddDate(0, -1, 0)
+	// Calculate the date ranges based on a full 12 months of data is available
+	if isMoreThan12MonthsDataAvailable {
+		currentTime := time.Now()
 
-		// Start of the previous month range
-		startDate := time.Date(prevMonth.Year(), prevMonth.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+		// Calculate the date ranges for the last 12 months
+		for i := 0; i < 12; i++ {
+			// Calculate the start and end dates for the current range
+			// Adjust to the previous month. We don't count the current month.
+			prevMonth := currentTime.AddDate(0, -1, 0)
 
-		var endDate time.Time
-		if i == 0 {
-			// The end date is the End of the previous month. We don't use the current month for the analysis.
-			firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
-			endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
-		} else {
-			// End of the previous month range
-			endDate = startDate.AddDate(0, 1, -1)
+			// Start of the previous month range
+			startDate := time.Date(prevMonth.Year(), prevMonth.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+
+			var endDate time.Time
+			if i == 0 {
+				// The end date is the End of the previous month. We don't use the current month for the analysis.
+				firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+				endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
+			} else {
+				// End of the previous month range
+				endDate = startDate.AddDate(0, 1, -1)
+			}
+
+			// Store the range
+			dateRanges[11-i] = [2]time.Time{startDate, endDate}
+
+			// Move to the previous month
+			currentTime = startDate.AddDate(0, 0, 0)
 		}
 
-		// Store the range
-		dateRanges[11-i] = [2]time.Time{startDate, endDate}
+		// Subtract 1 day from the end date in the last element of the array
+		dateRanges[0][1] = dateRanges[0][1].AddDate(0, 0, -1)
 
-		// Move to the previous month
-		currentTime = startDate.AddDate(0, 0, 0)
+		// Save the number of months
+		noOfMonths = len(dateRanges)
 	}
 
-	// Subtract 1 day from the end date in the last element of the array
-	dateRanges[0][1] = dateRanges[0][1].AddDate(0, 0, -1)
-
-	// Save the number of months
-	noOfMonths = len(dateRanges)
-
 	return DateRanges{MonthlyRanges: dateRanges}
+
 }
 
 // Define the error page
