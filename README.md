@@ -47,7 +47,7 @@ Usage: ./segmentifyLite org_name project_name
 Generate Botify crawls en-masse.    
 
 **Note:** Populate the file crawlme.txt with the start page URL for each of the sites you want to crawl.  
-**Note:** When botifyBotLite has complete a list of the crawled start pages and the generated Botify project URLs can be found in **project_list.txt**.  
+**Note:** When botifyBotLite has completed a list of the crawled start pages and the generated Botify project URLs can be found in **project_list.txt**.  
 
 ```
 Usage: ./botifyBotLite (project prefix and no. urls to crawl will be prompted for)    
@@ -96,7 +96,7 @@ Usage: ./paramCount org_name project_name
 **Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
 
 ## listAnalysis
-listAnalysis displays the crawl meta data for the most recent crawl in a specified project.   
+listAnalysis displays the crawl metadata for the most recent crawl in a specified project.   
 ```
 Usage: ./listAnalysis (organisation and project name will be prompted for)    
 Usage: ./listAnalysis org_name project_name

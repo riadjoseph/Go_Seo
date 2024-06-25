@@ -529,7 +529,7 @@ func collectionsApiTest() {
 }
 
 // Display the collections attributes API results
-// This example only displays the first 30 attributes for the the first collection found
+// This example only displays the first 30 attributes for the first collection found
 // Iterate through collectionIdentifiers[] to display the attributes for all collections
 func collectionsDetailApiTest() {
 	fmt.Println(green + bold + "\nAPI: Collections detail API" + reset)

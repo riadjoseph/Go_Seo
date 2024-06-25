@@ -393,7 +393,7 @@ func checkCrawlParameters() {
 
 // Execute the python script bot.py
 func executeBotPY() {
-	// Get the current directory, tis is done to ensure that the scripts do not have to be in the PATH
+	// Get the current directory, this is done to ensure that the scripts do not have to be in the PATH
 	currentDir, err := os.Getwd()
 	if err != nil {
 		fmt.Println(red+"Error. executeBotPY. Cannot determine current directory:"+reset, err)
