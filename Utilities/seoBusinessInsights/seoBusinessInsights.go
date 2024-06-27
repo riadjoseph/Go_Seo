@@ -1027,8 +1027,8 @@ func barChartRevenueVisits() {
 		SetSeriesOptions(
 			charts.WithMarkPointNameTypeItemOpts(
 
-				opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max"},
-				opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min"},
+				opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
+				opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 0, 0)"}},
 			),
 			charts.WithMarkPointStyleOpts(
 				opts.MarkPointStyle{
@@ -1089,8 +1089,9 @@ func lineChartVisitsPerOrder() {
 			Smooth: opts.Bool(true),
 		}),
 		charts.WithMarkPointNameTypeItemOpts(
-			opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max"},
-			opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min"},
+			opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
+			opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 0, 0)"}},
+			opts.MarkPointNameTypeItem{Name: "Average", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
@@ -1937,9 +1938,9 @@ func lineChartRevenueForecast() {
 			Smooth: opts.Bool(true),
 		}),
 		charts.WithMarkPointNameTypeItemOpts(
-			opts.MarkPointNameTypeItem{Name: "Low end", Type: "min"},
-			opts.MarkPointNameTypeItem{Name: "Mid range", Type: "average"},
-			opts.MarkPointNameTypeItem{Name: "High end", Type: "max"},
+			opts.MarkPointNameTypeItem{Name: "High End", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
+			opts.MarkPointNameTypeItem{Name: "Mid Range", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
+			opts.MarkPointNameTypeItem{Name: "Low End", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 0, 0)"}},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
