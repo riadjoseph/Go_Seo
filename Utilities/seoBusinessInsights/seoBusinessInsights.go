@@ -27,8 +27,8 @@ import (
 // Version
 var version = "v0.1"
 
-// Botify API token
-var botifyAPIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+// APIToken should be replaced with your own token
+var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -37,10 +37,12 @@ var mutex sync.Mutex
 var purple = "\033[0;35m"
 var green = "\033[0;32m"
 var red = "\033[0;31m"
+var yellow = "\033[0;33m"
+var white = "\033[37m"
 var bold = "\033[1m"
 var reset = "\033[0m"
 var clearScreen = "\033[H\033[2J"
-var lineSeparator = "█" + strings.Repeat("█", 129)
+var lineSeparator = "█" + strings.Repeat("█", 130)
 
 // KPI Specific colours
 var kpiColourRevenue = "Coral"
@@ -52,7 +54,7 @@ var kpiColourNoOfOrders = "IndianRed"
 var kpiColourOrderValue = "MediumSlateBlue"
 
 // Slice used to store the month names. These are used in the chart X axis
-var startMthNames []string
+var startMonthNames []string
 
 // Slice used to store projected revenue values
 var forecastRevenue []int
@@ -60,7 +62,7 @@ var forecastRevenue []int
 // Used for the branded/non branded keyword title in the wordcloud
 var wordcloudTitle string
 
-// Slices used to store the startMthDate and endMthDate
+// Slices used to store the startMonthDate and endMonthDate
 var startMonthDates = make([]string, 0)
 var endMonthDates = make([]string, 0)
 
@@ -78,8 +80,8 @@ var kwMetricsCTR []float64
 var kwMetricsAvgPosition []float64
 
 // Slices used to store non-branded Keywords KPIsd
-var kwKeywordsNB []string
-var kwCountClicksNB []int
+var kwKeywordsNonBranded []string
+var kwCountClicksNonBranded []int
 var kwCTRNonBranded []float64
 var kwAvgPositionNonBranded []float64
 
@@ -225,8 +227,6 @@ func main() {
 		organization = r.Form.Get("organization")
 		project = r.Form.Get("project")
 
-		fmt.Printf("\nOrganization: %s, Project: %s\n", organization, project)
-
 		// Generate a session ID used for grouping log entries
 		sessionID, err := generateLogSessionID(8)
 		if err != nil {
@@ -240,6 +240,9 @@ func main() {
 		// Evaluate the results of getSeoInsights before generating the dashboard
 		// All good! Generate the dashboard
 		if dataStatus == "success" {
+			// Define the projectURL
+			projectURL = "https://app.botify.com/" + organization + "/" + project
+
 			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
 			// Generate the dashboard HTML
 			goSeoDashboard(sessionID)
@@ -359,8 +362,8 @@ func goSeoDashboard(sessionID string) {
 	// We're done
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
-	fmt.Println(purple + "\nSession ID: " + sessionID)
-	fmt.Println(purple + "\nseoBusinessInsights: Done at " + formattedTime)
+	fmt.Println("\nSession ID: " + yellow + sessionID + reset)
+	fmt.Println("\nseoBusinessInsights: Done at " + formattedTime)
 	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, organization, project)
 
 	// Make a tidy display
@@ -374,7 +377,10 @@ func goSeoDashboard(sessionID string) {
 func getSeoInsights(sessionID string) string {
 
 	fmt.Println()
-	fmt.Println(purple + bold + "(" + sessionID + ") Getting SEO insights" + reset)
+	fmt.Println(yellow + sessionID + purple + " Getting SEO insights" + reset)
+	fmt.Println()
+	fmt.Printf("\n%s%s%s Organization: %s, Project: %s\n", yellow, sessionID, reset, organization, project)
+	fmt.Println()
 
 	// Create the cache folder for the generated HTML if it does not exist
 	cacheFolder = cacheFolderRoot + "/" + sessionID + "_" + organization
@@ -385,8 +391,8 @@ func getSeoInsights(sessionID string) string {
 
 	// Identify the analytics tool in use
 	analyticsID, analyticsDateStart := getAnalyticsID()
-	fmt.Println("("+sessionID+") Analytics identified:", analyticsID)
-	fmt.Println("("+sessionID+") Data available from:", analyticsDateStart)
+	fmt.Printf("%s%s%s Analytics identified: %s\n", yellow, sessionID, reset, analyticsID)
+	fmt.Printf("%s%s%s Data available from: %s\n", yellow, sessionID, reset, analyticsDateStart)
 
 	fmt.Println()
 
@@ -409,23 +415,23 @@ func getSeoInsights(sessionID string) string {
 	// Get the date ranges
 	dateRanges := calculateDateRanges(analyticsDateStart)
 
-	fmt.Println("Monthly Ranges returned:")
-	for _, mr := range dateRanges.MonthlyRanges {
-		fmt.Printf("Start Date: %s, End Date: %s\n", mr[0].Format("2006-01-02"), mr[1].Format("2006-01-02"))
-	}
-
 	// Populate the slice with string versions of the dates for use in the BQL
 	for _, dateRange := range dateRanges.MonthlyRanges {
-		startMthDate := dateRange[0].Format("20060102")
-		endMthDate := dateRange[1].Format("20060102")
-		startMonthDates = append(startMonthDates, startMthDate)
-		endMonthDates = append(endMonthDates, endMthDate)
+		startMonthDate := dateRange[0].Format("20060102")
+		endMonthDate := dateRange[1].Format("20060102")
+		startMonthDates = append(startMonthDates, startMonthDate)
+		endMonthDates = append(endMonthDates, endMonthDate)
 
 		// Get the month name
-		startDate, _ := time.Parse("20060102", startMthDate)
+		startDate, _ := time.Parse("20060102", startMonthDate)
 		startMthName := startDate.Format("January 2006")
-		startMthNames = append(startMthNames, startMthName)
+		startMonthNames = append(startMonthNames, startMthName)
 	}
+
+	// Invert the date slices in order to display the oldest date first in the charts
+	invertStringSlice(startMonthDates)
+	invertStringSlice(endMonthDates)
+	invertStringSlice(startMonthNames)
 
 	// Get the revenue data
 	getRevenueDataStatus := getRevenueData(analyticsID, startMonthDates, endMonthDates, sessionID)
@@ -471,7 +477,7 @@ func resetMetrics() {
 	// Reset slices
 	startMonthDates = nil
 	endMonthDates = nil
-	startMthNames = nil
+	startMonthNames = nil
 	seoRevenue = nil
 	seoVisits = nil
 	seoOrders = nil
@@ -483,8 +489,8 @@ func resetMetrics() {
 	kwCountClicks = nil
 	kwMetricsCTR = nil
 	kwMetricsAvgPosition = nil
-	kwKeywordsNB = nil
-	kwCountClicksNB = nil
+	kwKeywordsNonBranded = nil
+	kwCountClicksNonBranded = nil
 	kwCTRNonBranded = nil
 	kwAvgPositionNonBranded = nil
 
@@ -530,9 +536,13 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
 
 		// Calculate the visits per order (for the month)
-		// Defend against division by zero
+		// Check division by zero
+		visitsPerOrderDisplay := 0
 		if metricsOrders != 0 {
 			visitsPerOrder = append(visitsPerOrder, metricsVisits/metricsOrders)
+			visitsPerOrderDisplay = metricsVisits / metricsOrders
+		} else {
+			visitsPerOrder = append(visitsPerOrder, 0)
 		}
 
 		// Calculate the grand total for revenue visits & orders
@@ -543,7 +553,7 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		formatInteger := message.NewPrinter(language.English)
 
 		// Display the KPIs
-		fmt.Printf(green+"("+sessionID+") Date Start: %s End: %s\n"+reset, startMonthDates[i], endMonthDates[i])
+		fmt.Printf(yellow+sessionID+white+" Date Start: %s End: %s\n"+reset, startMonthDates[i], endMonthDates[i])
 		formattedOrders := formatInteger.Sprintf("%d", metricsOrders)
 		formattedRevenue := formatInteger.Sprintf("%d", metricsRevenue)
 		formattedVisits := formatInteger.Sprintf("%d", metricsVisits)
@@ -552,6 +562,7 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		fmt.Println("Average order value:", avgOrderValue)
 		fmt.Println("No. of visits:", formattedVisits)
 		fmt.Println("Average visit value:", avgVisitValue)
+		fmt.Println("Average visits per order:", visitsPerOrderDisplay)
 	}
 
 	// Calculate the average visits per order
@@ -601,7 +612,7 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		totalAverageOrderValue = totalOrderValue / len(seoOrderValue)
 	}
 
-	fmt.Println(green + "\n" + "(" + sessionID + ") Totals" + reset)
+	fmt.Println("\n" + yellow + sessionID + reset + " Totals" + reset)
 	fmt.Println("Total visits:", totalVisits)
 	fmt.Println("Total revenue:", totalRevenue)
 	fmt.Println("Total orders:", totalOrders)
@@ -680,7 +691,6 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 	}
 
 	noKeywordsFound := len(response.Results)
-	fmt.Printf("Number of elements in response: %d\n", noKeywordsFound) //blooimportant
 
 	// Load the response into the slices - branded keywords
 	if brandedFlag == "true" {
@@ -698,8 +708,8 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 	if brandedFlag == "false" {
 		for _, result := range response.Results {
 			if len(result.Dimensions) >= 1 && len(result.Metrics) >= 3 {
-				kwKeywordsNB = append(kwKeywordsNB, result.Dimensions[0].(string))
-				kwCountClicksNB = append(kwCountClicksNB, int(*result.Metrics[0]))
+				kwKeywordsNonBranded = append(kwKeywordsNonBranded, result.Dimensions[0].(string))
+				kwCountClicksNonBranded = append(kwCountClicksNonBranded, int(*result.Metrics[0]))
 				kwAvgPositionNonBranded = append(kwAvgPositionNonBranded, *result.Metrics[1])
 				kwCTRNonBranded = append(kwCTRNonBranded, *result.Metrics[2])
 			}
@@ -780,7 +790,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 
 	if responseCount == 0 {
 		fmt.Println(red+"Error. generateRevenueBQL. No engagement analytics configured, or data is not available for computed date ranges for", organization+"/"+project+reset)
-		println(bqlRevTrans)
+
 		getRevenueDataStatus := "errorNoEAFound"
 		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
 	} else {
@@ -788,10 +798,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 		metricsRevenue = int(response.Results[0].Metrics[1])
 		metricsVisits = int(response.Results[0].Metrics[2])
 		// Compute the average Order value
-		//avgOrderValue = metricsRevenue / metricsOrders
-		//avgVisitValue = float64(metricsRevenue) / float64(metricsVisits)
-		// Calculate avgOrderValue only if metricsOrders is not zero
-		// Protect from divide by zero errors
+		// Check division by zero
 		if metricsOrders != 0 {
 			avgOrderValue = metricsRevenue / metricsOrders
 		}
@@ -831,7 +838,7 @@ func dashboardHeader() {
 </head>
 <body>
     <div class="content">
-        <span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
+	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths+1) + ` months.</span>
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <span class="header-font">Click the chart headers below to access the related Botify report.</span>
     </div>
@@ -911,7 +918,6 @@ func tableTotalsVisitsOrdersRevenue() {
         th, td {
             font-size: 30px;
             padding: 10px;
-            border-bottom: 1px solid #eee;
         }
         th {
             color: #555;
@@ -1015,7 +1021,7 @@ func barChartRevenueVisits() {
 
 	var seriesWithCurrency = "Revenue (" + currencySymbol + ")"
 
-	bar.SetXAxis(startMthNames).
+	bar.SetXAxis(startMonthNames).
 		AddSeries(seriesWithCurrency, barDataRevenue).
 		AddSeries("Visits", barDataVisits).
 		SetSeriesOptions(
@@ -1041,8 +1047,6 @@ func barChartRevenueVisits() {
 		panic(err)
 	}
 
-	//defer f.Close()
-
 	// Render the chart to the file
 	_ = bar.Render(f)
 }
@@ -1056,7 +1060,7 @@ func lineChartVisitsPerOrder() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Average visits per order",
-			Subtitle: "On average, how many organic visits are needed to generate one order?",
+			Subtitle: "On average, an order is placed every nth visit?",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1077,7 +1081,7 @@ func lineChartVisitsPerOrder() {
 	// Pass visitsPerOrder directly to generaLineItems
 	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder)
 
-	line.SetXAxis(startMthNames).AddSeries("Month", lineVisitsPerOrderValue).SetSeriesOptions(
+	line.SetXAxis(startMonthNames).AddSeries("Month", lineVisitsPerOrderValue).SetSeriesOptions(
 		charts.WithAreaStyleOpts(opts.AreaStyle{
 			Opacity: 0.2,
 		}),
@@ -1139,7 +1143,7 @@ func barChartVisitValue() {
 
 	barDataVisitValue := generateBarItemsFloat(seoVisitValue)
 
-	bar.SetXAxis(startMthNames).
+	bar.SetXAxis(startMonthNames).
 		AddSeries("Organic visit value", barDataVisitValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
@@ -1180,7 +1184,7 @@ func barChartOrders() {
 
 	barDataOrders := generateBarItems(seoOrders)
 
-	bar.SetXAxis(startMthNames).
+	bar.SetXAxis(startMonthNames).
 		AddSeries("Number of orders", barDataOrders).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
@@ -1222,7 +1226,7 @@ func barChartOrderValue() {
 
 	barDataOrderValue := generateBarItems(seoOrderValue)
 
-	bar.SetXAxis(startMthNames).
+	bar.SetXAxis(startMonthNames).
 		AddSeries("Order value", barDataOrderValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
@@ -1384,7 +1388,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	// Generate the non-branded wordcloud
 	if !brandedMode {
-		wc.AddSeries("Clicks", generateWCDataNB(kwKeywordsNB, kwCountClicksNB)).
+		wc.AddSeries("Clicks", generateWCDataNonBranded(kwKeywordsNonBranded, kwCountClicksNonBranded)).
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
@@ -1413,16 +1417,16 @@ func generateWCData(kwKeywords []string, kwCountClicks []int) (items []opts.Word
 }
 
 // Generate the data for the wordcloud - Non-branded
-func generateWCDataNB(kwKeywordsNB []string, kwCountClicksNB []int) (items []opts.WordCloudData) {
+func generateWCDataNonBranded(kwKeywordsNonBranded []string, kwCountClicksNonBranded []int) (items []opts.WordCloudData) {
 
 	items = make([]opts.WordCloudData, 0)
 	// Iterate over kwKeywords and kwCountClicks slices starting from index 1
 	// We start at index 1 because the top keyword is generally significantly higher performing than the following keywords and will distort the wordcloud if included
-	for i := 1; i < len(kwKeywordsNB); i++ {
+	for i := 1; i < len(kwKeywordsNonBranded); i++ {
 		// Check if index is valid for kwCountClicks slice
-		if i < len(kwCountClicksNB) {
+		if i < len(kwCountClicksNonBranded) {
 			// Append WordCloudData struct with keyword and corresponding count
-			items = append(items, opts.WordCloudData{Name: kwKeywordsNB[i], Value: kwCountClicksNB[i]})
+			items = append(items, opts.WordCloudData{Name: kwKeywordsNonBranded[i], Value: kwCountClicksNonBranded[i]})
 		}
 	}
 	return items
@@ -1554,9 +1558,8 @@ func tableDataDetail() {
 
 	formatInteger := message.NewPrinter(language.English)
 
-	for i := 0; i < noOfMonths; i++ {
+	for i := 0; i < noOfMonths+1; i++ {
 		formattedDate := formatDate(startMonthDates[i])
-		fmt.Printf(formattedDate)
 		orders := formatInteger.Sprintf("%d", seoOrders[i])
 		revenue := formatInteger.Sprintf("%d", seoRevenue[i])
 		orderValue := formatInteger.Sprintf("%d", seoOrderValue[i])
@@ -1605,7 +1608,7 @@ func winningKeywords(brandedMode bool, sessionID string) {
 		htmlSecondPlaceKW = kwKeywords[1]
 		htmlCTR = kwMetricsCTR[0]
 		htmlAvgPosition = kwMetricsAvgPosition[0]
-		fmt.Println("\n" + "(" + sessionID + ") Branded keywords\n")
+		fmt.Println("\n" + yellow + sessionID + reset + " Branded keywords\n")
 		for i := 0; i < len(kwKeywords); i++ {
 			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
 				kwKeywords[i], kwCountClicks[i], kwMetricsCTR[i], kwMetricsAvgPosition[i])
@@ -1613,21 +1616,21 @@ func winningKeywords(brandedMode bool, sessionID string) {
 	}
 
 	if !brandedMode {
-		htmlKeyword = kwKeywordsNB[0]
-		htmlClicks = formatInteger.Sprintf("%d", kwCountClicksNB[0])
-		htmlClickGap = int(((float64(kwCountClicksNB[0]) - float64(kwCountClicksNB[1])) / float64(kwCountClicksNB[1])) * 100)
-		htmlSecondPlaceKW = kwKeywordsNB[1]
+		htmlKeyword = kwKeywordsNonBranded[0]
+		htmlClicks = formatInteger.Sprintf("%d", kwCountClicksNonBranded[0])
+		htmlClickGap = int(((float64(kwCountClicksNonBranded[0]) - float64(kwCountClicksNonBranded[1])) / float64(kwCountClicksNonBranded[1])) * 100)
+		htmlSecondPlaceKW = kwKeywordsNonBranded[1]
 		htmlCTR = kwCTRNonBranded[0]
 		htmlAvgPosition = kwAvgPositionNonBranded[0]
-		fmt.Println("\n" + "(" + sessionID + ") Non Branded keywords\n")
+		fmt.Println("\n" + yellow + sessionID + reset + " Non branded keywords\n")
 		for i := 0; i < len(kwKeywords); i++ {
 			fmt.Printf(green+"Keyword:"+reset+bold+" %s"+reset+","+green+" Clicks:"+reset+" %d,"+green+" CTR:"+reset+" %.2f,"+green+" Avg. Position:"+reset+" %.2f\n",
-				kwKeywordsNB[i], kwCountClicksNB[i], kwCTRNonBranded[i], kwAvgPositionNonBranded[i])
+				kwKeywordsNonBranded[i], kwCountClicksNonBranded[i], kwCTRNonBranded[i], kwAvgPositionNonBranded[i])
 		}
 	}
 
 	// Get the last month name
-	htmlLastMonthName := startMthNames[len(startMthNames)-1]
+	htmlLastMonthName := startMonthNames[len(startMonthNames)-1]
 
 	// HTML content for the winning keyword
 	htmlContent := fmt.Sprintf(`
@@ -1751,7 +1754,7 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         <tbody>`
 
 	// Title
-	htmlContent += fmt.Sprintf("<h2>\n\nMonthly summary for the previous %d months</h2>", noOfMonths)
+	htmlContent += fmt.Sprintf("<h2>\n\nMonthly summary for the previous %d months</h2>", noOfMonths+1)
 
 	// Insert tke KPI details
 	for _, row := range data {
@@ -1841,15 +1844,15 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 	if !brandedMode {
 		htmlContent += fmt.Sprintf("<h2>\n\nTop %d non branded keywords generating clicks</h2>", noTopKeywords)
 		for i := 0; i < noTopKeywords; i++ {
-			kwCountClicksFormattedNB := formatInteger.Sprintf("%d", kwCountClicksNB[i])
+			kwCountClicksFormattedNonBranded := formatInteger.Sprintf("%d", kwCountClicksNonBranded[i])
 			htmlContent += fmt.Sprintf("<tr>\n"+
 				"    <td>%s</td>\n"+
 				"    <td>%s</td>\n"+
 				"    <td>%.2f%%</td>\n"+
 				"    <td>%.2f</td>\n"+
 				"</tr>\n",
-				kwKeywordsNB[i],
-				kwCountClicksFormattedNB,
+				kwKeywordsNonBranded[i],
+				kwCountClicksFormattedNonBranded,
 				kwCTRNonBranded[i],
 				kwAvgPositionNonBranded[i])
 		}
@@ -2220,11 +2223,11 @@ func generateDashboard() {
 
 <!-- Sections with Iframes -->
 <section class="container row no-border">
-    <iframe src="seoDashboardHeader.html" title="Totals" style="height: 30px;"></iframe>
+    <iframe src="seoDashboardHeader.html" title="Header" style="height: 30px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Totals" style="height: 300px;"></iframe>
+    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 300px;"></iframe>
 </section>
 
 <section class="container row">
@@ -2272,7 +2275,7 @@ func generateDashboard() {
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoDataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 630px;"></iframe>
+    <iframe src="seoDataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
 </section>
 
 <section class="container row no-border">
@@ -2342,12 +2345,12 @@ func executeBQL(returnSize int, bqlToExecute string) []byte {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyAPIToken)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	resp, err := client.Do(req)
@@ -2411,7 +2414,7 @@ func calculateCMGR(sessionID string) {
 	}
 	cmgrOrderValueValue := computeCMGR(seoOrdersValueFloat)
 
-	fmt.Printf(green + "\n" + "(" + sessionID + ") Compound Monthly Growth Rate\n" + reset)
+	fmt.Printf("\n" + yellow + sessionID + reset + " Compound Monthly Growth Rate\n" + reset)
 	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
 	fmt.Printf("Visits: %.2f\n", cmgrVisits)
 	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
@@ -2449,7 +2452,7 @@ func getAnalyticsID() (string, string) {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyAPIToken)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	if errorCheck != nil {
@@ -2457,7 +2460,7 @@ func getAnalyticsID() (string, string) {
 	}
 	// Create HTTP client and execute the request
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
@@ -2518,8 +2521,6 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 
 	// Full year data available
 	if isMoreThan12MonthsDataAvailable {
-		fmt.Printf("%s More than 12 months of data is available relative to the last day of the previous month of this year.\n", analyticsStartDate)
-
 		noOfMonths = 11
 		currentTime := time.Now()
 
@@ -2540,8 +2541,6 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 
 		// Less than a full year data available
 	} else {
-		fmt.Printf("%s Less than 12 months of data is available relative to the last day of the previous month of this year.\n", analyticsStartDate)
-
 		currentTime := time.Now()
 		monthsBetween := monthsBetween(startTime, currentTime)
 		noOfMonths = monthsBetween - 1
@@ -2737,7 +2736,7 @@ func getCurrency() {
 	}
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyAPIToken)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -2832,6 +2831,7 @@ func getHostnamePort() {
 	// Get values from the INI file
 	hostname = cfg.Section("").Key("hostname").String()
 	port = cfg.Section("").Key("port").String()
+	port = cfg.Section("").Key("port").String()
 	fullHost = hostname + ":" + port
 
 	// Save the values to variables
@@ -2843,6 +2843,13 @@ func getHostnamePort() {
 	fmt.Printf(green+"\nHostname: %s\n"+reset, serverHostname)
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
 
+}
+
+// Function used to inverse the dates in  the date slice
+func invertStringSlice(s []string) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
 }
 
 // Display the welcome banner

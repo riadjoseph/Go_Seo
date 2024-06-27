@@ -4,23 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Go_Seo Business Insights Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
     <style>
+        /* Set background color for the whole page */
         body {
             background-color: Cornsilk;
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
+            margin: 0; /* Remove default margin */
+            padding: 0; /* Remove default padding */
         }
+
+        /* Style for the header */
         .header {
             background-color: DeepSkyBlue;
             color: white;
             text-align: center;
             padding: 15px 0;
             font-size: 24px;
-            width: 100%;
-            margin: 0;
+            width: 100%; 
+            margin: 0; 
         }
+
+        /* Style for the footer */
         .footer {
             background-color: DeepSkyBlue;
             color: white;
@@ -28,25 +32,30 @@
             text-align: center;
             position: fixed;
             bottom: 0;
-            width: 100%;
+            width: 100%; 
             font-size: 12px;
-            margin: 0;
+            margin: 0; 
         }
+
+        /* Style for the main content */
         .content {
-            margin: 100px auto;
+            margin: 100px auto; 
             text-align: center;
-            color: LightSlateGray;
-            max-width: 400px;
+            color: LightSlateGray; 
+            max-width: 400px; 
         }
+
+        /* Style for the input fields */
         input[type="text"] {
             width: 100%;
-            padding: 8px;
+            padding: 5px;
             margin: 5px 0;
             border-radius: 5px;
             border: 1px solid #ccc;
             box-sizing: border-box;
-            font-size: 14px;
         }
+
+        /* Style for the button */
         button {
             padding: 10px 20px;
             margin: 10px 0;
@@ -57,40 +66,37 @@
             cursor: pointer;
             width: 100%;
             box-sizing: border-box;
-            font-size: 16px;
         }
+
         button:hover {
             background-color: #0056b3;
         }
-        button.demonstration {
-            background-color: LightGray;
-            color: white;
-        }
-        button.demonstration:hover {
-            background-color: #cccccc;
-        }
+
+        /* Style for the labels */
         label {
             display: inline-block;
             width: 100%;
             text-align: left;
             margin-bottom: 5px;
             font-weight: bold;
-            font-size: 14px;
         }
+
+        /* Style for the loading animation */
         .loader {
             border: 16px solid #f3f3f3;
             border-top: 16px solid DeepSkyBlue;
             border-radius: 50%;
             width: 60px;
             height: 60px;
-            animation: spin 2s linear infinite;
-            display: none;
+            animation: spin 2s linear infinite; /* Spin animation */
+            display: none; /* Initially hidden */
         }
+
         .animation-container {
-            margin: 20px auto;
-            width: 60px;
-            text-align: center;
+            margin-left: 150px;
+            margin-top: 100px;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -98,26 +104,36 @@
     </style>
 </head>
 <body>
+<!-- DeepSkyBlue header -->
 <div class="header">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights broadsheet</span>
+    <span style="font-size: 20px;">urlExport. Export URLs, faster</span>
 </div>
+
+<!-- Main content -->
 <div class="content">
     <form id="dashboardForm" action="/submit" method="post" onsubmit="return validateForm()">
-        <label for="organization">Organization:</label>
+        <label for="organization" style="font-weight: bold;">Organization</label>
         <input type="text" id="organization" name="organization"><br>
-        <label for="project">Project:</label>
+
+        <label for="project" style="font-weight: bold;">Project</label>
         <input type="text" id="project" name="project"><br>
-        <button type="submit" id="displayButton">Display broadsheet</button>
-        <button type="button" class="demonstration" onclick="populateAndLoadDashboard()" id="demonstrationButton">Live data demonstration</button>
+
+        <button type="submit">Export URLs</button>
     </form>
-    <div class="animation-container" id="animationContainer">
+    <!-- Loading animation container -->
+    <div class="animation-container">
+        <!-- Loading animation -->
         <div class="loader" id="loader"></div>
     </div>
 </div>
+
+
+<!-- DeepSkyBlue footer -->
 <div class="footer">
     <p>Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_Seo" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_Seo</a></p>
 </div>
+
 <script>
     function validateForm() {
         let organization = document.getElementById("organization").value;
@@ -128,19 +144,10 @@
             return false;
         }
 
+        // Show loading animation
         document.getElementById("loader").style.display = "block";
 
-        return true;
-    }
-
-    function populateAndLoadDashboard() {
-        document.getElementById("organization").value = "carrefour-espana";
-        document.getElementById("project").value = "carrefour-es";
-        document.getElementById("loader").style.display = "block";
-
-        setTimeout(function() {
-            document.getElementById("dashboardForm").submit();
-        }, 1500);
+        return true; // Allow form submission
     }
 </script>
 </body>

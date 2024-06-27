@@ -84,7 +84,7 @@ type FolderCount struct {
 	Count int
 }
 
-// byCount implements a sorting interface for FolderCount slice
+// ByCount implements a sorting interface for FolderCount slice
 type ByCount []FolderCount
 
 func (a ByCount) Len() int           { return len(a) }
@@ -1242,6 +1242,7 @@ func writeLog(sessionID, orgName, projectName, statusDescription string) {
 	}
 }
 
+//goland:noinspection GoDeprecation
 func generateLogSessionID(length int) (string, error) {
 
 	// Generate random bytes
@@ -1427,7 +1428,7 @@ func saveHTML(genHTML string, genFilename string) {
 	file, err := os.Create(cacheFolder + genFilename)
 	println(genFilename)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can create %s:"+reset, genFilename, err)
+		fmt.Printf(red+"Error. saveHTML. Can create %s: "+reset+"%s\n", genFilename, err)
 		return
 	}
 
@@ -1439,7 +1440,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Can write %s:"+reset, genFilename, err)
+		fmt.Printf(red+"Error. saveHTML. Can write %s: "+reset+"%s\n", genFilename, err)
 		return
 	}
 }
