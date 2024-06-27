@@ -1,7 +1,7 @@
 # Go_Seo
 A series of tools used to support SEO actions. Developed in Go.   
 
-## seoCharts   
+## seoBusinessInsights   
 Undercover the value of organic traffic with this business insights dashboard for Botify.
 
 Charts included:
@@ -15,11 +15,8 @@ Charts included:
 - Branded & non branded keyword cloud
 - Winning branded and non branded keywords
 - Detailed KPI insights 
-  
-```
-Usage: ./seoCharts (organisation and project name will be prompted for)    
-Usage: ./seoCharts org_name project_name   
-```
+
+**Note:** Update the code to include your own Botify API key. Change the variable **APIToken** to reflect your token  
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
@@ -37,11 +34,14 @@ Generates the segmentation regex for the following segments:
 **Note:** segmentifyLite will process a maximum of 300k URLs.   
 **Note:** The number of URLs found in level 1 folders, level 2 folders and parameter key segments are included as comments after the generated regex. Use these insights to decide which segments slices to keep and which to remove.   
 **Note:** All level 1 and level 2 segments which are less than 5% of the size of the largest level 1 or level 2 folder found are excluded from the segmentation regex. To amend this threshold change the percentage threshold in the variable **thresholdPercent**.  
-```
-Usage: ./segmentifyLite (organisation and project name will be prompted for)    
-Usage: ./segmentifyLite org_name project_name    
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
+**Note:** Update the code to include your own Botify API key. Change the variable **APIToken** to reflect your token  
+
+## exportURLs  
+Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
+
+**Note:** Update the code to include your own Botify API key. Change the variable **APIToken** to reflect your token  
+
+
 
 ## botifyBotLite   
 Generate Botify crawls en-masse.    
@@ -100,14 +100,6 @@ listAnalysis displays the crawl metadata for the most recent crawl in a specifie
 ```
 Usage: ./listAnalysis (organisation and project name will be prompted for)    
 Usage: ./listAnalysis org_name project_name
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
-
-## listURLs  
-Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
-```
-Usage: ./listURLs (organisation and project name will be prompted for)    
-Usage: ./listURLs org_name project_name
 ```
 **Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
 
