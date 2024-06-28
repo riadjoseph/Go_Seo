@@ -1289,7 +1289,7 @@ func generateSegmentationRegex() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go_Seo Dashboard</title>
+    <title>Go_Seo Broadsheet</title>
  <style>
         body {
             margin: 0;

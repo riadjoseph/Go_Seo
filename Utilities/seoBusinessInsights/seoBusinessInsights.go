@@ -1,4 +1,4 @@
-// seoBusinessInsights: SEO insights dashboard
+// seoBusinessInsights: SEO insights broadsheet
 // Written by Jason Vicinanza
 
 package main
@@ -160,9 +160,9 @@ var forecastVisitIncrementsString []string
 var currencyCode string
 var currencySymbol string
 
-// Name of the cache folder used to store the generated HTML
-var cacheFolder string
-var cacheFolderRoot = "./_cache"
+// Name of the insights folder used to store the generated HTML
+var insightsFolder string
+var insightsFolderRoot = "./insights"
 
 // Host name and port the web server runs on
 var protocol string
@@ -243,17 +243,17 @@ func main() {
 		// Get revenue, visits, orders and keyword data
 		dataStatus := getSeoInsights(sessionID)
 
-		// Evaluate the results of getSeoInsights before generating the dashboard
-		// All good! Generate the dashboard
+		// Evaluate the results of getSeoInsights before generating the broadsheet
+		// All good! Generate the broadsheet
 		if dataStatus == "success" {
 			// Define the projectURL
 			projectURL = "https://app.botify.com/" + organization + "/" + project
 			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
-			// Generate the dashboard HTML
+			// Generate the broadsheet HTML
 			goSeoDashboard(sessionID)
-			writeLog(sessionID, organization, project, "-", "Dashboard generated")
+			writeLog(sessionID, organization, project, "-", "Broadsheet generated")
 			// Respond to the client with a success message or redirect to another page
-			http.Redirect(w, r, cacheFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
+			http.Redirect(w, r, insightsFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
 		}
 
 		// Manage errors
@@ -261,7 +261,7 @@ func main() {
 		if dataStatus == "errorNoProjectFound" {
 			writeLog(sessionID, organization, project, "-", "No project found")
 			generateErrorPage("No project found. Try another organisation and project name. (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -269,7 +269,7 @@ func main() {
 		if dataStatus == "errorNoAnalyticsIntegrated" {
 			writeLog(sessionID, organization, project, "-", "No analytics found")
 			generateErrorPage("No analytics tool has been integrated into the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -277,7 +277,7 @@ func main() {
 		if dataStatus == "errorNoEAFound" {
 			writeLog(sessionID, organization, project, "-", "No revenue data found")
 			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -285,7 +285,7 @@ func main() {
 		if dataStatus == "errorNoKWFound" {
 			writeLog(sessionID, organization, project, "-", "No keywords data found")
 			generateErrorPage("RealKeywords has not been configured for the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 	})
@@ -299,7 +299,7 @@ func main() {
 
 func goSeoDashboard(sessionID string) {
 
-	// Dashboard header
+	// Broadsheet header
 	dashboardHeader()
 
 	// Totals of visits, orders & revenue
@@ -327,7 +327,7 @@ func goSeoDashboard(sessionID string) {
 	barChartOrderValue()
 
 	// Revenue and visits river chart
-	riverCharRevenueVisits()
+	riverChartRevenueVisits()
 
 	// Wordclouds
 	// Branded
@@ -354,7 +354,7 @@ func goSeoDashboard(sessionID string) {
 	// Forecast narrative
 	forecastNarrative()
 
-	// Dashboard footer notes
+	// Broadsheet footer notes
 	footerNotes()
 
 	// Generate seoBusinessInsights.html container
@@ -386,9 +386,9 @@ func getSeoInsights(sessionID string) string {
 	fmt.Printf("\n%s%s%s Organization: %s, Project: %s\n", yellow, sessionID, reset, organization, project)
 	fmt.Println()
 
-	// Create the cache folder for the generated HTML if it does not exist
-	cacheFolder = cacheFolderRoot + "/" + sessionID + "_" + organization
-	createCacheFolder()
+	// Create the insights folder for the generated HTML if it does not exist
+	insightsFolder = insightsFolderRoot + "/" + sessionID + organization
+	createInsightsFolder()
 
 	// Get the currency used
 	getCurrency()
@@ -836,7 +836,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueDataStatus
 }
 
-// Header for the dashboard
+// Header for the broadsheet
 func dashboardHeader() {
 
 	htmlDataIssue := ""
@@ -872,7 +872,7 @@ func dashboardHeader() {
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
         <br>
-        <span class="header-font">Click the chart titles to open the chart full screen.</span>
+        <span class="header-font">Click the chart title to view the chart in a new window.</span>
         <br>
 		<br>
 		` + htmlDataIssue + `
@@ -918,22 +918,22 @@ func badgeCMGR() {
 	cmgrOrderValueValue32 := float32(cmgrOrderValueValue)
 
 	// Generate the badges
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 
 	// URL to full screen badge display //bloo
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGRRevenue.html"
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRRevenue.html"
 	liquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
 
-	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGRVisits.html"
+	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisits.html"
 	liquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits growth")
 
-	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
+	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisitValue.html"
 	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value growth")
 
-	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGROrders.html"
+	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrders.html"
 	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors growth")
 
-	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
+	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrderValue.html"
 	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value by an organic visitor growth")
 }
 
@@ -1061,8 +1061,8 @@ func tableTotalsVisitsOrdersRevenue() {
 func barChartRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_RevenueVisitsBar.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_RevenueVisitsBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(
@@ -1078,8 +1078,9 @@ func barChartRevenueVisits() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Revenue & visits",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 	)
@@ -1108,7 +1109,7 @@ func barChartRevenueVisits() {
 	var err error
 
 	// Assign 'f' here
-	f, err = os.Create(cacheFolder + "/go_seo_RevenueVisitsBar.html")
+	f, err = os.Create(insightsFolder + "/go_seo_RevenueVisitsBar.html")
 	if err != nil {
 		// Handle the error appropriately
 		panic(err)
@@ -1122,14 +1123,14 @@ func barChartRevenueVisits() {
 func lineChartVisitsPerOrder() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitsPerOrderLine.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsPerOrderLine.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Average visits per order",
-			Subtitle: "High number of visits per order indicates poor quality traffic or inefficiency in conversion. Fewer visits per order signify a more streamlined and effective customer journey.",
+			Subtitle: "A high number of visits per order indicates poor quality traffic or inefficiency in conversion. Fewer visits per order signify a more streamlined and effective customer journey.",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1138,8 +1139,9 @@ func lineChartVisitsPerOrder() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Average visits per order",
 		}),
 
 		charts.WithColorsOpts(opts.Colors{kpiColourVisitsPerOrder}),
@@ -1169,7 +1171,7 @@ func lineChartVisitsPerOrder() {
 			}),
 	)
 
-	f, _ := os.Create(cacheFolder + "/go_seo_VisitsPerOrderLine.html")
+	f, _ := os.Create(insightsFolder + "/go_seo_VisitsPerOrderLine.html")
 
 	_ = line.Render(f)
 }
@@ -1188,8 +1190,8 @@ func generateLineItems(visitsPerOrder []int) []opts.LineData {
 func barChartVisitValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitValueBar.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitValueBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1203,10 +1205,10 @@ func barChartVisitValue() {
 			Start: 0,
 			End:   100,
 		}),
-		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Organic visit value",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourOrganicVisitValue}),
 		// disable show the legend
@@ -1230,7 +1232,7 @@ func barChartVisitValue() {
 			),
 		)
 
-	f, _ := os.Create(cacheFolder + "/go_seo_VisitValueBar.html")
+	f, _ := os.Create(insightsFolder + "/go_seo_VisitValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1239,8 +1241,8 @@ func barChartVisitValue() {
 func barChartOrders() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_OrdersBar.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_OrdersBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1255,8 +1257,9 @@ func barChartOrders() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Number of orders",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourNoOfOrders}),
 		// disable show the legend
@@ -1280,7 +1283,7 @@ func barChartOrders() {
 			),
 		)
 
-	f, _ := os.Create(cacheFolder + "/go_seo_OrdersBar.html")
+	f, _ := os.Create(insightsFolder + "/go_seo_OrdersBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1289,8 +1292,8 @@ func barChartOrders() {
 func barChartOrderValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_OrderValueBar.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_OrderValueBar.html"
 
 	bar := charts.NewBar()
 
@@ -1306,8 +1309,9 @@ func barChartOrderValue() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Average order value",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourOrderValue}),
 		// disable show the legend
@@ -1367,7 +1371,7 @@ func barChartOrderValue() {
 
 	*/
 
-	f, _ := os.Create(cacheFolder + "/go_seo_OrderValueBar.html")
+	f, _ := os.Create(insightsFolder + "/go_seo_OrderValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1402,7 +1406,7 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title 
 	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
 	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
 	badgeFileName := fmt.Sprintf("/go_seo_CMGR%s.html", badgeKPI)
-	f, err := os.Create(cacheFolder + badgeFileName)
+	f, err := os.Create(insightsFolder + badgeFileName)
 	if err != nil {
 		panic(err)
 	}
@@ -1415,8 +1419,9 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  badgeDefaultWidth,
-			Height: badgeDefaultHeight,
+			Width:     badgeDefaultWidth,
+			Height:    badgeDefaultHeight,
+			PageTitle: "Go_Seo",
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    title,
@@ -1461,7 +1466,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(true),
 		)
-		f, err := os.Create(cacheFolder + "/go_seo_WordCloudBranded.html")
+		f, err := os.Create(insightsFolder + "/go_seo_WordCloudBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1475,7 +1480,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(false),
 		)
-		f, err := os.Create(cacheFolder + "/go_seo_WordCloudNonBranded.html")
+		f, err := os.Create(insightsFolder + "/go_seo_WordCloudNonBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1493,15 +1498,15 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 	if brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-		cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-		clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_WordCloudBranded.html"
+		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudBranded.html"
 		subtitle = "Top branded keywords driving clicks: Highlighting the most effective branded search terms generating traffic to the site."
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-		cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-		clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
+		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
 		subtitle = "Top non-branded keywords driving clicks: Identifying effective search terms unrelated to the brand name that attract traffic to the site."
 
 	}
@@ -1510,8 +1515,9 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 	wc.SetGlobalOptions(
 		//  No options defined
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  wcDefaultWidth,
-			Height: wcDefaultHeight,
+			Width:     wcDefaultWidth,
+			Height:    wcDefaultHeight,
+			PageTitle: "Keyword wordcloud",
 		}),
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
@@ -1579,13 +1585,13 @@ func generateWCDataNonBranded(kwKeywordsNonBranded []string, kwCountClicksNonBra
 }
 
 // Revenue & visits river chart
-func riverCharRevenueVisits() {
+func riverChartRevenueVisits() {
 
 	page := components.NewPage()
 	page.AddCharts(
 		generateRiverTime(),
 	)
-	f, err := os.Create(cacheFolder + "/go_seo_VisitsRevenueRiver.html")
+	f, err := os.Create(insightsFolder + "/go_seo_VisitsRevenueRiver.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1596,8 +1602,8 @@ func riverCharRevenueVisits() {
 func generateRiverTime() *charts.ThemeRiver {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitsRevenueRiver.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsRevenueRiver.html"
 
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
@@ -1614,8 +1620,9 @@ func generateRiverTime() *charts.ThemeRiver {
 		}),
 		// Increase the canvas size
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Revenue & visits",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 		// disable show the legend
@@ -1670,7 +1677,7 @@ func gaugeVisitsPerOrder() { //bloo
 		gaugeBase(),
 	)
 
-	f, err := os.Create(cacheFolder + "/go_seo_Gauge.html")
+	f, err := os.Create(insightsFolder + "/go_seo_Gauge.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1681,8 +1688,8 @@ func gaugeBase() *charts.Gauge {
 
 	gauge := charts.NewGauge()
 
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_Gauge.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_Gauge.html"
 
 	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
 		s.Min = minVisitsPerOrder
@@ -1695,8 +1702,9 @@ func gaugeBase() *charts.Gauge {
 			Link:  clickURL}),
 
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  gaugeDefaultWidth,
-			Height: gaugeDefaultHeight,
+			Width:     gaugeDefaultWidth,
+			Height:    gaugeDefaultHeight,
+			PageTitle: "Visits per order",
 		}),
 	)
 
@@ -1803,9 +1811,10 @@ func winningKeywords(brandedMode bool, sessionID string) {
             height: 100vh;
         }
         .content {
-            max-width: 600px;
+  			border: 2px solid LightGray;  
+            border-radius: 40px; 
+            padding: 30px;
             text-align: center;  
-            padding-bottom: 50px; 
         }
         .blueText {
             color: DeepSkyBlue;
@@ -1829,7 +1838,7 @@ func winningKeywords(brandedMode bool, sessionID string) {
     <div class="content">
     <span class="keyword-font">
         The winning keyword was <span class="blueText">%s</span> during <b>%s</b>. 
-        This keyword generated <b>%s</b> clicks which is <b>%d%%</b> more clicks than the second placed keyword (<b>%s</b>). The click-through rate for the winning keyword was <b>%.2f%%</b> 
+        This keyword generated <b>%s</b> clicks which is <b>%d%%</b> more clicks than the second placed keyword  <b>%s</b>. The click-through rate for the winning keyword was <b>%.2f%%</b> 
         from an average position of <b>%.2f</b>.
     </span>
 	</p>
@@ -1945,7 +1954,7 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
             border-collapse: collapse;
             color: DimGray;
             margin: 5px 0;
-            font-size: 18px;
+            font-size: 17px;
             text-align: left;
         }
         th, td {
@@ -2057,8 +2066,8 @@ func forecastDataCompute() {
 func lineChartRevenueForecast() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitsPerOrderLineRevenueForecast.html"
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsPerOrderLineRevenueForecast.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
@@ -2073,8 +2082,9 @@ func lineChartRevenueForecast() {
 			End:   100,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  chartDefaultWidth,
-			Height: chartDefaultHeight,
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Revenue forecast",
 		}),
 
 		charts.WithColorsOpts(opts.Colors{kpiColourRevenueForecast}),
@@ -2105,7 +2115,7 @@ func lineChartRevenueForecast() {
 			}),
 	)
 
-	f, _ := os.Create(cacheFolder + "/go_seo_VisitsPerOrderLineRevenueForecast.html")
+	f, _ := os.Create(insightsFolder + "/go_seo_VisitsPerOrderLineRevenueForecast.html")
 
 	_ = line.Render(f)
 }
@@ -2202,7 +2212,7 @@ func footerNotes() {
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on",
-		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardized method to measure growth over time.",
+		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
 	}
 
 	// Generate HTML content
@@ -2217,14 +2227,16 @@ func footerNotes() {
 		}
 	</style>
 <body>
+    <br>
     <ul>
-    <hr>
 `
 	for _, note := range footerNotesStrings {
 		htmlContent += fmt.Sprintf("<li>%s</li>\n", note)
 	}
 
 	htmlContent += "</ul>\n</body>\n</html>"
+
+	htmlContent += "<br>"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_FooterNotes.html")
@@ -2244,7 +2256,7 @@ func formatDate(dateStr string) string {
 // Function used to generate and save the HTML content to a file
 func saveHTML(genHTML string, genFilename string) {
 
-	file, err := os.Create(cacheFolder + genFilename)
+	file, err := os.Create(insightsFolder + genFilename)
 	if err != nil {
 		fmt.Println(red+"Error. saveHTML. Cannot create:"+reset, genFilename, err)
 		return
@@ -2259,7 +2271,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
-		fullDirectory := cacheFolder + genFilename
+		fullDirectory := insightsFolder + genFilename
 		fmt.Printf(red+"Error. saveHTML. Cannot write HTML file: %s"+reset, fullDirectory)
 		fmt.Printf(red+"Error. saveHTML. Error %s:"+reset, err)
 		return
@@ -2279,7 +2291,7 @@ func generateDashboard() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go_Seo Dashboard</title>
+    <title>Go_Seo broadsheet</title>
     <style>
         body {
             margin: 0;
@@ -2358,6 +2370,9 @@ func generateDashboard() {
             background-color: #0056b3;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
+        .section-padding-bottom {
+            padding-bottom: 50px;
+        }
     </style>
 </head>
 <body>
@@ -2368,7 +2383,7 @@ func generateDashboard() {
     <span style="font-size: 20px;">Business insights broadsheet</span>
 </header>
 
-<!-- Back Button to create a new dashboard -->
+<!-- Back Button to create a new broadsheet -->
 <button class="back-button" onclick="goHome()">New broadsheet</button>
 
 <script>
@@ -2435,27 +2450,22 @@ func generateDashboard() {
 </section>
 
 <section class="container row no-border">
-    <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+</section>
+
+<section class="container row no-border section-padding-bottom">
+    <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
+     <br><br><br><br><br><br><br>
+    <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
-</section>
-
-<section class="container row no-border">
-    <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
-</section>
-
-<section class="container row no-border">
-    <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
-</section>
-
-<section class="container row no-border">
-    <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 </section>
 
 <!-- Footer notes -->
@@ -2748,7 +2758,7 @@ func generateErrorPage(displayMessage string) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go_Seo Dashboard</title>
+    <title>Go_Seo Broadsheet</title>
     <style>
         body {
             margin: 0;
@@ -2962,16 +2972,16 @@ func getCurrency() {
 	}
 }
 
-func createCacheFolder() {
+func createInsightsFolder() {
 
-	cacheDir := cacheFolder
+	insightsDir := insightsFolder
 
 	// Check if the directory already exists
-	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
+	if _, err := os.Stat(insightsDir); os.IsNotExist(err) {
 		// Create the directory and any necessary parents
-		err := os.MkdirAll(cacheDir, 0755)
+		err := os.MkdirAll(insightsDir, 0755)
 		if err != nil {
-			fmt.Printf(red+"Error. Failed to create the cache directory: %v"+reset, err)
+			fmt.Printf(red+"Error. Failed to create the insights directory: %v"+reset, err)
 		}
 	}
 }
