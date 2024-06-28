@@ -25,13 +25,14 @@ import (
 // Version
 var version = "v0.1"
 
-// Specify your Botify API token here
-var botifyAPIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+// APIToken should be updated to include your own token
+var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours & text formatting
 var purple = "\033[0;35m"
 var red = "\033[0;31m"
 var green = "\033[0;32m"
+var yellow = "\033[0;33m"
 var reset = "\033[0m"
 var lineSeparator = "█" + strings.Repeat("█", 129)
 var clearScreen = "\033[H\033[2J"
@@ -40,7 +41,7 @@ var clearScreen = "\033[H\033[2J"
 var urlExtractFile = "siteurlsExport.tmp"
 var regexOutputFile = "segment.txt"
 
-// Maximum No. of URLs to process. (300 = 300k).
+// Maximum No. of URLs to process
 var maxURLsToProcess = 100000
 
 // Percentage threshold for level 1 & level 2 folders
@@ -53,8 +54,8 @@ var sfccDetected = false
 var shopifyDetected = false
 
 // Strings used to store the project credentials for API access
-var orgName string
-var projectName string
+var organisation string
+var project string
 
 // Number of forward-slashes in the URL to count in order to identify the folder level
 // 4 = level 1
@@ -107,15 +108,15 @@ func main() {
 			fmt.Println(red+"Error. Cannot parse form:"+reset, err)
 			return
 		}
-		orgName = r.Form.Get("organization")
-		projectName = r.Form.Get("project")
+		organisation = r.Form.Get("organization")
+		project = r.Form.Get("project")
 
 		// Generate a session ID used for grouping log entries
 		var sessionID string
 
 		sessionID, err = generateLogSessionID(8)
 		if err != nil {
-			log.Fatalf(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
+			fmt.Println(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
 
 		// Create the cache folder for the generated HTML if it does not exist
@@ -123,10 +124,27 @@ func main() {
 		createCacheFolder()
 
 		// Process URLs
-		processURLsInProject(sessionID)
+		dataStatus := processURLs(sessionID)
+
+		// Manage errors
+		// An invalid org/project name has been specified
+		if dataStatus == "errorNoProjectFound" {
+			writeLog(sessionID, organisation, project, "No project found")
+			generateErrorPage("No project found. Try another organisation and project name. (" + organisation + "/" + project + ")")
+			http.Redirect(w, r, cacheFolder+"/"+"go_seo_segmentifyLiteError.html", http.StatusFound)
+			return
+		}
+
+		// An error occurred in the process URLs function
+		if dataStatus == "errorProcessURLs" {
+			writeLog(sessionID, organisation, project, "No project found")
+			generateErrorPage("Some kind of error occurred when processing URLs. Check the log for more information. (" + organisation + "/" + project + ")")
+			http.Redirect(w, r, cacheFolder+"/"+"go_seo_segmentifyLiteError.html", http.StatusFound)
+			return
+		}
 
 		// Write to the log
-		writeLog(sessionID, orgName, projectName, "URLs acquired")
+		writeLog(sessionID, organisation, project, "URLs acquired")
 
 		// Generate the output file to store the regex
 		generateRegexFile()
@@ -152,14 +170,14 @@ func main() {
 		// Salesforce Commerce Cloud if detected
 		if sfccDetected {
 			// Write to the log
-			writeLog(sessionID, orgName, projectName, "SFCC detected")
+			writeLog(sessionID, organisation, project, "SFCC detected")
 			sfccURLs()
 		}
 
 		// Shopify if detected
 		if shopifyDetected {
 			// Write to the log
-			writeLog(sessionID, orgName, projectName, "Shopify detected")
+			writeLog(sessionID, organisation, project, "Shopify detected")
 			shopifyURLs()
 		}
 
@@ -167,7 +185,7 @@ func main() {
 		staticResources()
 
 		// Write to the log
-		writeLog(sessionID, orgName, projectName, "Regex generated successfully")
+		writeLog(sessionID, organisation, project, "Regex generated successfully")
 
 		// Generate the HTML used to present the regex
 		generateSegmentationRegex()
@@ -188,68 +206,74 @@ func main() {
 }
 
 // Use the API to get the first 300k URLs and export them to a temp file
-func processURLsInProject(sessionID string) {
+func processURLs(sessionID string) string {
 
 	//Get the last analysis slug
-	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
+	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", organisation, project)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(red+"\nError creating request: "+reset, err)
+		fmt.Println(red+"\nError. processURLs Cannot create request:"+reset, err)
+		return "errorProcessURLs"
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botifyAPIToken)
+	req.Header.Add("Authorization", "token "+APIToken)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(red+"\nError. processURLsInProject. Check your network connection: "+reset, err)
+		fmt.Println(red+"\nError. processURLs. Check your network connection: "+reset, err)
+		return "errorProcessURLs"
 	}
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			fmt.Println(red+"Error. processURLsInProject. Closing (1):"+reset, err)
+			fmt.Println(red+"Error. processURLs. Closing (1):"+reset, err)
 		}
 	}()
 
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(red+"\nError. generateURLsInProject. Cannot read response body: "+reset, err)
+		log.Fatal(red+"\nError. processURLs. Cannot read response body: "+reset, err)
+		return "errorProcessURLs"
 	}
 
 	var responseObject botifyResponse
 	err = json.Unmarshal(responseData, &responseObject)
 
 	if err != nil {
-		log.Fatal(red+"\nError. generateURLsInProject. Cannot unmarshall JSON: "+reset, err)
+		fmt.Println(red+"\nError. processURLs. Cannot unmarshall JSON: "+reset, err)
+		return "errorProcessURLs"
 	}
 
 	//Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "\nError. processURLsInProject. Invalid credentials or no crawls found in the project" + reset)
-		return
+		fmt.Println(red + "\nError. processURLs. Invalid credentials or no crawls found in the project (1)" + reset)
+		return "errorNoProjectFound"
 	}
 
 	//Display the welcome message
-	fmt.Println(purple + "\nRequest received" + reset)
+	fmt.Println()
+	fmt.Println(yellow + sessionID + purple + " Generating segmentation regex" + reset)
+	fmt.Printf("\n%s%s%s Organisation: %s, Project: %s\n", yellow, sessionID, reset, organisation, project)
+	fmt.Println()
 
 	//Create a file for writing
 	file, err := os.Create(urlExtractFile)
 	if err != nil {
-		fmt.Println(red+"\nError creating file: "+reset, err)
-		os.Exit(1)
+		fmt.Println(red+"\nError. processURLs. Cannot create file: "+reset, err)
+		return "errorProcessURLs"
+
 	}
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. processURLsInProject. Closing (2):"+reset, err)
+			fmt.Println(red+"Error. processURLs. Closing (2):"+reset, err)
 		}
 	}()
 
 	//Initialize total count
 	totalCount := 0
-	fmt.Println("("+sessionID+") Organisation name:", orgName)
-	fmt.Println("("+sessionID+") Project name:", projectName)
-	fmt.Println("("+sessionID+") Latest analysis slug:", responseObject.Results[0].Slug)
+	fmt.Println(yellow+sessionID+reset+" Latest analysis slug:", responseObject.Results[0].Slug)
 	println()
 
 	analysisSlug := responseObject.Results[0].Slug
@@ -258,7 +282,7 @@ func processURLsInProject(sessionID string) {
 	//Each page returns 1000 URLs
 	for page := 1; page <= maxURLsToProcess; page++ {
 
-		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/urls?area=current&page=%d&size=1000", orgName, projectName, analysisSlug, page)
+		url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/urls?area=current&page=%d&size=1000", organisation, project, analysisSlug, page)
 
 		payload := strings.NewReader("{\"fields\":[\"url\"]}")
 
@@ -266,26 +290,26 @@ func processURLsInProject(sessionID string) {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+botifyAPIToken)
+		req.Header.Add("Authorization", "token "+APIToken)
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
-			fmt.Println(red+"\nError. processURLsInProject. Cannot connect to the API: "+reset, err)
-			os.Exit(1)
+			fmt.Println(red+"\nError. processURLs. Cannot connect to the API: "+reset, err)
+			return "errorProcessURLs"
 		}
 
 		//Decode JSON response
 		var response map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-			fmt.Println(red+"\nError. processURLsInProject. Cannot decode JSON: "+reset, err)
-			os.Exit(1)
+			fmt.Println(red+"\nError. processURLs. Cannot decode JSON: "+reset, err)
+			return "errorProcessURLs"
 		}
 
 		//Extract URLs from the "results" key
 		results, ok := response["results"].([]interface{})
 		if !ok {
-			fmt.Println(red + "\nError. processURLsInProject. Invalid credentials or no crawls found in the project" + reset)
-			os.Exit(1)
+			fmt.Println(red + "\nError. processURLs. Invalid credentials or no crawls found in the project (2)" + reset)
+			return "errorNoProjectFound"
 		}
 
 		//Write URLs to the file
@@ -302,14 +326,11 @@ func processURLsInProject(sessionID string) {
 						shopifyDetected = true
 					}
 					if _, err := file.WriteString(url + "\n"); err != nil {
-						fmt.Println(red+"\nError. processURLsInProject. Cannot write to file: "+reset, err)
-						os.Exit(1)
+						fmt.Println(red+"\nError. processURLs. Cannot write to file: "+reset, err)
+						return "errorProcessURLs"
 					}
 					count++
 					totalCount++
-					if count%10 == 0 {
-						fmt.Print("#") //Print "#" every 10 URLs. Used as a progress indicator
-					}
 				}
 			}
 		}
@@ -321,18 +342,19 @@ func processURLsInProject(sessionID string) {
 
 		//Max. number of URLs has been reached
 		if totalCount > maxURLsToProcess {
-			fmt.Printf("\n\nLimit of %d URLs reached. Generating regex...\n\n", totalCount)
 			break
 		}
 
-		fmt.Printf("\n"+"("+sessionID+") "+"Page %d: %d URLs processed"+"\n", page, count)
+		fmt.Printf("%s%s%s Page %d: %d URLs processed\n", yellow, sessionID, reset, page, count) //bloo
 	}
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			fmt.Println(red+"Error. processURLsInProject. Closing (3):"+reset, err)
+			fmt.Println(red+"Error. processURLs. Closing (3):"+reset, err)
 		}
 	}()
+
+	return "success"
 }
 
 // Generate regex for level 1 and 2 folders
@@ -387,12 +409,12 @@ func generateRegexFile() {
 		os.Exit(1)
 	}
 
-	_, err = writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", orgName))
+	_, err = writer.WriteString(fmt.Sprintf("# Organisation name: %s\n", organisation))
 	if err != nil {
 		errMsg := fmt.Errorf(red+"Error. Cannot write organisation name in Regex file: %w"+reset, err)
 		println(errMsg)
 	}
-	_, err = writer.WriteString(fmt.Sprintf("# Project name: %s\n", projectName))
+	_, err = writer.WriteString(fmt.Sprintf("# Project name: %s\n", project))
 	if err != nil {
 		errMsg := fmt.Errorf(red+"Error. Cannot write project name in Regex file: %w"+reset, err)
 		println(errMsg)
@@ -1153,9 +1175,9 @@ func cleanUp(sessionID string) {
 
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
-	fmt.Println(purple + "\nSession ID: " + sessionID)
-	fmt.Println(purple + "\nsegmentifyLite: Done at " + formattedTime)
-	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, orgName, projectName)
+	fmt.Println("\nSession ID: " + sessionID)
+	fmt.Println("\nsegmentifyLite: Done at " + formattedTime)
+	fmt.Printf("\n%s%s%s Organisation: %s, Project: %s\n", yellow, sessionID, reset, organisation, project)
 
 	// Make a tidy display
 	fmt.Println()
@@ -1198,7 +1220,7 @@ func insertStaticRegex(regexText string) error {
 	return err
 }
 
-func writeLog(sessionID, orgName, projectName, statusDescription string) {
+func writeLog(sessionID, organisation, project, statusDescription string) {
 
 	// Define log file name
 	fileName := "_seoSegmentifyLite.log"
@@ -1226,7 +1248,7 @@ func writeLog(sessionID, orgName, projectName, statusDescription string) {
 
 	// Construct log record
 	logRecord := fmt.Sprintf("%s,%s,%s,%s,%s\n",
-		sessionID, currentTime, orgName, projectName, statusDescription)
+		sessionID, currentTime, organisation, project, statusDescription)
 
 	// If the file doesn't exist, write header first
 	if !fileExists {
@@ -1350,7 +1372,7 @@ func generateSegmentationRegex() {
 
 <!-- Sections with Iframes -->
 <section class="container row no-border">
-    <iframe src="seo_segmentationRegex.html" title="Segmentation regex"></iframe>
+    <iframe src="go_seo_segmentationRegex.html" title="Segmentation regex"></iframe>
 </section>
 
 </body>
@@ -1358,12 +1380,12 @@ func generateSegmentationRegex() {
 `, width100, width50, width100, fullHost)
 
 	// Generate the URL to link to the segment editor in the project
-	projectURL := "https://app.botify.com/" + orgName + "/" + projectName + "/segmentation"
+	projectURL := "https://app.botify.com/" + organisation + "/" + project + "/segmentation"
 
 	htmlContent += fmt.Sprintf("<div style='text-align: center;'>\n")
 	htmlContent += fmt.Sprintf("<h2 style='color: deepskyblue;'>Segmentation regex generation is complete</h2>\n")
 	htmlContent += fmt.Sprintf("<h3 style='color: dimgray; padding-left: 20px; padding-right: 20px;'>The regex has been copied into the clipboard ready for pasting directly into your Botify project.</h3>\n")
-	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, orgName)
+	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, organisation)
 
 	htmlContent += fmt.Sprintf("</div>\n")
 
@@ -1402,7 +1424,7 @@ func generateSegmentHTML() {
 </html>`
 
 	// Create the HTML file
-	file, err := os.Create(cacheFolder + "/seo_segmentationRegex.html")
+	file, err := os.Create(cacheFolder + "/go_seo_segmentationRegex.html")
 	if err != nil {
 		log.Fatalf(red+"Error. generateSegmentHTML. Failed to create HTML file: %v"+reset, err)
 	}
@@ -1422,11 +1444,101 @@ func generateSegmentHTML() {
 	}
 }
 
+// Define the error page
+func generateErrorPage(displayMessage string) {
+
+	// If displayMessage is empty or nil display a default error message.
+	if displayMessage == "" {
+		displayMessage = "An Unknown error has occurred"
+	}
+
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>segmentifyLite</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: Cornsilk;
+        }
+        .banner {
+            background-color: DeepSkyBlue;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+        }
+        .banner.top {
+            font-size: 24px;
+        }
+        .back-button {
+            padding: 12px 24px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+		.error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            padding: 100px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Banner -->
+<header class="banner top">
+    <span>Go_Seo</span><br>
+    <span style="font-size: 20px;">segmentifyLite</span>
+</header>
+
+<!-- Back Button -->
+<button class="back-button" onclick="goHome()">Try again</button>
+
+<!-- Error message -->
+<div class="error-message" id="error-message">
+    %s
+</div>
+
+<script>
+    function goHome() {
+        window.open('http://%s/', '_blank');
+    }
+</script>
+
+</body>
+</html>`, displayMessage, fullHost)
+
+	// Save the HTML to a file
+	saveHTML(htmlContent, "/go_seo_segmentifyLiteError.html")
+
+}
+
 // Function used to generate and save the HTML content to a file
 func saveHTML(genHTML string, genFilename string) {
 
 	file, err := os.Create(cacheFolder + genFilename)
-	println(genFilename)
 	if err != nil {
 		fmt.Printf(red+"Error. saveHTML. Can create %s: "+reset+"%s\n", genFilename, err)
 		return
@@ -1435,6 +1547,7 @@ func saveHTML(genHTML string, genFilename string) {
 	defer func() {
 		if err := file.Close(); err != nil {
 			fmt.Println(red+"Error. saveHTML. Closing (15):"+reset, err)
+			return
 		}
 	}()
 
@@ -1535,14 +1648,14 @@ func displayBanner() {
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝`)
 
 	fmt.Println()
-	fmt.Println(purple+"Version:"+reset, version)
-	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
+	fmt.Println(purple+"\nVersion:"+reset, version)
+	fmt.Println(purple + "\nsegmentifyLite server.\n" + reset)
 	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
 
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
 	fmt.Println(green + "Server started at " + formattedTime + reset)
-	fmt.Println(green+"Maximum No. of URLs to be processed is"+reset, maxURLsToProcess, "k")
+	fmt.Println(green+"Maximum No. of URLs to be processed is", maxURLsToProcess, "k")
 
 	// Get the hostname and port
 	getHostnamePort()

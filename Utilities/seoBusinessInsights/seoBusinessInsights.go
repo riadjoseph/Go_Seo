@@ -98,6 +98,11 @@ var totalRevenue int
 var totalOrders int
 var totalAverageOrderValue int
 
+// Bools used to flag if some data is missing
+var revenueDataIssue bool
+var visitsDataIssue bool
+var ordersDataIssue bool
+
 // Slices used  to store the visits per order for each month
 var visitsPerOrder []int
 
@@ -242,13 +247,12 @@ func main() {
 		if dataStatus == "success" {
 			// Define the projectURL
 			projectURL = "https://app.botify.com/" + organization + "/" + project
-
 			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
 			// Generate the dashboard HTML
 			goSeoDashboard(sessionID)
 			writeLog(sessionID, organization, project, "-", "Dashboard generated")
 			// Respond to the client with a success message or redirect to another page
-			http.Redirect(w, r, cacheFolder+"/seoBusinessInsights.html", http.StatusFound)
+			http.Redirect(w, r, cacheFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
 		}
 
 		// Manage errors
@@ -256,7 +260,7 @@ func main() {
 		if dataStatus == "errorNoProjectFound" {
 			writeLog(sessionID, organization, project, "-", "No project found")
 			generateErrorPage("No project found. Try another organisation and project name. (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -264,7 +268,7 @@ func main() {
 		if dataStatus == "errorNoAnalyticsIntegrated" {
 			writeLog(sessionID, organization, project, "-", "No analytics found")
 			generateErrorPage("No analytics tool has been integrated into the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -272,7 +276,7 @@ func main() {
 		if dataStatus == "errorNoEAFound" {
 			writeLog(sessionID, organization, project, "-", "No revenue data found")
 			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -280,7 +284,7 @@ func main() {
 		if dataStatus == "errorNoKWFound" {
 			writeLog(sessionID, organization, project, "-", "No keywords data found")
 			generateErrorPage("RealKeywords has not been configured for the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, cacheFolder+"/"+"seoBusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, cacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 	})
@@ -378,7 +382,6 @@ func getSeoInsights(sessionID string) string {
 
 	fmt.Println()
 	fmt.Println(yellow + sessionID + purple + " Getting SEO insights" + reset)
-	fmt.Println()
 	fmt.Printf("\n%s%s%s Organization: %s, Project: %s\n", yellow, sessionID, reset, organization, project)
 	fmt.Println()
 
@@ -514,6 +517,10 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
 
+	revenueDataIssue = false
+	visitsDataIssue = false
+	ordersDataIssue = false
+
 	// Get monthly insights
 	for i := range startMonthDates {
 
@@ -523,6 +530,22 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		// Error checking
 		if getRevenueDataStatus == "errorNoEAFound" {
 			return getRevenueDataStatus
+		}
+
+		// Check revenue, visits or orders values are missing
+		if metricsRevenue == 0 {
+			revenueDataIssue = true
+			fmt.Println("revenue error")
+		}
+		if metricsVisits == 0 {
+			visitsDataIssue = true
+			fmt.Println("visits error")
+
+		}
+		if metricsOrders == 0 {
+			ordersDataIssue = true
+			fmt.Println("orders error")
+
 		}
 
 		// Append the metrics to the slices
@@ -815,6 +838,12 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 // Header for the dashboard
 func dashboardHeader() {
 
+	htmlDataIssue := ""
+	// If any issues have been found in the data (i.e. mlissing data) generate the HTML for inclusion in the header
+	if revenueDataIssue || visitsDataIssue || ordersDataIssue {
+		htmlDataIssue = generateDataIssueHTML(revenueDataIssue, visitsDataIssue, ordersDataIssue)
+	}
+
 	htmlContent := `
 <!DOCTYPE html>
 <html>
@@ -840,13 +869,42 @@ func dashboardHeader() {
     <div class="content">
 	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths+1) + ` months.</span>
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
-        <span class="header-font">Click the chart headers below to access the related Botify report.</span>
+        <br>
+        <br>
+        <span class="header-font">Click the chart headers below to access the related Botify report.</span> <!-- Added 'hello there' text -->
+        <br>
+		<br>
+		` + htmlDataIssue + `
     </div>
+
 </body>
 </html>
 `
-	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoDashboardHeader.html")
+
+	// Save the HTML to a file //bloo
+	saveHTML(htmlContent, "/go_seo_DashboardHeader.html")
+}
+
+// If data issue have been detected generate the HTML to include in the header
+func generateDataIssueHTML(revenueDataIssue bool, visitsDataIssue bool, ordersDataIssue bool) string {
+
+	htmlDataIssue := "<span style=\"color: red;\">Warning: There are possible data quality issues with "
+
+	// Check which variables are true and include them in the HTML content
+	if revenueDataIssue {
+		htmlDataIssue += "revenue data, "
+	}
+	if visitsDataIssue {
+		htmlDataIssue += "visits data, "
+	}
+	if ordersDataIssue {
+		htmlDataIssue += "orders data, "
+	}
+
+	// Trim the trailing comma and space
+	htmlDataIssue = htmlDataIssue[:len(htmlDataIssue)-2] + ". </span>"
+
+	return htmlDataIssue
 }
 
 // CMGR Badges
@@ -860,15 +918,15 @@ func badgeCMGR() {
 
 	// Generate the badges
 	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Revenue", cmgrRevenue32, clickURL)
+	liquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
 	clickURL = projectURL + "/crawl/visits"
-	liquidBadge("Visits", cmgrVisits32, clickURL)
+	liquidBadge("Visits", cmgrVisits32, clickURL, "Growth of the average number of monthly organic visits")
 	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Visit Value", cmgrVisitValue32, clickURL)
+	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Growth of the average organic visit value")
 	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Orders", cmgrOrderValue32, clickURL)
+	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Growth of the number of orders placed by organic visitors")
 	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL)
+	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value growth placed by an organic visitor")
 }
 
 // Total Visits, Orders & Revenue
@@ -987,7 +1045,7 @@ func tableTotalsVisitsOrdersRevenue() {
 `
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoTableTotalsVisitsOrdersRevenue.html")
+	saveHTML(htmlContent, "/go_seo_TableTotalsVisitsOrdersRevenue.html")
 }
 
 // Bar chart. Revenue and Visits
@@ -1000,7 +1058,7 @@ func barChartRevenueVisits() {
 	bar.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
-			Subtitle: "How much revenue do organic visits generate.",
+			Subtitle: "How many organic visits does the site attract and what is the generated revenue from those visits.",
 			Link:     clickURL,
 		}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1026,9 +1084,8 @@ func barChartRevenueVisits() {
 		AddSeries("Visits", barDataVisits).
 		SetSeriesOptions(
 			charts.WithMarkPointNameTypeItemOpts(
-
 				opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
-				opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 0, 0)"}},
+				opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
 			),
 			charts.WithMarkPointStyleOpts(
 				opts.MarkPointStyle{
@@ -1041,7 +1098,7 @@ func barChartRevenueVisits() {
 	var err error
 
 	// Assign 'f' here
-	f, err = os.Create(cacheFolder + "/seoRevenueVisitsBar.html")
+	f, err = os.Create(cacheFolder + "/go_seo_RevenueVisitsBar.html")
 	if err != nil {
 		// Handle the error appropriately
 		panic(err)
@@ -1060,7 +1117,7 @@ func lineChartVisitsPerOrder() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Average visits per order",
-			Subtitle: "On average, an order is placed every nth visit?",
+			Subtitle: "High number of visits per order indicates poor quality traffic or inefficiency in conversion. Fewer visits per order signify a more streamlined and effective customer journey.",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1089,8 +1146,8 @@ func lineChartVisitsPerOrder() {
 			Smooth: opts.Bool(true),
 		}),
 		charts.WithMarkPointNameTypeItemOpts(
-			opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
-			opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 0, 0)"}},
+			opts.MarkPointNameTypeItem{Name: "Highest no of orders", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
+			opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
 			opts.MarkPointNameTypeItem{Name: "Average", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
 		),
 		charts.WithMarkPointStyleOpts(
@@ -1100,7 +1157,7 @@ func lineChartVisitsPerOrder() {
 			}),
 	)
 
-	f, _ := os.Create(cacheFolder + "/seoVisitsPerOrderLine.html")
+	f, _ := os.Create(cacheFolder + "/go_seo_VisitsPerOrderLine.html")
 
 	_ = line.Render(f)
 }
@@ -1123,7 +1180,7 @@ func barChartVisitValue() {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Organic visit value",
-		Subtitle: "What is the value of a single organic visit?",
+		Subtitle: "Organic visit value shows visits from search engines without paid promotion. Higher values indicate effective SEO strategies and potentially lower acquisition costs.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1150,9 +1207,16 @@ func barChartVisitValue() {
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
-		))
+		),
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{
+					Label:     &opts.Label{FontSize: 15}, //bloo
+					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
+				},
+			),
+		)
 
-	f, _ := os.Create(cacheFolder + "/seoVisitValueBar.html")
+	f, _ := os.Create(cacheFolder + "/go_seo_VisitValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1165,7 +1229,7 @@ func barChartOrders() {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Number of orders",
-		Subtitle: "How many orders are placed by organic visitors?",
+		Subtitle: "Number of orders placed in organic visits represents conversions from search engine traffic without paid promotion. Higher numbers indicate effective SEO driving direct sales.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1191,9 +1255,16 @@ func barChartOrders() {
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
-		))
+		),
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{
+					Label:     &opts.Label{FontSize: 15}, //bloo
+					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
+				},
+			),
+		)
 
-	f, _ := os.Create(cacheFolder + "/seoOrdersBar.html")
+	f, _ := os.Create(cacheFolder + "/go_seo_OrdersBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1207,7 +1278,7 @@ func barChartOrderValue() {
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Average order value",
-		Subtitle: "What is the average value of an order placed by an organic visitor?",
+		Subtitle: "Indicates the average value of an order placed by a visitor from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1233,9 +1304,52 @@ func barChartOrderValue() {
 			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
-		))
+		),
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{
+					Label:     &opts.Label{FontSize: 15},
+					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
+				},
+			),
+		)
 
-	f, _ := os.Create(cacheFolder + "/seoOrderValueBar.html")
+	/*
+		// bloo color
+		bar.SetXAxis(startMonthNames).
+			AddSeries("Order value", barDataOrderValue).
+			SetSeriesOptions(
+				charts.WithMarkLineNameTypeItemOpts(
+					opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
+				),
+				charts.WithMarkLineStyleOpts(
+					opts.MarkLineStyle{
+						Label:     &opts.Label{FontSize: 15},
+						LineStyle: &opts.LineStyle{Color: "rgb(0, 128, 0)"},
+					},
+				),
+				charts.WithMarkLineNameTypeItemOpts(
+					opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
+				),
+				charts.WithMarkLineStyleOpts(
+					opts.MarkLineStyle{
+						Label:     &opts.Label{FontSize: 15},
+						LineStyle: &opts.LineStyle{Color: "green"},
+					},
+				),
+				charts.WithMarkLineNameTypeItemOpts(
+					opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
+				),
+				charts.WithMarkLineStyleOpts(
+					opts.MarkLineStyle{
+						Label:     &opts.Label{FontSize: 15},
+						LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)"},
+					},
+				),
+			)
+
+	*/
+
+	f, _ := os.Create(cacheFolder + "/go_seo_OrderValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1260,16 +1374,16 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 	return items
 }
 
-func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string) {
+func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) {
 
 	page := components.NewPage()
 	page.AddCharts(
-		generateLiquidBadge(badgeKPI, badgeKPIValue, clickURL),
+		generateLiquidBadge(badgeKPI, badgeKPIValue, clickURL, title),
 	)
 
 	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
 	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
-	badgeFileName := fmt.Sprintf("/seoCMGR%s.html", badgeKPI)
+	badgeFileName := fmt.Sprintf("/go_seo_CMGR%s.html", badgeKPI)
 	f, err := os.Create(cacheFolder + badgeFileName)
 	if err != nil {
 		panic(err)
@@ -1278,7 +1392,7 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string) {
 }
 
 // CMGR badges
-func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string) *charts.Liquid {
+func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) *charts.Liquid {
 
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
@@ -1287,20 +1401,24 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 			Height: badgeDefaultHeight,
 		}),
 		charts.WithTitleOpts(opts.Title{
-			Title: "Compound growth",
-			Link:  clickURL,
+			Title:    title,
+			Subtitle: "Compound growth (CMGR)",
+			Link:     clickURL,
 		}),
 	)
 
-	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})).
-		SetSeriesOptions(
+	// Resetting badgeKPI to nil. The badge looks better if we do not include the KPI name as a legend
+	badgeKPI = ""
+
+	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})). //bloome
+										SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
 				Show: opts.Bool(true),
 			}),
 
 			charts.WithLiquidChartOpts(opts.LiquidChart{
 				IsWaveAnimation: opts.Bool(true),
-				Shape:           "roundRect", //Select the shape of the badge
+				Shape:           "roundRect",
 			}),
 		)
 	return liquid
@@ -1325,7 +1443,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(true),
 		)
-		f, err := os.Create(cacheFolder + "/seoWordCloudBranded.html")
+		f, err := os.Create(cacheFolder + "/go_seo_WordCloudBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1339,7 +1457,7 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 		page.AddCharts(
 			generateWordCloud(false),
 		)
-		f, err := os.Create(cacheFolder + "/seoWordCloudNonBranded.html")
+		f, err := os.Create(cacheFolder + "/go_seo_WordCloudNonBranded.html")
 		if err != nil {
 			panic(err)
 		}
@@ -1352,14 +1470,18 @@ func wordCloudBrandedUnbranded(brandedMode bool) {
 func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	var clickURL string
+	var subtitle string
 
 	if brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
 		clickURL = projectURL + "/keywords/keywords"
+		subtitle = "Top branded keywords driving clicks: Highlighting the most effective branded search terms generating traffic to the site."
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		clickURL = projectURL + "/keywords"
+		subtitle = "Top non-branded keywords driving clicks: Identifying effective search terms unrelated to the brand name that attract traffic to the site."
+
 	}
 
 	wc := charts.NewWordCloud()
@@ -1371,8 +1493,9 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 		}),
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
-			Title: wordcloudTitle,
-			Link:  clickURL,
+			Title:    wordcloudTitle,
+			Link:     clickURL,
+			Subtitle: subtitle,
 		}))
 
 	// Generate the branded wordcloud
@@ -1440,7 +1563,7 @@ func riverCharRevenueVisits() {
 	page.AddCharts(
 		generateRiverTime(),
 	)
-	f, err := os.Create(cacheFolder + "/seoVisitsRevenueRiver.html")
+	f, err := os.Create(cacheFolder + "/go_seo_VisitsRevenueRiver.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1523,7 +1646,7 @@ func gaugeVisitsPerOrder() {
 		gaugeBase(),
 	)
 
-	f, err := os.Create(cacheFolder + "/seoGauge.html")
+	f, err := os.Create(cacheFolder + "/go_seo_Gauge.html")
 	if err != nil {
 		panic(err)
 	}
@@ -1540,14 +1663,16 @@ func gaugeBase() *charts.Gauge {
 	})
 
 	gauge.SetGlobalOptions(
-		//  No options defined
+		charts.WithTitleOpts(opts.Title{Title: "The lowest, highest and current average number of organic visits per order"}),
+
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:  gaugeDefaultWidth,
 			Height: gaugeDefaultHeight,
 		}),
 	)
 
-	gauge.AddSeries("Visits Per Order", []opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
+	gauge.AddSeries("",
+		[]opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
 	return gauge
 }
@@ -1584,7 +1709,7 @@ func tableDataDetail() {
 	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPITableData)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoDataInsightDetailKPIs.html")
+	saveHTML(htmlContent, "/go_seo_DataInsightDetailKPIs.html")
 }
 
 // Winning keywords, branded & non-branded
@@ -1686,9 +1811,9 @@ func winningKeywords(brandedMode bool, sessionID string) {
 `, htmlKeyword, htmlLastMonthName, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
 
 	if brandedMode {
-		htmlFileName = "/seoWinningKeywordBranded.html"
+		htmlFileName = "/go_seo_WinningKeywordBranded.html"
 	} else {
-		htmlFileName = "/seoWinningKeywordNonBranded.html"
+		htmlFileName = "/go_seo_WinningKeywordNonBranded.html"
 	}
 
 	// Save the HTML to a file
@@ -1866,11 +1991,11 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 	// Save the HTML to a file
 	// Branded keywords details
 	if brandedMode {
-		saveHTML(htmlContent, "/seoDataInsightKeywordsKPIsBranded.html")
+		saveHTML(htmlContent, "/go_seo_DataInsightKeywordsKPIsBranded.html")
 	}
 	// Branded keywords details
 	if !brandedMode {
-		saveHTML(htmlContent, "/seoDataInsightKeywordsKPIsNonBranded.html")
+		saveHTML(htmlContent, "/go_seo_DataInsightKeywordsKPIsNonBranded.html")
 	}
 }
 
@@ -1908,7 +2033,7 @@ func lineChartRevenueForecast() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue forecast",
-			Subtitle: "Forecasted revenue potential with increased organic visits",
+			Subtitle: "Forecasted revenue potential with increased organic visits.",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1940,7 +2065,7 @@ func lineChartRevenueForecast() {
 		charts.WithMarkPointNameTypeItemOpts(
 			opts.MarkPointNameTypeItem{Name: "High End", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
 			opts.MarkPointNameTypeItem{Name: "Mid Range", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
-			opts.MarkPointNameTypeItem{Name: "Low End", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 0, 0)"}},
+			opts.MarkPointNameTypeItem{Name: "Low End", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
@@ -1949,7 +2074,7 @@ func lineChartRevenueForecast() {
 			}),
 	)
 
-	f, _ := os.Create(cacheFolder + "/seoVisitsPerOrderLineRevenueForecast.html")
+	f, _ := os.Create(cacheFolder + "/go_seo_VisitsPerOrderLineRevenueForecast.html")
 
 	_ = line.Render(f)
 }
@@ -2034,7 +2159,7 @@ func forecastNarrative() {
 	)
 
 	// Define the HTML filename
-	htmlFileName = "/seoVisitsPerOrderLineRevenueForecastNarrative.html"
+	htmlFileName = "/go_seo_VisitsPerOrderLineRevenueForecastNarrative.html"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
@@ -2046,7 +2171,7 @@ func footerNotes() {
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on",
-		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect",
+		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardized method to measure growth over time.",
 	}
 
 	// Generate HTML content
@@ -2071,7 +2196,7 @@ func footerNotes() {
 	htmlContent += "</ul>\n</body>\n</html>"
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoFooterNotes.html")
+	saveHTML(htmlContent, "/go_seo_FooterNotes.html")
 }
 
 // formatDate converts date from YYYYMMDD to Month-Year format
@@ -2094,7 +2219,6 @@ func saveHTML(genHTML string, genFilename string) {
 		return
 	}
 
-	//defer file.Close()
 	defer func() {
 		if err := file.Close(); err != nil {
 			fmt.Println(red+"Error. saveHTML. Failed to close file: %v\n"+reset, err)
@@ -2210,7 +2334,7 @@ func generateDashboard() {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights broadsheet (Beta)</span>
+    <span style="font-size: 20px;">Business insights broadsheet</span>
 </header>
 
 <!-- Back Button to create a new dashboard -->
@@ -2224,88 +2348,88 @@ func generateDashboard() {
 
 <!-- Sections with Iframes -->
 <section class="container row no-border">
-    <iframe src="seoDashboardHeader.html" title="Header" style="height: 30px;"></iframe>
+    <iframe src="go_seo_DashboardHeader.html" title="Header" style="height: 120px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoTableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 300px;"></iframe>
+    <iframe src="go_seo_TableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 300px;"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoRevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
+    <iframe src="go_seo_RevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoCMGRRevenue.html" title="CMGR Revenue" class="short-iframe"></iframe>
-    <iframe src="seoCMGRVisits.html" title="CMGR Visits" class="short-iframe"></iframe>
+    <iframe src="go_seo_CMGRRevenue.html" title="CMGR Revenue" class="short-iframe"></iframe>
+    <iframe src="go_seo_CMGRVisits.html" title="CMGR Visits" class="short-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoVisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoOrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
+    <iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoVisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
-    <iframe src="seoVisitsPerOrderLineRevenueForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsPerOrderLineRevenueForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoGauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
-    <iframe src="seoCMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
+    <iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
+    <iframe src="go_seo_CMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoOrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
+    <iframe src="go_seo_OrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoVisitsRevenueRiver.html" title="Revenue & visits" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoVisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
-    <iframe src="seoCMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
-    <iframe src="seoCMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
+    <iframe src="go_seo_CMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
+    <iframe src="go_seo_CMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoDataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
+    <iframe src="go_seo_DataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoWordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoWinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoDataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoWordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoWinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 190px; font-size: 10px;"></iframe>
 </section>
 
 <section class="container row no-border">
-    <iframe src="seoDataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+    <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 </section>
 
 <!-- Footer notes -->
 <footer class="container row">
-    <iframe src="seoFooterNotes.html" title="Footer notes" class="tall-iframe" style="height: 200px; font-size: 10px; border: none;"></iframe>
+    <iframe src="go_seo_FooterNotes.html" title="Footer notes" class="tall-iframe" style="height: 200px; font-size: 10px; border: none;"></iframe>
 </footer>
 
 <!-- Bottom Banner -->
@@ -2319,7 +2443,7 @@ func generateDashboard() {
 `, width90, width90, width100, fullHost)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoBusinessInsights.html")
+	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 
 }
 
@@ -2645,7 +2769,7 @@ func generateErrorPage(displayMessage string) {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights broadsheet (Beta)</span>
+    <span style="font-size: 20px;">Business insights broadsheet</span>
 </header>
 
 <!-- Back Button -->
@@ -2658,15 +2782,15 @@ func generateErrorPage(displayMessage string) {
 
 <script>
     function goHome() {
-        window.open('http://localhost:8080/', '_blank');
+        window.open('http://%s/', '_blank');
     }
 </script>
 
 </body>
-</html>`, displayMessage)
+</html>`, displayMessage, fullHost)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/seoBusinessInsights_error.html")
+	saveHTML(htmlContent, "/go_seo_BusinessInsights_error.html")
 
 }
 
