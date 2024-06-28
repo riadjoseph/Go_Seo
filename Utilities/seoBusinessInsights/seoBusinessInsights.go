@@ -165,6 +165,7 @@ var cacheFolder string
 var cacheFolderRoot = "./_cache"
 
 // Host name and port the web server runs on
+var protocol string
 var hostname string
 var port string
 var fullHost string
@@ -871,7 +872,7 @@ func dashboardHeader() {
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
         <br>
-        <span class="header-font">Click the chart headers below to access the related Botify report.</span> <!-- Added 'hello there' text -->
+        <span class="header-font">Click the chart titles to open the chart full screen.</span>
         <br>
 		<br>
 		` + htmlDataIssue + `
@@ -917,16 +918,23 @@ func badgeCMGR() {
 	cmgrOrderValueValue32 := float32(cmgrOrderValueValue)
 
 	// Generate the badges
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+
+	// URL to full screen badge display //bloo
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGRRevenue.html"
 	liquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
-	clickURL = projectURL + "/crawl/visits"
-	liquidBadge("Visits", cmgrVisits32, clickURL, "Growth of the average number of monthly organic visits")
-	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Growth of the average organic visit value")
-	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Growth of the number of orders placed by organic visitors")
-	clickURL = projectURL + "/engagement-analytics/revenue-and-conversion"
-	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value growth placed by an organic visitor")
+
+	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGRVisits.html"
+	liquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits growth")
+
+	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
+	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value growth")
+
+	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGROrders.html"
+	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors growth")
+
+	clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
+	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value by an organic visitor growth")
 }
 
 // Total Visits, Orders & Revenue
@@ -1052,7 +1060,9 @@ func tableTotalsVisitsOrdersRevenue() {
 
 func barChartRevenueVisits() {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_RevenueVisitsBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(
@@ -1111,7 +1121,9 @@ func barChartRevenueVisits() {
 // Visits per order line chart
 func lineChartVisitsPerOrder() {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitsPerOrderLine.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
@@ -1138,7 +1150,7 @@ func lineChartVisitsPerOrder() {
 	// Pass visitsPerOrder directly to generaLineItems
 	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder)
 
-	line.SetXAxis(startMonthNames).AddSeries("Month", lineVisitsPerOrderValue).SetSeriesOptions(
+	line.SetXAxis(startMonthNames).AddSeries("Visits per order", lineVisitsPerOrderValue).SetSeriesOptions(
 		charts.WithAreaStyleOpts(opts.AreaStyle{
 			Opacity: 0.2,
 		}),
@@ -1146,9 +1158,9 @@ func lineChartVisitsPerOrder() {
 			Smooth: opts.Bool(true),
 		}),
 		charts.WithMarkPointNameTypeItemOpts(
-			opts.MarkPointNameTypeItem{Name: "Highest no of orders", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
-			opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
-			opts.MarkPointNameTypeItem{Name: "Average", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
+			opts.MarkPointNameTypeItem{Name: "Highest No. of visits", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
+			opts.MarkPointNameTypeItem{Name: "Minimum  No. of visits", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
+			opts.MarkPointNameTypeItem{Name: "Average  No. of visits", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
@@ -1175,7 +1187,9 @@ func generateLineItems(visitsPerOrder []int) []opts.LineData {
 // Visit value bar chart
 func barChartVisitValue() {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitValueBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1204,9 +1218,9 @@ func barChartVisitValue() {
 	bar.SetXAxis(startMonthNames).
 		AddSeries("Organic visit value", barDataVisitValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
-			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
+			opts.MarkLineNameTypeItem{Name: "Minimum visit value", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Maximum visit value", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Average visit value", Type: "average"},
 		),
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{
@@ -1224,7 +1238,9 @@ func barChartVisitValue() {
 // No. of Orders bar chart
 func barChartOrders() {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_OrdersBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1250,11 +1266,11 @@ func barChartOrders() {
 	barDataOrders := generateBarItems(seoOrders)
 
 	bar.SetXAxis(startMonthNames).
-		AddSeries("Number of orders", barDataOrders).
+		AddSeries("Orders", barDataOrders).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
-			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
+			opts.MarkLineNameTypeItem{Name: "Minimum No. orders", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Maximum No. orders", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Average No. orders", Type: "average"},
 		),
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{
@@ -1272,7 +1288,9 @@ func barChartOrders() {
 // Order value bar chart
 func barChartOrderValue() {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_OrderValueBar.html"
 
 	bar := charts.NewBar()
 
@@ -1301,9 +1319,9 @@ func barChartOrderValue() {
 	bar.SetXAxis(startMonthNames).
 		AddSeries("Order value", barDataOrderValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
-			opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
+			opts.MarkLineNameTypeItem{Name: "Minimum order value", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Maximum order value", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Average order value", Type: "average"},
 		),
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{
@@ -1474,12 +1492,16 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	if brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
-		clickURL = projectURL + "/keywords/keywords"
+		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+		cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+		clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_WordCloudBranded.html"
 		subtitle = "Top branded keywords driving clicks: Highlighting the most effective branded search terms generating traffic to the site."
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
-		clickURL = projectURL + "/keywords"
+		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+		cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+		clickURL = protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
 		subtitle = "Top non-branded keywords driving clicks: Identifying effective search terms unrelated to the brand name that attract traffic to the site."
 
 	}
@@ -1573,7 +1595,9 @@ func riverCharRevenueVisits() {
 // River chart
 func generateRiverTime() *charts.ThemeRiver {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitsRevenueRiver.html"
 
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
@@ -1639,7 +1663,7 @@ func generateRiverTime() *charts.ThemeRiver {
 }
 
 // Visits per order gauge chart
-func gaugeVisitsPerOrder() {
+func gaugeVisitsPerOrder() { //bloo
 
 	page := components.NewPage()
 	page.AddCharts(
@@ -1657,13 +1681,18 @@ func gaugeBase() *charts.Gauge {
 
 	gauge := charts.NewGauge()
 
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_Gauge.html"
+
 	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
 		s.Min = minVisitsPerOrder
 		s.Max = maxVisitsPerOrder
 	})
 
 	gauge.SetGlobalOptions(
-		charts.WithTitleOpts(opts.Title{Title: "The lowest, highest and current average number of organic visits per order"}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "The lowest, highest and current average number of organic visits per order",
+			Link:  clickURL}),
 
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:  gaugeDefaultWidth,
@@ -2027,13 +2056,15 @@ func forecastDataCompute() {
 // Revenue forecast line chart
 func lineChartRevenueForecast() {
 
-	clickURL := projectURL + "/engagement-analytics/revenue-and-conversion"
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	cacheFolderTrimmed := strings.TrimPrefix(cacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + cacheFolderTrimmed + "/go_seo_VisitsPerOrderLineRevenueForecast.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue forecast",
-			Subtitle: "Forecasted revenue potential with increased organic visits.",
+			Subtitle: "Use the slider to forecast potential revenue growth with increased visits",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -2954,8 +2985,8 @@ func getHostnamePort() {
 	}
 
 	// Get values from the INI file
+	protocol = cfg.Section("").Key("protocol").String()
 	hostname = cfg.Section("").Key("hostname").String()
-	port = cfg.Section("").Key("port").String()
 	port = cfg.Section("").Key("port").String()
 	fullHost = hostname + ":" + port
 
