@@ -2294,7 +2294,6 @@ func generateDashboard() {
 	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
 	width100 := "100%"
-
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html lang="en">
@@ -2402,7 +2401,7 @@ func generateDashboard() {
     }
 </script>
 
-<!-- Sections with Iframes -->
+<!-- Sections with iframes -->
 <section class="container row no-border">
     <iframe src="go_seo_DashboardHeader.html" title="Header" style="height: 120px;"></iframe>
 </section>
@@ -2492,7 +2491,8 @@ func generateDashboard() {
 </body>
 </html>
 `, width90, width90, width100, fullHost)
-
+	println(protocol) //bloo
+	println(fullHost)
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html") //bloo
 }
