@@ -133,7 +133,7 @@ var noKeywordsInCloud = 50
 var noKeywordsFound int
 
 // The number of top keywords to include in the keywords detail table
-var noTopKeywords = 10
+var noTopKeywords = 50
 
 // Used to set the default size for all chart types
 var chartDefaultWidth = "85vw"
@@ -169,6 +169,10 @@ var protocol string
 var hostname string
 var port string
 var fullHost string
+
+// Dashboard permalink
+var dashboardPermaLink string
+var insightsFolderTrimmed string
 
 type botifyResponse struct {
 	Count   int `json:"count"`
@@ -591,9 +595,11 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 
 	// Calculate the average visits per order
 	totalVisitsPerOrder := 0
+	// Sum the total visits per order over the period
 	for _, value := range visitsPerOrder {
 		totalVisitsPerOrder += value
 	}
+	// Divide the total by the number of periods
 	if len(visitsPerOrder) > 0 {
 		totalAverageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
 	}
@@ -839,6 +845,10 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 // Header for the broadsheet
 func dashboardHeader() {
 
+	currentTime := time.Now()
+	currentDate := currentTime.Format("02 January 2006")
+	currentTimeFormatted := currentTime.Format("15:04")
+
 	htmlDataIssue := ""
 	// If any issues have been found in the data (i.e. mlissing data) generate the HTML for inclusion in the header
 	if revenueDataIssue || visitsDataIssue || ordersDataIssue {
@@ -874,6 +884,8 @@ func dashboardHeader() {
         <br>
         <span class="header-font">Click the chart title to view the chart in a new window.</span>
         <br>
+		<br>
+		<span class="header-font">This broadsheet was generated on ` + currentDate + ` at ` + currentTimeFormatted + `</span>   		
 		<br>
 		` + htmlDataIssue + `
     </div>
@@ -1130,7 +1142,7 @@ func lineChartVisitsPerOrder() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Average visits per order",
-			Subtitle: "A high number of visits per order indicates poor quality traffic or inefficiency in conversion. Fewer visits per order signify a more streamlined and effective customer journey.",
+			Subtitle: "High number of visits per order indicates poor quality traffic or conversion inefficiency. Fewer visits per order signify a streamlined and effective customer journey.",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -1226,7 +1238,7 @@ func barChartVisitValue() {
 		),
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{
-					Label:     &opts.Label{FontSize: 15}, //bloo
+					Label:     &opts.Label{FontSize: 15},
 					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
 				},
 			),
@@ -1416,6 +1428,9 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title 
 // CMGR badges
 func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) *charts.Liquid {
 
+	badgeKPIValueCalc := badgeKPIValue * 100
+	subTitle := fmt.Sprintf("Compound growth (CMGR) (Rounded from %.2f%%)", badgeKPIValueCalc)
+
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
@@ -1425,7 +1440,7 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    title,
-			Subtitle: "Compound growth (CMGR)",
+			Subtitle: subTitle,
 			Link:     clickURL,
 		}),
 	)
@@ -1500,15 +1515,12 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudBranded.html"
-		subtitle = "Top branded keywords driving clicks: Highlighting the most effective branded search terms generating traffic to the site."
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
-		subtitle = "Top non-branded keywords driving clicks: Identifying effective search terms unrelated to the brand name that attract traffic to the site."
-
 	}
 
 	wc := charts.NewWordCloud()
@@ -1688,7 +1700,7 @@ func gaugeBase() *charts.Gauge {
 
 	gauge := charts.NewGauge()
 
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	insightsFolderTrimmed = strings.TrimPrefix(insightsFolder, ".")
 	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_Gauge.html"
 
 	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
@@ -1971,10 +1983,6 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
         tr:hover {
             background-color: DeepSkyBlue;
         }
-  		h2 {
-            color: DimGray;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
@@ -1988,7 +1996,6 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 
 	// Branded keywords details
 	if brandedMode {
-		htmlContent += fmt.Sprintf("<h2>\n\nTop %d branded keywords generating clicks</h2>", noTopKeywords)
 		for i := 0; i < noTopKeywords; i++ {
 			kwCountClicksFormatted := formatInteger.Sprintf("%d", kwCountClicks[i])
 			htmlContent += fmt.Sprintf("<tr>\n"+
@@ -2006,7 +2013,6 @@ func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
 
 	// Non branded keywords details
 	if !brandedMode {
-		htmlContent += fmt.Sprintf("<h2>\n\nTop %d non branded keywords generating clicks</h2>", noTopKeywords)
 		for i := 0; i < noTopKeywords; i++ {
 			kwCountClicksFormattedNonBranded := formatInteger.Sprintf("%d", kwCountClicksNonBranded[i])
 			htmlContent += fmt.Sprintf("<tr>\n"+
@@ -2209,10 +2215,14 @@ func forecastNarrative() {
 // Footer
 func footerNotes() {
 
+	dashboardPermaLink = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_BusinessInsights.html"
+
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
+		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
+		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\">" + dashboardPermaLink + "</a>",
 	}
 
 	// Generate HTML content
@@ -2344,7 +2354,7 @@ func generateDashboard() {
             border: none;
         }
         .tall-iframe {
-            height: 530px;
+            height: 750px;
         }
         .medium-iframe {
             height: 500px;
@@ -2433,7 +2443,7 @@ func generateDashboard() {
 </section>
 
 <section class="container row">
-    <iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -2458,7 +2468,7 @@ func generateDashboard() {
     <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 </section>
 
-<section class="container row no-border">
+<section class="container row no-border" section-padding-bottom>
      <br><br><br><br><br><br><br>
     <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
     <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
@@ -2484,8 +2494,7 @@ func generateDashboard() {
 `, width90, width90, width100, fullHost)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
-
+	saveHTML(htmlContent, "/go_seo_BusinessInsights.html") //bloo
 }
 
 // Execute the BQL
@@ -2602,9 +2611,6 @@ func computeCMGR(values []float64) float64 {
 
 	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
 	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
-
-	// Round CMGR to 2 decimal places
-	//cmgr = math.Round(cmgr*100) / 100
 
 	return cmgr
 }
