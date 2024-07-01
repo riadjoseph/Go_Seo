@@ -248,6 +248,7 @@ func main() {
 		dataStatus := getBusinessInsights(sessionID)
 
 		// Evaluate the results of getBusinessInsights before generating the broadsheet
+
 		// All good! Generate the broadsheet
 		if dataStatus == "success" {
 			// Define the projectURL
@@ -261,6 +262,7 @@ func main() {
 		}
 
 		// Manage errors
+
 		// An invalid org/project name has been specified
 		if dataStatus == "errorNoProjectFound" {
 			writeLog(sessionID, organization, project, "-", "No project found")
@@ -364,7 +366,6 @@ func businessInsightsDashboard(sessionID string) {
 	// Generate the container to present the previously generated components
 	generateDashboardContainer()
 
-	// Make a tidy display
 	fmt.Println()
 	fmt.Println(lineSeparator)
 
@@ -375,7 +376,6 @@ func businessInsightsDashboard(sessionID string) {
 	fmt.Println("\nseoBusinessInsights: Done at " + formattedTime)
 	fmt.Printf("\nOrganization: %s, Project: %s\n"+reset, organization, project)
 
-	// Make a tidy display
 	fmt.Println()
 	fmt.Println(lineSeparator)
 
@@ -885,7 +885,7 @@ func headerNotes() {
         <span class="header-font">Click the chart title to view the chart in a new window.</span>
         <br>
 		<br>
-		<span class="header-font">This broadsheet was generated on ` + currentDate + ` at ` + currentTimeFormatted + `</span>   		
+			<span class="header-font">This broadsheet for <strong style="color: DeepSkyBlue;">` + organization + `</strong> was generated on ` + currentDate + ` at ` + currentTimeFormatted + `</span>
 		<br>
 		` + htmlDataIssue + `
     </div>
@@ -1142,7 +1142,7 @@ func lineVisitsPerOrder() {
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Average visits per order",
-			Subtitle: "High number of visits per order indicates poor quality traffic or conversion inefficiency. Fewer visits per order signify a streamlined and effective customer journey.",
+			Subtitle: "High number of visits per order indicates poor quality traffic or conversion inefficiency.",
 			Link:     clickURL,
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
@@ -2940,10 +2940,11 @@ func getCurrency() {
 		fmt.Println(red + "\nError. getCurrency. Invalid crawl or no crawls found in the project" + reset)
 	}
 
-	if len(responseObject.Results) > 0 {
-		for _, currency := range responseObject.Results[0].Features.SemanticMetadata.StructuredData.Currencies.Offer {
-			currencyCode = currency
-		}
+	// If one currency has been found assume that's the base currency. If multiple currencies are found assume a default of $
+	if len(responseObject.Results[0].Features.SemanticMetadata.StructuredData.Currencies.Offer) == 1 {
+		currencyCode = responseObject.Results[0].Features.SemanticMetadata.StructuredData.Currencies.Offer[0]
+	} else {
+		currencyCode = "USD"
 	}
 
 	switch currencyCode {
