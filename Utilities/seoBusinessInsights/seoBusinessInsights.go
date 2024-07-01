@@ -149,8 +149,13 @@ var gaugeDefaultWidth = "96vw"
 var gaugeDefaultHeight = "96vh"
 
 // Define the increment and the maximum value
-var forecastIncrement = 100000
-var forecastMaxVisits = 1000000
+var forecastIncrement = 500000
+var forecastMaxVisits = 10000000
+var forecastMaximum = 10000000
+
+// Slices used to store the forecasted revenue per band of incremental visits
+var forecastBandChart = []int{}
+var forecastRevenueChart = []int{}
 
 // Slices used to store the visit increment values
 var forecastVisitIncrements []int
@@ -357,6 +362,9 @@ func goSeoDashboard(sessionID string) {
 
 	// Forecast narrative
 	forecastNarrative()
+
+	// Forecast scenario line chart
+	lineChartForecastScenario()
 
 	// Broadsheet footer notes
 	footerNotes()
@@ -894,7 +902,7 @@ func dashboardHeader() {
 </html>
 `
 
-	// Save the HTML to a file //bloo
+	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_DashboardHeader.html")
 }
 
@@ -932,7 +940,7 @@ func badgeCMGR() {
 	// Generate the badges
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 
-	// URL to full screen badge display //bloo
+	// URL to full screen badge display
 	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRRevenue.html"
 	liquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
 
@@ -1289,7 +1297,7 @@ func barChartOrders() {
 		),
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{
-					Label:     &opts.Label{FontSize: 15}, //bloo
+					Label:     &opts.Label{FontSize: 15},
 					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
 				},
 			),
@@ -1429,7 +1437,7 @@ func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title 
 func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) *charts.Liquid {
 
 	badgeKPIValueCalc := badgeKPIValue * 100
-	subTitle := fmt.Sprintf("Compound growth (CMGR) (Rounded from %.2f%%)", badgeKPIValueCalc)
+	subTitle := fmt.Sprintf("Compound growth CMGR. Rounded from %.2f%%", badgeKPIValueCalc)
 
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
@@ -1448,8 +1456,8 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 	// Resetting badgeKPI to nil. The badge looks better if we do not include the KPI name as a legend
 	badgeKPI = ""
 
-	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})). //bloome
-										SetSeriesOptions(
+	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})).
+		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
 				Show: opts.Bool(true),
 			}),
@@ -1682,7 +1690,7 @@ func generateRiverTime() *charts.ThemeRiver {
 }
 
 // Visits per order gauge chart
-func gaugeVisitsPerOrder() { //bloo
+func gaugeVisitsPerOrder() {
 
 	page := components.NewPage()
 	page.AddCharts(
@@ -2126,6 +2134,48 @@ func lineChartRevenueForecast() {
 	_ = line.Render(f)
 }
 
+// Line chart used to show potential revenue growth //bloo
+func lineChartForecastScenario() {
+
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_forecastRevenueScenarioLine.html"
+
+	line := charts.NewLine()
+	line.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title:    "Forecasted revenue",
+			Subtitle: "Projected revenue forecast based on increased visits.",
+			Link:     clickURL,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Forcasted revenue",
+		}),
+
+		charts.WithColorsOpts(opts.Colors{kpiColourVisitsPerOrder}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	// Pass visitsPerOrder directly to generaLineItems
+	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder) //bloo
+
+	line.SetXAxis(startMonthNames).AddSeries("Revenue", lineVisitsPerOrderValue).SetSeriesOptions(
+		charts.WithAreaStyleOpts(opts.AreaStyle{
+			Opacity: 0.2,
+		}),
+		charts.WithLineChartOpts(opts.LineChart{
+			Smooth: opts.Bool(true),
+		}),
+	)
+
+	f, _ := os.Create(insightsFolder + "/go_seo_VisitsPerOrderLine.html")
+
+	_ = line.Render(f)
+}
+
 // Populate the chart with the revenue forecast data
 func generateLineItemsRevenueForecast(forecastRevenue []int) []opts.LineData {
 
@@ -2210,6 +2260,23 @@ func forecastNarrative() {
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
+
+	// Generate the slice for the revenue forecast sceanio chart
+	forecastBandChart := make([]int, 25)
+	forecastRevenueChart := make([]int, 25)
+	forecastIncrementProjection := 0
+	index := 0
+
+	for i := forecastIncrement; i <= forecastMaxVisits; i += forecastIncrement {
+		forecastIncrementProjection = forecastIncrementProjection + forecastIncrement
+		noOfOrderVisits = forecastIncrementProjection / totalAverageVisitsPerOrder
+		forecastBandChart[index] = forecastIncrementProjection
+		forecastRevenueChart[index] = noOfOrderVisits * totalAverageOrderValue
+		index += 1
+		if index == 24 {
+			break
+		}
+	} //bloo
 }
 
 // Footer
@@ -2219,7 +2286,7 @@ func footerNotes() {
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
-		"The current month is not included in the analysis, only full months are reported on",
+		"The current month is not included in the analysis, only full months are reported on.",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
 		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
 		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\">" + dashboardPermaLink + "</a>",
