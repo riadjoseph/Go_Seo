@@ -151,11 +151,6 @@ var gaugeDefaultHeight = "96vh"
 // Define the increment and the maximum value
 var forecastIncrement = 500000
 var forecastMaxVisits = 10000000
-var forecastMaximum = 10000000
-
-// Slices used to store the forecasted revenue per band of incremental visits
-var forecastBandChart = []int{}
-var forecastRevenueChart = []int{}
 
 // Slices used to store the visit increment values
 var forecastVisitIncrements []int
@@ -220,7 +215,7 @@ type Response struct {
 func main() {
 
 	// Display the welcome banner
-	displayBanner()
+	displayServerBanner()
 
 	// Serve static files from the current directory
 	fs := http.FileServer(http.Dir("."))
@@ -249,17 +244,17 @@ func main() {
 			return
 		}
 
-		// Get revenue, visits, orders and keyword data
-		dataStatus := getSeoInsights(sessionID)
+		// Acquire the business insights for the dashboard
+		dataStatus := getBusinessInsights(sessionID)
 
-		// Evaluate the results of getSeoInsights before generating the broadsheet
+		// Evaluate the results of getBusinessInsights before generating the broadsheet
 		// All good! Generate the broadsheet
 		if dataStatus == "success" {
 			// Define the projectURL
 			projectURL = "https://app.botify.com/" + organization + "/" + project
 			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
-			// Generate the broadsheet HTML
-			goSeoDashboard(sessionID)
+			// Generate the broadsheet components and container
+			businessInsightsDashboard(sessionID)
 			writeLog(sessionID, organization, project, "-", "Broadsheet generated")
 			// Respond to the client with a success message or redirect to another page
 			http.Redirect(w, r, insightsFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
@@ -306,13 +301,13 @@ func main() {
 	}
 }
 
-func goSeoDashboard(sessionID string) {
+func businessInsightsDashboard(sessionID string) {
 
 	// Broadsheet header
-	dashboardHeader()
+	headerNotes()
 
 	// Totals of visits, orders & revenue
-	tableTotalsVisitsOrdersRevenue()
+	tableVisitsOrdersRevenue()
 
 	// Badges for CMGR KPIs
 	badgeCMGR()
@@ -321,56 +316,53 @@ func goSeoDashboard(sessionID string) {
 	gaugeVisitsPerOrder()
 
 	// Revenue & visits bar chart
-	barChartRevenueVisits()
+	barRevenueVisits()
 
 	// Visits per order line chart
-	lineChartVisitsPerOrder()
+	lineVisitsPerOrder()
 
 	// Organic visit value
-	barChartVisitValue()
+	barVisitValue()
 
 	// No. of Orders bar chart
-	barChartOrders()
+	barOrders()
 
 	// Order value bar chart
-	barChartOrderValue()
+	barOrderValue()
 
 	// Revenue and visits river chart
-	riverChartRevenueVisits()
+	riverRevenueVisits()
 
 	// Wordclouds
 	// Branded
-	wordCloudBrandedUnbranded(true)
+	wordcloudBrandedUnbranded(true)
 	// Non branded
-	wordCloudBrandedUnbranded(false)
+	wordcloudBrandedUnbranded(false)
 
 	// Winning branded keyword narrative
-	winningKeywords(true, sessionID)
+	textWinningKeywords(true, sessionID)
 	// Winning non branded keyword
-	winningKeywords(false, sessionID)
+	textWinningKeywords(false, sessionID)
 
 	// Detailed keyword insights table - Branded
-	generateHTMLDetailedKeywordsInsights(true)
+	textDetailedKeywordsInsights(true)
 	// Detailed keyword insights table - Non-branded
-	generateHTMLDetailedKeywordsInsights(false)
+	textDetailedKeywordsInsights(false)
 
 	// KPI details table
-	tableDataDetail()
+	textTableDataDetail()
 
 	// Revenue forecast line chart
-	lineChartRevenueForecast()
+	lineRevenueForecast()
 
 	// Forecast narrative
-	forecastNarrative()
+	textForecastNarrative()
 
-	// Forecast scenario line chart
-	lineChartForecastScenario()
-
-	// Broadsheet footer notes
+	// Footer notes
 	footerNotes()
 
-	// Generate seoBusinessInsights.html container
-	generateDashboard()
+	// Generate the container to present the previously generated components
+	generateDashboardContainer()
 
 	// Make a tidy display
 	fmt.Println()
@@ -391,7 +383,7 @@ func goSeoDashboard(sessionID string) {
 	return
 }
 
-func getSeoInsights(sessionID string) string {
+func getBusinessInsights(sessionID string) string {
 
 	fmt.Println()
 	fmt.Println(yellow + sessionID + purple + " Getting SEO insights" + reset)
@@ -415,13 +407,13 @@ func getSeoInsights(sessionID string) string {
 	// Error checking
 	// Exit if no project has been found
 	if analyticsID == "errorNoProjectFound" {
-		fmt.Println(red+"Error. getSeoInsights. No project found for", organization+"/"+project+reset)
+		fmt.Println(red+"Error. getBusinessInsights. No project found for", organization+"/"+project+reset)
 		return analyticsID
 	}
 
 	// Exit if no analytics tool has been detected
 	if analyticsID == "errorNoAnalyticsIntegrated" {
-		fmt.Println(red+"Error. getSeoInsights. No analytics tool integrated for", organization+"/"+project+reset)
+		fmt.Println(red+"Error. getBusinessInsights. No analytics tool integrated for", organization+"/"+project+reset)
 		return analyticsID
 	}
 
@@ -482,7 +474,7 @@ func getSeoInsights(sessionID string) string {
 	// Calculate the CMGR values
 	calculateCMGR(sessionID)
 
-	// Calculate the forecasts
+	// Calculate the forecast
 	forecastDataCompute()
 
 	return "success"
@@ -851,7 +843,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 }
 
 // Header for the broadsheet
-func dashboardHeader() {
+func headerNotes() {
 
 	currentTime := time.Now()
 	currentDate := currentTime.Format("02 January 2006")
@@ -903,7 +895,7 @@ func dashboardHeader() {
 `
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_DashboardHeader.html")
+	saveHTML(htmlContent, "/go_seo_headerNotes.html")
 }
 
 // If data issue have been detected generate the HTML to include in the header
@@ -958,7 +950,7 @@ func badgeCMGR() {
 }
 
 // Total Visits, Orders & Revenue
-func tableTotalsVisitsOrdersRevenue() {
+func tableVisitsOrdersRevenue() {
 
 	formatInteger := message.NewPrinter(language.English)
 
@@ -1078,7 +1070,7 @@ func tableTotalsVisitsOrdersRevenue() {
 
 // Bar chart. Revenue and Visits
 
-func barChartRevenueVisits() {
+func barRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
@@ -1140,7 +1132,7 @@ func barChartRevenueVisits() {
 }
 
 // Visits per order line chart
-func lineChartVisitsPerOrder() {
+func lineVisitsPerOrder() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
@@ -1207,7 +1199,7 @@ func generateLineItems(visitsPerOrder []int) []opts.LineData {
 }
 
 // Visit value bar chart
-func barChartVisitValue() {
+func barVisitValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
@@ -1258,7 +1250,7 @@ func barChartVisitValue() {
 }
 
 // No. of Orders bar chart
-func barChartOrders() {
+func barOrders() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
@@ -1309,7 +1301,7 @@ func barChartOrders() {
 }
 
 // Order value bar chart
-func barChartOrderValue() {
+func barOrderValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
@@ -1481,7 +1473,7 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 }
 
 // Top keywords for branded and non-branded
-func wordCloudBrandedUnbranded(brandedMode bool) {
+func wordcloudBrandedUnbranded(brandedMode bool) {
 
 	// Generate the HTML for branded keywords
 	if brandedMode {
@@ -1605,7 +1597,7 @@ func generateWCDataNonBranded(kwKeywordsNonBranded []string, kwCountClicksNonBra
 }
 
 // Revenue & visits river chart
-func riverChartRevenueVisits() {
+func riverRevenueVisits() {
 
 	page := components.NewPage()
 	page.AddCharts(
@@ -1735,7 +1727,7 @@ func gaugeBase() *charts.Gauge {
 }
 
 // Table containing the detailed KPI insights
-func tableDataDetail() {
+func textTableDataDetail() {
 
 	var detailedKPITableData [][]string
 
@@ -1770,7 +1762,7 @@ func tableDataDetail() {
 }
 
 // Winning keywords, branded & non-branded
-func winningKeywords(brandedMode bool, sessionID string) {
+func textWinningKeywords(brandedMode bool, sessionID string) {
 
 	var htmlFileName = ""
 
@@ -1958,7 +1950,7 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
 }
 
 // Generate the HTML for the keywords insights
-func generateHTMLDetailedKeywordsInsights(brandedMode bool) {
+func textDetailedKeywordsInsights(brandedMode bool) {
 
 	formatInteger := message.NewPrinter(language.English)
 
@@ -2077,7 +2069,7 @@ func forecastDataCompute() {
 }
 
 // Revenue forecast line chart
-func lineChartRevenueForecast() {
+func lineRevenueForecast() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
@@ -2134,48 +2126,6 @@ func lineChartRevenueForecast() {
 	_ = line.Render(f)
 }
 
-// Line chart used to show potential revenue growth //bloo
-func lineChartForecastScenario() {
-
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_forecastRevenueScenarioLine.html"
-
-	line := charts.NewLine()
-	line.SetGlobalOptions(
-		charts.WithTitleOpts(opts.Title{
-			Title:    "Forecasted revenue",
-			Subtitle: "Projected revenue forecast based on increased visits.",
-			Link:     clickURL,
-		}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Forcasted revenue",
-		}),
-
-		charts.WithColorsOpts(opts.Colors{kpiColourVisitsPerOrder}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
-	)
-
-	// Pass visitsPerOrder directly to generaLineItems
-	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder) //bloo
-
-	line.SetXAxis(startMonthNames).AddSeries("Revenue", lineVisitsPerOrderValue).SetSeriesOptions(
-		charts.WithAreaStyleOpts(opts.AreaStyle{
-			Opacity: 0.2,
-		}),
-		charts.WithLineChartOpts(opts.LineChart{
-			Smooth: opts.Bool(true),
-		}),
-	)
-
-	f, _ := os.Create(insightsFolder + "/go_seo_VisitsPerOrderLine.html")
-
-	_ = line.Render(f)
-}
-
 // Populate the chart with the revenue forecast data
 func generateLineItemsRevenueForecast(forecastRevenue []int) []opts.LineData {
 
@@ -2186,7 +2136,7 @@ func generateLineItemsRevenueForecast(forecastRevenue []int) []opts.LineData {
 	return items
 }
 
-func forecastNarrative() {
+func textForecastNarrative() {
 
 	var htmlFileName = ""
 	var noOfOrderVisits = forecastIncrement / totalAverageVisitsPerOrder
@@ -2242,9 +2192,9 @@ func forecastNarrative() {
 			<b>Example scenario:</b>
 			On average an order is placed every
 			<span class="blueText">%d</span> organic visits. For each additional 
-			<span class="blueText">%s</span> organic visits, we can forecast  
+			<span class="blueText">%s</span> organic visits, the current forecast is 
 			<span class="blueText">%d</span> orders will be placed. With an average 
-			order value of <span class="blueText">%s%d</span>, the projected 
+			order value of <span class="blueText">%s%d</span> the projected 
 			incremental revenue from <span class="blueText">%s</span> additional visits will be 
 			<span class="blueText">%s%s</span>
 		</p>
@@ -2256,27 +2206,10 @@ func forecastNarrative() {
 	)
 
 	// Define the HTML filename
-	htmlFileName = "/go_seo_VisitsPerOrderLineRevenueForecastNarrative.html"
+	htmlFileName = "/go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
-
-	// Generate the slice for the revenue forecast sceanio chart
-	forecastBandChart := make([]int, 25)
-	forecastRevenueChart := make([]int, 25)
-	forecastIncrementProjection := 0
-	index := 0
-
-	for i := forecastIncrement; i <= forecastMaxVisits; i += forecastIncrement {
-		forecastIncrementProjection = forecastIncrementProjection + forecastIncrement
-		noOfOrderVisits = forecastIncrementProjection / totalAverageVisitsPerOrder
-		forecastBandChart[index] = forecastIncrementProjection
-		forecastRevenueChart[index] = noOfOrderVisits * totalAverageOrderValue
-		index += 1
-		if index == 24 {
-			break
-		}
-	} //bloo
 }
 
 // Footer
@@ -2356,7 +2289,7 @@ func saveHTML(genHTML string, genFilename string) {
 }
 
 // Define the HTML for the seoBusinessInsights.html container. Used to consolidate the generated charts into a single page.
-func generateDashboard() {
+func generateDashboardContainer() {
 
 	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
@@ -2470,7 +2403,7 @@ func generateDashboard() {
 
 <!-- Sections with iframes -->
 <section class="container row no-border">
-    <iframe src="go_seo_DashboardHeader.html" title="Header" style="height: 120px;"></iframe>
+    <iframe src="go_seo_headerNotes.html" title="Header" style="height: 120px;"></iframe>
 </section>
 
 <section class="container row no-border">
@@ -2496,7 +2429,7 @@ func generateDashboard() {
 
 <section class="container row">
     <iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
-    <iframe src="go_seo_VisitsPerOrderLineRevenueForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -2558,10 +2491,8 @@ func generateDashboard() {
 </body>
 </html>
 `, width90, width90, width100, fullHost)
-	println(protocol) //bloo
-	println(fullHost)
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_BusinessInsights.html") //bloo
+	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
 
 // Execute the BQL
@@ -3092,7 +3023,7 @@ func invertStringSlice(s []string) {
 }
 
 // Display the welcome banner
-func displayBanner() {
+func displayServerBanner() {
 
 	// Clear the screen
 	fmt.Print(clearScreen)
