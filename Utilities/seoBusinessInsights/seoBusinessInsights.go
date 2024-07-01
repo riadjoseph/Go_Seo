@@ -2222,7 +2222,7 @@ func footerNotes() {
 		"The current month is not included in the analysis, only full months are reported on.",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
 		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
-		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\">" + dashboardPermaLink + "</a>",
+		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\" target=\"_blank\">" + dashboardPermaLink + "</a>",
 	}
 
 	// Generate HTML content
