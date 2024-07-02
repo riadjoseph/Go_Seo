@@ -16,7 +16,7 @@ Charts included:
 - Winning branded and non branded keywords
 - Detailed KPI insights 
 
-**Note:** Update the code to include your own Botify API key. Change the variable **APIToken** to reflect your token  
+**Note:** The API token for seoBusinessInsights is acquired from the environment variable BotifyAPIToken
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
@@ -30,6 +30,8 @@ Generates the segmentation regex for the following segments:
 - Static resources
 - Shopify (if detected)
 - SFCC (if detected, and the site is not using "Search-Friendly URLs for B2C Commerce")
+
+**Note:** The API token for seoBusinessInsights is acquired from the environment variable BotifyAPIToken
 
 **Note:** segmentifyLite will process a maximum of 300k URLs.   
 **Note:** The number of URLs found in level 1 folders, level 2 folders and parameter key segments are included as comments after the generated regex. Use these insights to decide which segments slices to keep and which to remove.   
