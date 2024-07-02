@@ -16,7 +16,7 @@ Charts included:
 - Winning branded and non branded keywords
 - Detailed KPI insights 
 
-**Note:** The API token for seoBusinessInsights is acquired from the environment variable BotifyAPIToken
+**Note:** The API token for seoBusinessInsights is acquired from the environment variable BotifyAPIToken.
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
