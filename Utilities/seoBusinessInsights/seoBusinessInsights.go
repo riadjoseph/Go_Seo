@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-echarts/go-echarts/v2/charts"
-	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -139,14 +138,14 @@ var noTopKeywords = 50
 var chartDefaultWidth = "85vw"
 var chartDefaultHeight = "90vh"
 
-var wcDefaultWidth = "95vw"
-var wcDefaultHeight = "95vh"
+var wordcloudDefaultWidth = "95vw"
+var wordcloudDefaultHeight = "90vh"
 
 var badgeDefaultWidth = "95vw"
-var badgeDefaultHeight = "95vh"
+var badgeDefaultHeight = "90vh"
 
-var gaugeDefaultWidth = "96vw"
-var gaugeDefaultHeight = "96vh"
+var gaugeDefaultWidth = "95vw"
+var gaugeDefaultHeight = "90vh"
 
 // Define the increment and the maximum value
 var forecastIncrement = 500000
@@ -340,9 +339,9 @@ func businessInsightsDashboard(sessionID string) {
 
 	// Wordclouds
 	// Branded
-	wordcloudBrandedUnbranded(true)
+	wordcloudBrandedNonBranded(true)
 	// Non branded
-	wordcloudBrandedUnbranded(false)
+	wordcloudBrandedNonBranded(false)
 
 	// Winning branded keyword narrative
 	textWinningKeywords(true, sessionID)
@@ -937,19 +936,19 @@ func badgeCMGR() {
 
 	// URL to full screen badge display
 	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRRevenue.html"
-	liquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
+	generateLiquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisits.html"
-	liquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits")
+	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisitValue.html"
-	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value")
+	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrders.html"
-	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors")
+	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrderValue.html"
-	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value")
+	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value")
 }
 
 // Total Visits, Orders & Revenue
@@ -1350,42 +1349,6 @@ func barOrderValue() {
 			),
 		)
 
-	/*
-		// bloo color
-		bar.SetXAxis(startMonthNames).
-			AddSeries("Order value", barDataOrderValue).
-			SetSeriesOptions(
-				charts.WithMarkLineNameTypeItemOpts(
-					opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"},
-				),
-				charts.WithMarkLineStyleOpts(
-					opts.MarkLineStyle{
-						Label:     &opts.Label{FontSize: 15},
-						LineStyle: &opts.LineStyle{Color: "rgb(0, 128, 0)"},
-					},
-				),
-				charts.WithMarkLineNameTypeItemOpts(
-					opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"},
-				),
-				charts.WithMarkLineStyleOpts(
-					opts.MarkLineStyle{
-						Label:     &opts.Label{FontSize: 15},
-						LineStyle: &opts.LineStyle{Color: "green"},
-					},
-				),
-				charts.WithMarkLineNameTypeItemOpts(
-					opts.MarkLineNameTypeItem{Name: "Average", Type: "average"},
-				),
-				charts.WithMarkLineStyleOpts(
-					opts.MarkLineStyle{
-						Label:     &opts.Label{FontSize: 15},
-						LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)"},
-					},
-				),
-			)
-
-	*/
-
 	f, _ := os.Create(insightsFolder + "/go_seo_OrderValueBar.html")
 
 	_ = bar.Render(f)
@@ -1411,33 +1374,17 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 	return items
 }
 
-func liquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) {
-
-	page := components.NewPage()
-	page.AddCharts(
-		generateLiquidBadge(badgeKPI, badgeKPIValue, clickURL, title),
-	)
-
-	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
-	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
-	badgeFileName := fmt.Sprintf("/go_seo_CMGR%s.html", badgeKPI)
-	f, err := os.Create(insightsFolder + badgeFileName)
-	if err != nil {
-		panic(err)
-	}
-	_ = page.Render(io.MultiWriter(f))
-}
-
 // CMGR badges
-func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) *charts.Liquid {
+func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) {
 
 	badgeKPIValueCalc := badgeKPIValue * 100
 	subTitle := fmt.Sprintf("Compound growth CMGR. Rounded from %.2f%%", badgeKPIValueCalc)
 
 	liquid := charts.NewLiquid()
+
 	liquid.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			PageTitle: "Go_Seo",
+			PageTitle: badgeKPI + " growth (CMGR)",
 			Width:     badgeDefaultWidth,
 			Height:    badgeDefaultHeight,
 		}),
@@ -1448,10 +1395,7 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 		}),
 	)
 
-	// Resetting badgeKPI to nil. The badge looks better if we do not include the KPI name as a legend
-	badgeKPI = ""
-
-	liquid.AddSeries(badgeKPI, genLiquidItems([]float32{badgeKPIValue})).
+	liquid.AddSeries("", genLiquidItems([]float32{badgeKPIValue})).
 		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
 				Show: opts.Bool(true),
@@ -1462,7 +1406,13 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 				Shape:           "roundRect",
 			}),
 		)
-	return liquid
+
+	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
+	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
+	badgeFileName := fmt.Sprintf("/go_seo_CMGR%s.html", badgeKPI)
+	f, _ := os.Create(insightsFolder + badgeFileName)
+
+	_ = liquid.Render(f)
 }
 
 // Get data for the liquid badge
@@ -1475,63 +1425,34 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 	return items
 }
 
-// Top keywords for branded and non-branded
-func wordcloudBrandedUnbranded(brandedMode bool) {
-
-	// Generate the HTML for branded keywords
-	if brandedMode {
-		page := components.NewPage()
-		page.AddCharts(
-			generateWordCloud(true),
-		)
-		f, err := os.Create(insightsFolder + "/go_seo_WordCloudBranded.html")
-		if err != nil {
-			panic(err)
-		}
-
-		_ = page.Render(io.MultiWriter(f))
-	}
-
-	// Generate the HTML for non-branded keywords
-	if !brandedMode {
-		page := components.NewPage()
-		page.AddCharts(
-			generateWordCloud(false),
-		)
-		f, err := os.Create(insightsFolder + "/go_seo_WordCloudNonBranded.html")
-		if err != nil {
-			panic(err)
-		}
-
-		_ = page.Render(io.MultiWriter(f))
-	}
-}
-
 // Branded and non-branded wordclouds
-func generateWordCloud(brandedMode bool) *charts.WordCloud {
+func wordcloudBrandedNonBranded(brandedMode bool) {
 
 	var clickURL string
 	var subtitle string
+	var pageTitle string
 
 	if brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudBranded.html"
+		pageTitle = "Branded wordcloud"
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
+		pageTitle = "Non Branded wordcloud"
 	}
 
-	wc := charts.NewWordCloud()
-	wc.SetGlobalOptions(
+	wordcloud := charts.NewWordCloud()
+	wordcloud.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:     wcDefaultWidth,
-			Height:    wcDefaultHeight,
-			PageTitle: "Keyword wordcloud",
+			Width:     wordcloudDefaultWidth,
+			Height:    wordcloudDefaultHeight,
+			PageTitle: pageTitle,
 		}),
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
@@ -1542,7 +1463,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	// Generate the branded wordcloud
 	if brandedMode {
-		wc.AddSeries("Clicks", generateWCData(kwKeywords, kwCountClicks)).
+		wordcloud.AddSeries("Clicks", generateWCData(kwKeywords, kwCountClicks)).
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
@@ -1554,7 +1475,7 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	// Generate the non-branded wordcloud
 	if !brandedMode {
-		wc.AddSeries("Clicks", generateWCDataNonBranded(kwKeywordsNonBranded, kwCountClicksNonBranded)).
+		wordcloud.AddSeries("Clicks", generateWCDataNonBranded(kwKeywordsNonBranded, kwCountClicksNonBranded)).
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
@@ -1563,7 +1484,17 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 					}),
 			)
 	}
-	return wc
+
+	if brandedMode {
+		f, _ := os.Create(insightsFolder + "/go_seo_WordCloudBranded.html")
+		_ = wordcloud.Render(f)
+	}
+
+	if !brandedMode {
+		f, _ := os.Create(insightsFolder + "/go_seo_WordCloudNonBranded.html")
+		_ = wordcloud.Render(f)
+	}
+
 }
 
 // Generate the data for the wordcloud - Branded
@@ -1598,29 +1529,16 @@ func generateWCDataNonBranded(kwKeywordsNonBranded []string, kwCountClicksNonBra
 	return items
 }
 
-// Revenue & visits river chart
-func riverRevenueVisits() {
-
-	page := components.NewPage()
-	page.AddCharts(
-		generateRiverTime(),
-	)
-	f, err := os.Create(insightsFolder + "/go_seo_VisitsRevenueRiver.html")
-	if err != nil {
-		panic(err)
-	}
-	_ = page.Render(io.MultiWriter(f))
-}
-
 // River chart
-func generateRiverTime() *charts.ThemeRiver {
+func riverRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
 	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsRevenueRiver.html"
 
-	tr := charts.NewThemeRiver()
-	tr.SetGlobalOptions(
+	river := charts.NewThemeRiver()
+
+	river.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
 			Subtitle: "Gain an insight into the fluctuations in organic visitors to a site and the corresponding revenue generation.",
@@ -1628,6 +1546,9 @@ func generateRiverTime() *charts.ThemeRiver {
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
 			Bottom: "10%",
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Type: "time",
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Trigger: "axis",
@@ -1651,7 +1572,7 @@ func generateRiverTime() *charts.ThemeRiver {
 	for i, date := range startMonthDates {
 		parsedDate, err := time.Parse("20060102", date)
 		if err != nil {
-			fmt.Printf(red+"Error. generateRiverTime. Error parsing date: %v\n"+reset, err)
+			fmt.Printf(red+"Error. riverRevenueVisits. Error parsing date: %v\n"+reset, err)
 			break
 		}
 		formattedDate := parsedDate.Format("2006/01/02")
@@ -1667,7 +1588,7 @@ func generateRiverTime() *charts.ThemeRiver {
 	for i, date := range startMonthDates {
 		parsedDate, err := time.Parse("20060102", date)
 		if err != nil {
-			fmt.Printf(red+"Error. generateRiverTime. Error parsing date: %v\n"+reset, err)
+			fmt.Printf(red+"Error. riverRevenueVisits. Error parsing date: %v\n"+reset, err)
 			break
 		}
 		formattedDate := parsedDate.Format("2006/01/02")
@@ -1678,27 +1599,14 @@ func generateRiverTime() *charts.ThemeRiver {
 		})
 	}
 
-	tr.AddSeries("themeRiver", themeRiverData)
+	river.AddSeries("themeRiver", themeRiverData)
 
-	return tr
+	f, _ := os.Create(insightsFolder + "/go_seo_VisitsRevenueRiver.html")
+
+	_ = river.Render(f)
 }
 
-// Visits per order gauge chart
 func gaugeVisitsPerOrder() {
-
-	page := components.NewPage()
-	page.AddCharts(
-		gaugeBase(),
-	)
-
-	f, err := os.Create(insightsFolder + "/go_seo_Gauge.html")
-	if err != nil {
-		panic(err)
-	}
-	_ = page.Render(io.MultiWriter(f))
-}
-
-func gaugeBase() *charts.Gauge {
 
 	gauge := charts.NewGauge()
 
@@ -1725,7 +1633,9 @@ func gaugeBase() *charts.Gauge {
 	gauge.AddSeries("",
 		[]opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
-	return gauge
+	f, _ := os.Create(insightsFolder + "/go_seo_Gauge.html")
+
+	_ = gauge.Render(f)
 }
 
 // Table containing the detailed KPI insights
@@ -2358,7 +2268,7 @@ func generateDashboardContainer() {
             height: 500px;
         }
         .short-iframe {
-            height: 400px;
+            height: 450px;
         }
         .back-button {
             padding: 12px 24px;
@@ -2414,6 +2324,10 @@ func generateDashboardContainer() {
 </section>
 
 <section class="container row">
+    <iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
+</section>
+
+<section class="container row">
     <iframe src="go_seo_CMGRRevenue.html" title="CMGR Revenue" class="short-iframe"></iframe>
     <iframe src="go_seo_CMGRVisits.html" title="CMGR Visits" class="short-iframe"></iframe>
 </section>
@@ -2424,6 +2338,9 @@ func generateDashboardContainer() {
 
 <section class="container row">
     <iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
+</section>
+
+<section class="container row">
     <iframe src="go_seo_OrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
 </section>
 
@@ -2435,10 +2352,6 @@ func generateDashboardContainer() {
 <section class="container row">
     <iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
     <iframe src="go_seo_CMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
-</section>
-
-<section class="container row">
-    <iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -3024,7 +2937,7 @@ func getAPIToken() string {
 	APIToken := os.Getenv("BotifyAPItoken")
 	if APIToken == "" {
 		fmt.Println(red + "Error. get APIToken. BotifyAPItoken environment variable not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsightsServer." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	}
 	return APIToken

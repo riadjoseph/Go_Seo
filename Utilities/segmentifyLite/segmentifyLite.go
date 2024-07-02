@@ -1630,7 +1630,7 @@ func getAPIToken() string {
 	APIToken := os.Getenv("BotifyAPItoken")
 	if APIToken == "" {
 		fmt.Println(red + "Error. get APIToken. BotifyAPItoken environment variable not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsightsServer." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	}
 	return APIToken
