@@ -41,9 +41,6 @@ Generates the segmentation regex for the following segments:
 ## exportURLs  
 Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
 
-**Note:** Update the code to include your own Botify API key. Change the variable **APIToken** to reflect your token  
-
-
 
 ## botifyBotLite   
 Generate Botify crawls en-masse.    
