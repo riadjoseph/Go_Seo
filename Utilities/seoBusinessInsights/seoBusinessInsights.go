@@ -27,8 +27,8 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken should be replaced with your own token
-var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+// APIToken is acquired from the environment variable BotifyAPItoken
+var APIToken string
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -216,6 +216,9 @@ func main() {
 
 	// Display the welcome banner
 	displayServerBanner()
+
+	// Get the API token from BotifyAPIToken environment variable
+	APIToken = getAPIToken()
 
 	// Serve static files from the current directory
 	fs := http.FileServer(http.Dir("."))
@@ -937,16 +940,16 @@ func badgeCMGR() {
 	liquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisits.html"
-	liquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits growth")
+	liquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisitValue.html"
-	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value growth")
+	liquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrders.html"
-	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors growth")
+	liquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors")
 
 	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrderValue.html"
-	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value by an organic visitor growth")
+	liquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value")
 }
 
 // Total Visits, Orders & Revenue
@@ -1434,9 +1437,9 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 	liquid := charts.NewLiquid()
 	liquid.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
+			PageTitle: "Go_Seo",
 			Width:     badgeDefaultWidth,
 			Height:    badgeDefaultHeight,
-			PageTitle: "Go_Seo",
 		}),
 		charts.WithTitleOpts(opts.Title{
 			Title:    title,
@@ -1525,7 +1528,6 @@ func generateWordCloud(brandedMode bool) *charts.WordCloud {
 
 	wc := charts.NewWordCloud()
 	wc.SetGlobalOptions(
-		//  No options defined
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:     wcDefaultWidth,
 			Height:    wcDefaultHeight,
@@ -2300,7 +2302,7 @@ func generateDashboardContainer() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go_Seo broadsheet</title>
+    <title>Business Insights Broadsheet</title>
     <style>
         body {
             margin: 0;
@@ -2326,7 +2328,6 @@ func generateDashboardContainer() {
             margin: 5px auto;
             font-size: 22px;
             border-radius: 10px;
-			/* Width set to 90percent */
             width: %s;
         }
         .container {
@@ -2335,8 +2336,7 @@ func generateDashboardContainer() {
             align-items: center;
             gap: 20px;
             margin: 5px auto;
-			/* Width set to 90percent */
-            width: %s 
+            width: %s
         }
         .row {
             flex-wrap: nowrap;
@@ -2344,7 +2344,6 @@ func generateDashboardContainer() {
         iframe {
             flex: 1 1 auto;
             min-width: 200px;
-			/* Width set to 100percent */
             width: %s; 
             border: 2px solid LightGray;
             border-radius: 10px;
@@ -2425,6 +2424,7 @@ func generateDashboardContainer() {
 
 <section class="container row">
     <iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
+    <iframe src="go_seo_OrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -2435,10 +2435,6 @@ func generateDashboardContainer() {
 <section class="container row">
     <iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
     <iframe src="go_seo_CMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
-</section>
-
-<section class="container row">
-    <iframe src="go_seo_OrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -3023,6 +3019,17 @@ func invertStringSlice(s []string) {
 	}
 }
 
+// Get the APItoken from the environment variable BotifyAPIToken
+func getAPIToken() string {
+	APIToken := os.Getenv("BotifyAPItoken")
+	if APIToken == "" {
+		fmt.Println(red + "Error. get APIToken. BotifyAPItoken environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsightsServer." + reset)
+		os.Exit(0)
+	}
+	return APIToken
+}
+
 // Display the welcome banner
 func displayServerBanner() {
 
@@ -3038,7 +3045,6 @@ func displayServerBanner() {
  ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝`)
 
 	fmt.Print(purple + `
-
 ██████╗ ██╗   ██╗███████╗██╗███╗   ██╗███████╗███████╗███████╗██╗███╗   ██╗███████╗██╗ ██████╗ ██╗  ██╗████████╗███████╗
 ██╔══██╗██║   ██║██╔════╝██║████╗  ██║██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔════╝██║██╔════╝ ██║  ██║╚══██╔══╝██╔════╝
 ██████╔╝██║   ██║███████╗██║██╔██╗ ██║█████╗  ███████╗███████╗██║██╔██╗ ██║███████╗██║██║  ███╗███████║   ██║   ███████╗

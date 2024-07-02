@@ -25,8 +25,8 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken should be updated to include your own token
-var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+// APIToken is acquired from the environment variable BotifyAPItoken
+var APIToken string
 
 // Colours & text formatting
 var purple = "\033[0;35m"
@@ -95,6 +95,9 @@ func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 func main() {
 
 	displayBanner()
+
+	// Get the APItoken from the environment variable BotifyAPIToken
+	APIToken = getAPIToken()
 
 	// Serve static files from the current directory
 	fs := http.FileServer(http.Dir("."))
@@ -1289,7 +1292,7 @@ func generateSegmentationRegex() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go_Seo Broadsheet</title>
+    <title>segmentifyLite</title>
  <style>
         body {
             margin: 0;
@@ -1358,7 +1361,7 @@ func generateSegmentationRegex() {
 <!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">segmentifyLite. Segment regex generation</span>
+    <span style="font-size: 20px;">segmentifyLite</span>
 </header>
 
 <!-- Back Button to create a new dashboard -->
@@ -1620,6 +1623,17 @@ func getHostnamePort() {
 	// Print the values (for demonstration purposes)
 	fmt.Printf(green+"\nHostname: %s\n"+reset, serverHostname)
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
+}
+
+// Get the APItoken from the environment variable BotifyAPIToken
+func getAPIToken() string {
+	APIToken := os.Getenv("BotifyAPItoken")
+	if APIToken == "" {
+		fmt.Println(red + "Error. get APIToken. BotifyAPItoken environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsightsServer." + reset)
+		os.Exit(0)
+	}
+	return APIToken
 }
 
 // Display the welcome banner
