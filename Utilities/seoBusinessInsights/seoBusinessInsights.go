@@ -26,8 +26,10 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken is acquired from the environment variable BotifyAPItoken
-var APIToken string
+// Variables taken from environment variables
+var envBotifyAPIToken string
+var envLogFolder string
+var envCacheFolder string
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -160,8 +162,7 @@ var currencyCode string
 var currencySymbol string
 
 // Name of the insights folder used to store the generated HTML
-var insightsFolder string
-var insightsFolderRoot = "./insights"
+var insightsCacheFolder string
 
 // Host name and port the web server runs on
 var protocol string
@@ -171,7 +172,7 @@ var fullHost string
 
 // Dashboard permalink
 var dashboardPermaLink string
-var insightsFolderTrimmed string
+var insightsCacheFolderTrimmed string
 
 type botifyResponse struct {
 	Count   int `json:"count"`
@@ -214,12 +215,9 @@ type Response struct {
 func main() {
 
 	// Display the welcome banner
-	displayServerBanner()
+	startup()
 
-	// Get the API token from BotifyAPIToken environment variable
-	APIToken = getAPIToken()
-
-	// Serve static files from the current directory
+	// Serve static files from the current folder
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/", fs)
 
@@ -240,13 +238,13 @@ func main() {
 		project = r.Form.Get("project")
 
 		// Generate a session ID used for grouping log entries
-		sessionID, err := generateLogSessionID(8)
+		sessionID, err := generateSessionID(8)
 		if err != nil {
-			fmt.Println(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
-			return
+			fmt.Println(red+"Error. writeLog. Failed generating a session ID: %s"+reset, err)
+			os.Exit(0)
 		}
 
-		// Acquire the business insights for the dashboard
+		// Acquire the business insights
 		dataStatus := getBusinessInsights(sessionID)
 
 		// Evaluate the results of getBusinessInsights before generating the broadsheet
@@ -260,7 +258,7 @@ func main() {
 			businessInsightsDashboard(sessionID)
 			writeLog(sessionID, organization, project, "-", "Broadsheet generated")
 			// Respond to the client with a success message or redirect to another page
-			http.Redirect(w, r, insightsFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
+			http.Redirect(w, r, insightsCacheFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
 		}
 
 		// Manage errors
@@ -269,7 +267,7 @@ func main() {
 		if dataStatus == "errorNoProjectFound" {
 			writeLog(sessionID, organization, project, "-", "No project found")
 			generateErrorPage("No project found. Try another organisation and project name. (" + organization + "/" + project + ")")
-			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsCacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -277,7 +275,7 @@ func main() {
 		if dataStatus == "errorNoAnalyticsIntegrated" {
 			writeLog(sessionID, organization, project, "-", "No analytics found")
 			generateErrorPage("No analytics tool has been integrated into the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsCacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -285,7 +283,7 @@ func main() {
 		if dataStatus == "errorNoEAFound" {
 			writeLog(sessionID, organization, project, "-", "No revenue data found")
 			generateErrorPage("Engagement analytics with visits, revenue & transactions has not been configured for the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsCacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 
@@ -293,7 +291,7 @@ func main() {
 		if dataStatus == "errorNoKWFound" {
 			writeLog(sessionID, organization, project, "-", "No keywords data found")
 			generateErrorPage("RealKeywords has not been configured for the specified project (" + organization + "/" + project + ")")
-			http.Redirect(w, r, insightsFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
+			http.Redirect(w, r, insightsCacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
 	})
@@ -305,12 +303,13 @@ func main() {
 	}
 }
 
+// Generate the broadsheet
 func businessInsightsDashboard(sessionID string) {
 
 	// Broadsheet header
 	headerNotes()
 
-	// Totals of visits, orders & revenue
+	// Visits, orders & revenue totals
 	tableVisitsOrdersRevenue()
 
 	// Badges for CMGR KPIs
@@ -393,8 +392,8 @@ func getBusinessInsights(sessionID string) string {
 	fmt.Println()
 
 	// Create the insights folder for the generated HTML if it does not exist
-	insightsFolder = insightsFolderRoot + "/" + sessionID + organization
-	createInsightsFolder()
+	insightsCacheFolder = envCacheFolder + "/" + sessionID + organization
+	createinsightsCacheFolder(insightsCacheFolder) //bloo
 
 	// Get the currency used
 	getCurrency()
@@ -822,7 +821,6 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 
 	if responseCount == 0 {
 		fmt.Println(red+"Error. generateRevenueBQL. No engagement analytics configured, or data is not available for computed date ranges for", organization+"/"+project+reset)
-
 		getRevenueDataStatus := "errorNoEAFound"
 		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
 	} else {
@@ -891,7 +889,6 @@ func headerNotes() {
 		<br>
 		` + htmlDataIssue + `
     </div>
-
 </body>
 </html>
 `
@@ -932,22 +929,22 @@ func badgeCMGR() {
 	cmgrOrderValueValue32 := float32(cmgrOrderValueValue)
 
 	// Generate the badges
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
 
 	// URL to full screen badge display
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRRevenue.html"
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRRevenue.html"
 	generateLiquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
 
-	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisits.html"
+	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisits.html"
 	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits")
 
-	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGRVisitValue.html"
+	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
 	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value")
 
-	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrders.html"
+	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrders.html"
 	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors")
 
-	clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_CMGROrderValue.html"
+	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
 	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value")
 }
 
@@ -1075,8 +1072,8 @@ func tableVisitsOrdersRevenue() {
 func barRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_RevenueVisitsBar.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_RevenueVisitsBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(
@@ -1123,10 +1120,10 @@ func barRevenueVisits() {
 	var err error
 
 	// Assign 'f' here
-	f, err = os.Create(insightsFolder + "/go_seo_RevenueVisitsBar.html")
+	f, err = os.Create(insightsCacheFolder + "/go_seo_RevenueVisitsBar.html")
 	if err != nil {
-		// Handle the error appropriately
-		panic(err)
+		fmt.Printf(red+"Error. barRevenueVisits. Cannot create go_seo_RevenueVisitsBar.html: %v\n"+reset, err)
+		return
 	}
 
 	// Render the chart to the file
@@ -1137,8 +1134,8 @@ func barRevenueVisits() {
 func lineVisitsPerOrder() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsPerOrderLine.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitsPerOrderLine.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
@@ -1185,7 +1182,7 @@ func lineVisitsPerOrder() {
 			}),
 	)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_VisitsPerOrderLine.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsPerOrderLine.html")
 
 	_ = line.Render(f)
 }
@@ -1204,8 +1201,8 @@ func generateLineItems(visitsPerOrder []int) []opts.LineData {
 func barVisitValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitValueBar.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitValueBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1246,7 +1243,7 @@ func barVisitValue() {
 			),
 		)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_VisitValueBar.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1255,8 +1252,8 @@ func barVisitValue() {
 func barOrders() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_OrdersBar.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrdersBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1297,7 +1294,7 @@ func barOrders() {
 			),
 		)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_OrdersBar.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrdersBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1306,8 +1303,8 @@ func barOrders() {
 func barOrderValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_OrderValueBar.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrderValueBar.html"
 
 	bar := charts.NewBar()
 
@@ -1349,7 +1346,7 @@ func barOrderValue() {
 			),
 		)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_OrderValueBar.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrderValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1410,7 +1407,7 @@ func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string
 	// Removing spaces from badgeKPI to ensure a clean URL for the HTML is generated.
 	badgeKPI = strings.ReplaceAll(badgeKPI, " ", "")
 	badgeFileName := fmt.Sprintf("/go_seo_CMGR%s.html", badgeKPI)
-	f, _ := os.Create(insightsFolder + badgeFileName)
+	f, _ := os.Create(insightsCacheFolder + badgeFileName)
 
 	_ = liquid.Render(f)
 }
@@ -1435,19 +1432,20 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 	if brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudBranded.html"
+		insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordCloudBranded.html"
 		pageTitle = "Branded wordcloud"
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-		insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-		clickURL = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
+		insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
 		pageTitle = "Non Branded wordcloud"
 	}
 
 	wordcloud := charts.NewWordCloud()
+
 	wordcloud.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:     wordcloudDefaultWidth,
@@ -1468,7 +1466,7 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
 						SizeRange: []float32{10, 90},
-						Shape:     "basic",
+						Shape:     "roundRect",
 					}),
 			)
 	}
@@ -1486,12 +1484,12 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 	}
 
 	if brandedMode {
-		f, _ := os.Create(insightsFolder + "/go_seo_WordCloudBranded.html")
+		f, _ := os.Create(insightsCacheFolder + "/go_seo_WordCloudBranded.html")
 		_ = wordcloud.Render(f)
 	}
 
 	if !brandedMode {
-		f, _ := os.Create(insightsFolder + "/go_seo_WordCloudNonBranded.html")
+		f, _ := os.Create(insightsCacheFolder + "/go_seo_WordCloudNonBranded.html")
 		_ = wordcloud.Render(f)
 	}
 
@@ -1533,8 +1531,8 @@ func generateWCDataNonBranded(kwKeywordsNonBranded []string, kwCountClicksNonBra
 func riverRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsRevenueRiver.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitsRevenueRiver.html"
 
 	river := charts.NewThemeRiver()
 
@@ -1601,7 +1599,7 @@ func riverRevenueVisits() {
 
 	river.AddSeries("themeRiver", themeRiverData)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_VisitsRevenueRiver.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsRevenueRiver.html")
 
 	_ = river.Render(f)
 }
@@ -1610,8 +1608,8 @@ func gaugeVisitsPerOrder() {
 
 	gauge := charts.NewGauge()
 
-	insightsFolderTrimmed = strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_Gauge.html"
+	insightsCacheFolderTrimmed = strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_Gauge.html"
 
 	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
 		s.Min = minVisitsPerOrder
@@ -1633,7 +1631,7 @@ func gaugeVisitsPerOrder() {
 	gauge.AddSeries("",
 		[]opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_Gauge.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_Gauge.html")
 
 	_ = gauge.Render(f)
 }
@@ -1735,7 +1733,7 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
             height: 100vh;
         }
         .content {
-  			border: 2px solid LightGray;  
+  			border: 2px solid lightSkyBlue;  
             border-radius: 40px; 
             padding: 30px;
             text-align: center;  
@@ -1984,8 +1982,8 @@ func forecastDataCompute() {
 func lineRevenueForecast() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsFolderTrimmed := strings.TrimPrefix(insightsFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_VisitsPerOrderLineRevenueForecast.html"
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitsPerOrderLineRevenueForecast.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
@@ -2033,7 +2031,7 @@ func lineRevenueForecast() {
 			}),
 	)
 
-	f, _ := os.Create(insightsFolder + "/go_seo_VisitsPerOrderLineRevenueForecast.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsPerOrderLineRevenueForecast.html")
 
 	_ = line.Render(f)
 }
@@ -2127,7 +2125,7 @@ func textForecastNarrative() {
 // Footer
 func footerNotes() {
 
-	dashboardPermaLink = protocol + "://" + fullHost + insightsFolderTrimmed + "/go_seo_BusinessInsights.html"
+	dashboardPermaLink = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_BusinessInsights.html"
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
@@ -2170,7 +2168,7 @@ func formatDate(dateStr string) string {
 	date, err := time.Parse("20060102", dateStr)
 	if err != nil {
 		fmt.Println(red+"Error. formatDate. Cannot parse date:"+reset, err)
-		return dateStr // return the original string in case of error
+		return dateStr
 	}
 	return date.Format("January 2006")
 }
@@ -2178,9 +2176,9 @@ func formatDate(dateStr string) string {
 // Function used to generate and save the HTML content to a file
 func saveHTML(genHTML string, genFilename string) {
 
-	file, err := os.Create(insightsFolder + genFilename)
+	file, err := os.Create(insightsCacheFolder + genFilename)
 	if err != nil {
-		fmt.Println(red+"Error. saveHTML. Cannot create:"+reset, genFilename, err)
+		fmt.Println(red+"Error. saveHTML. Cannot create:"+reset, insightsCacheFolder, genFilename, err)
 		return
 	}
 
@@ -2193,8 +2191,8 @@ func saveHTML(genHTML string, genFilename string) {
 
 	_, err = file.WriteString(genHTML)
 	if err != nil {
-		fullDirectory := insightsFolder + genFilename
-		fmt.Printf(red+"Error. saveHTML. Cannot write HTML file: %s"+reset, fullDirectory)
+		fullFolder := insightsCacheFolder + genFilename
+		fmt.Printf(red+"Error. saveHTML. Cannot write HTML file: %s"+reset, fullFolder)
 		fmt.Printf(red+"Error. saveHTML. Error %s:"+reset, err)
 		return
 	}
@@ -2255,7 +2253,7 @@ func generateDashboardContainer() {
             flex: 1 1 auto;
             min-width: 200px;
             width: %s; 
-            border: 2px solid LightGray;
+            border: 2px solid lightSkyBlue;
             border-radius: 10px;
         }
         .no-border iframe {
@@ -2274,7 +2272,7 @@ func generateDashboardContainer() {
             padding: 12px 24px;
             font-size: 18px;
             color: white;
-            background-color: #007BFF;
+            background-color: Green;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -2285,11 +2283,14 @@ func generateDashboardContainer() {
             transition: background-color 0.3s, box-shadow 0.3s;
         }
         .back-button:hover {
-            background-color: #0056b3;
+            background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
+     .section-padding-top {
+            padding-top: 35px;
+        }
         .section-padding-bottom {
-            padding-bottom: 50px;
+            padding-bottom: 35px;
         }
     </style>
 </head>
@@ -2372,7 +2373,7 @@ func generateDashboardContainer() {
     <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
 </section>
 
-<section class="container row no-border section-padding-bottom">
+<section class="container row no-border section-padding-top section-padding-bottom">
     <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 </section>
 
@@ -2382,7 +2383,7 @@ func generateDashboardContainer() {
     <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
 </section>
 
-<section class="container row no-border">
+<section class="container section-padding-top row no-border">
     <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 </section>
 
@@ -2393,7 +2394,7 @@ func generateDashboardContainer() {
 
 <!-- Bottom Banner -->
 <footer class="banner bottom">
-    Go_Seo. Jason Vicinanza. Github: <a href="https://github.com/flaneur7508/Go_Seo">https://github.com/flaneur7508/Go_SEO</a>
+    Jason Vicinanza. <a href="https://github.com/flaneur7508/Go_Seo" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_Seo</a>
 </footer>
 
 <body style="background-color:rgba(204, 255, 204, 0.5);">
@@ -2427,7 +2428,7 @@ func executeBQL(returnSize int, bqlToExecute string) []byte {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+APIToken)
+	req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request
@@ -2531,7 +2532,7 @@ func getAnalyticsID() (string, string) {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+APIToken)
+	req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	if errorCheck != nil {
@@ -2751,7 +2752,7 @@ func generateErrorPage(displayMessage string) {
 func writeLog(sessionID, organization, project, analyticsID, statusDescription string) {
 
 	// Define log file name
-	fileName := "_seoBusinessInsights.log"
+	fileName := envLogFolder + "/_seoBusinessInsights.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -2792,7 +2793,7 @@ func writeLog(sessionID, organization, project, analyticsID, statusDescription s
 	}
 }
 
-func generateLogSessionID(length int) (string, error) {
+func generateSessionID(length int) (string, error) {
 
 	// Generate random bytes
 	sessionIDLength := make([]byte, length)
@@ -2815,7 +2816,7 @@ func getCurrency() {
 	}
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+APIToken)
+	req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -2886,16 +2887,16 @@ func getCurrency() {
 	}
 }
 
-func createInsightsFolder() {
+func createinsightsCacheFolder(cacheFolder string) {
 
-	insightsDir := insightsFolder
-
-	// Check if the directory already exists
+	insightsDir := cacheFolder
+	// Check if the folder already exists
 	if _, err := os.Stat(insightsDir); os.IsNotExist(err) {
-		// Create the directory and any necessary parents
+		// Create the folder and any necessary parents
 		err := os.MkdirAll(insightsDir, 0755)
 		if err != nil {
-			fmt.Printf(red+"Error. Failed to create the insights directory: %v"+reset, err)
+			fmt.Printf(red+"Error. Failed to create the insights folder: %v"+insightsDir+reset, err)
+			fmt.Println()
 		}
 	}
 }
@@ -2932,19 +2933,43 @@ func invertStringSlice(s []string) {
 	}
 }
 
-// Get the APItoken from the environment variable BotifyAPIToken
-func getAPIToken() string {
-	APIToken := os.Getenv("BotifyAPItoken")
-	if APIToken == "" {
-		fmt.Println(red + "Error. get APIToken. BotifyAPItoken environment variable not set." + reset)
+// Get environment variables for token and storage folders
+func getEnvVariables() (envBotifyAPIToken string, envLogFolder string, envCacheFolder string) {
+
+	// Botify API token from the env. variable getbotifyAPIToken
+	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
+	if envBotifyAPIToken == "" {
+		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable not set." + reset)
 		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	}
-	return APIToken
+
+	// Storage folder for the log file
+	envLogFolder = os.Getenv("envLogFolder")
+	if envLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envLogFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println()
+		fmt.Println(green + "Log folder: " + envLogFolder + reset)
+	}
+
+	// Storage folder for the cached insights
+	envCacheFolder = os.Getenv("envCacheFolder")
+	if envCacheFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envCacheFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "Cache folder: " + envCacheFolder + reset)
+	}
+
+	return envBotifyAPIToken, envLogFolder, envCacheFolder
 }
 
 // Display the welcome banner
-func displayServerBanner() {
+func startup() {
 
 	// Clear the screen
 	fmt.Print(clearScreen)
@@ -2978,6 +3003,8 @@ func displayServerBanner() {
 	// Get the hostname and port
 	getHostnamePort()
 
-	fmt.Println(green + "\n... waiting for requests\n" + reset)
+	// Get the environment variables for token, log folder & cache folder
+	envBotifyAPIToken, envLogFolder, envCacheFolder = getEnvVariables()
 
+	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }
