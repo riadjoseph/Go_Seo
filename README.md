@@ -16,7 +16,10 @@ Charts included:
 - Winning branded and non branded keywords
 - Detailed KPI insights 
 
-**Note:** The API token for seoBusinessInsights is acquired from the environment variable BotifyAPIToken.
+**Note:** Set the following environment variables before executing seoBusinessInsights  
+export envBotifyAPIToken="your_botify_token"  
+export envCacheFolder="./insights"  
+export envLogFolder="."  
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
@@ -31,14 +34,12 @@ Generates the segmentation regex for the following segments:
 - Shopify (if detected)
 - SFCC (if detected, and the site is not using "Search-Friendly URLs for B2C Commerce")
 
-**Note:** The API token for segmentifyLite is acquired from the environment variable BotifyAPIToken
+**Note:** The API token for segmentifyLite is acquired from the environment variable BotifyAPIToken.  
 **Note:** The number of URLs found in level 1 folders, level 2 folders and parameter key segments are included as comments after the generated regex. Use these insights to decide which segments slices to keep and which to remove.   
 **Note:** All level 1 and level 2 segments which are less than 5% of the size of the largest level 1 or level 2 folder found are excluded from the segmentation regex. To amend this threshold change the percentage threshold in the variable **thresholdPercent**.  
-**Note:** Update the code to include your own Botify API key. Change the variable **APIToken** to reflect your token  
 
 ## exportURLs  
 Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
-
 
 ## botifyBotLite   
 Generate Botify crawls en-masse.    
