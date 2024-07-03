@@ -16,10 +16,10 @@ Charts included:
 - Winning branded and non branded keywords
 - Detailed KPI insights 
 
-**Note:** Set the following environment variables before executing seoBusinessInsights
-export envBotifyAPIToken="your_botify_token"
-export envCacheFolder="./insights"
-export envLogFolder="."
+**Note:** Set the following environment variables before executing seoBusinessInsights  
+export envBotifyAPIToken="your_botify_token"  
+export envCacheFolder="./insights"  
+export envLogFolder="."  
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
