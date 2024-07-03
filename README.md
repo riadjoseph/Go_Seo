@@ -16,7 +16,10 @@ Charts included:
 - Winning branded and non branded keywords
 - Detailed KPI insights 
 
-**Note:** The API token for seoBusinessInsights is acquired from the environment variable BotifyAPIToken.
+**Note:** Set the following environment variables before executing seoBusinessInsights
+export envBotifyAPIToken="your_botify_token"
+export envCacheFolder="./insights"
+export envLogFolder="."
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
