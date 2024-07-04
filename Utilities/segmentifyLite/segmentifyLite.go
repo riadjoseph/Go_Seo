@@ -1681,7 +1681,6 @@ func startUp() {
 
 	fmt.Println()
 	fmt.Println(purple+"\nVersion:"+reset, version)
-	fmt.Println(purple + "\nsegmentifyLite server.\n" + reset)
 	fmt.Println(green + "\nThe Go_Seo segmentifyLite server is ON.\n" + reset)
 
 	now := time.Now()
