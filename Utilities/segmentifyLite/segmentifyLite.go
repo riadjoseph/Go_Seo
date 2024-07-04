@@ -25,8 +25,10 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken is acquired from the environment variable BotifyAPItoken
-var APIToken string
+// Token, log folder and cache folder taken from environment variables
+var envBotifyAPIToken string
+var envSegmentLogFolder string
+var envSegmentFolder string
 
 // Colours & text formatting
 var purple = "\033[0;35m"
@@ -94,10 +96,7 @@ func (a ByCount) Less(i, j int) bool { return a[i].Count > a[j].Count }
 
 func main() {
 
-	displayBanner()
-
-	// Get the APItoken from the environment variable BotifyAPIToken
-	APIToken = getAPIToken()
+	startUp()
 
 	// Serve static files from the current directory
 	fs := http.FileServer(http.Dir("."))
@@ -122,7 +121,7 @@ func main() {
 			fmt.Println(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
 
-		// Create the cache folder for the generated HTML if it does not exist
+		cacheFolderRoot = envSegmentFolder
 		cacheFolder = cacheFolderRoot + "/" + sessionID
 		createCacheFolder()
 
@@ -146,14 +145,13 @@ func main() {
 			return
 		}
 
-		// Write to the log
 		writeLog(sessionID, organisation, project, "URLs acquired")
 
 		// Generate the output file to store the regex
 		generateRegexFile()
 
 		//Level 1 and 2 folders
-		level1andFolders()
+		level1and2Folders()
 
 		//Subdomains
 		subDomains()
@@ -172,14 +170,12 @@ func main() {
 
 		// Salesforce Commerce Cloud if detected
 		if sfccDetected {
-			// Write to the log
 			writeLog(sessionID, organisation, project, "SFCC detected")
 			sfccURLs()
 		}
 
 		// Shopify if detected
 		if shopifyDetected {
-			// Write to the log
 			writeLog(sessionID, organisation, project, "Shopify detected")
 			shopifyURLs()
 		}
@@ -187,7 +183,6 @@ func main() {
 		//Static resources
 		staticResources()
 
-		// Write to the log
 		writeLog(sessionID, organisation, project, "Regex generated successfully")
 
 		// Generate the HTML used to present the regex
@@ -220,7 +215,7 @@ func processURLs(sessionID string) string {
 		return "errorProcessURLs"
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+APIToken)
+	req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -256,9 +251,8 @@ func processURLs(sessionID string) string {
 
 	//Display the welcome message
 	fmt.Println()
-	fmt.Println(yellow + sessionID + purple + " Generating segmentation regex" + reset)
+	fmt.Printf(yellow + sessionID + purple + " Generating segmentation regex" + reset)
 	fmt.Printf("\n%s%s%s Organisation: %s, Project: %s\n", yellow, sessionID, reset, organisation, project)
-	fmt.Println()
 
 	//Create a file for writing
 	file, err := os.Create(urlExtractFile)
@@ -277,7 +271,6 @@ func processURLs(sessionID string) string {
 	//Initialize total count
 	totalCount := 0
 	fmt.Println(yellow+sessionID+reset+" Latest analysis slug:", responseObject.Results[0].Slug)
-	println()
 
 	analysisSlug := responseObject.Results[0].Slug
 
@@ -293,7 +286,7 @@ func processURLs(sessionID string) string {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+APIToken)
+		req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -348,7 +341,7 @@ func processURLs(sessionID string) string {
 			break
 		}
 
-		fmt.Printf("%s%s%s Page %d: %d URLs processed\n", yellow, sessionID, reset, page, count) //bloo
+		fmt.Printf("%s%s%s Page %d: %d URLs processed\n", yellow, sessionID, reset, page, count)
 	}
 
 	defer func() {
@@ -361,7 +354,7 @@ func processURLs(sessionID string) string {
 }
 
 // Generate regex for level 1 and 2 folders
-func level1andFolders() {
+func level1and2Folders() {
 
 	//Level1 folders
 	//Get the threshold. Use the level 1 slashCount
@@ -1226,7 +1219,8 @@ func insertStaticRegex(regexText string) error {
 func writeLog(sessionID, organisation, project, statusDescription string) {
 
 	// Define log file name
-	fileName := "_seoSegmentifyLite.log"
+	//fileName := "_seoSegmentifyLite.log"
+	fileName := envSegmentLogFolder + "/_seoBusinessInsights.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -1340,7 +1334,7 @@ func generateSegmentationRegex() {
             padding: 12px 24px;
             font-size: 18px;
             color: white;
-            background-color: #007BFF;
+            background-color: Green;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -1350,8 +1344,8 @@ func generateSegmentationRegex() {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: background-color 0.3s, box-shadow 0.3s;
         }
-        .back-button:hover {
-            background-color: #0056b3;
+   		 .back-button:hover {
+            background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
     </style>
@@ -1625,19 +1619,43 @@ func getHostnamePort() {
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
 }
 
-// Get the APItoken from the environment variable BotifyAPIToken
-func getAPIToken() string {
-	APIToken := os.Getenv("BotifyAPItoken")
-	if APIToken == "" {
-		fmt.Println(red + "Error. get APIToken. BotifyAPItoken environment variable not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+// Get environment variables for token and storage folders
+func getEnvVariables() (envBotifyAPIToken string, envSegmentLogFolder string, envSegmentFolder string) {
+
+	// Botify API token from the env. variable getbotifyenvBotifyAPIToken
+	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
+	if envBotifyAPIToken == "" {
+		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	}
-	return APIToken
+
+	// Storage folder for the log file
+	envSegmentLogFolder = os.Getenv("envSegmentLogFolder")
+	if envSegmentLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentLogFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println()
+		fmt.Println(green + "Log folder: " + envSegmentLogFolder + reset)
+	}
+
+	// Storage folder for the cached insights
+	envSegmentFolder = os.Getenv("envSegmentFolder")
+	if envSegmentFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "Segment folder: " + envSegmentFolder + reset)
+	}
+
+	return envBotifyAPIToken, envSegmentLogFolder, envSegmentFolder
 }
 
 // Display the welcome banner
-func displayBanner() {
+func startUp() {
 
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
@@ -1673,6 +1691,9 @@ func displayBanner() {
 
 	// Get the hostname and port
 	getHostnamePort()
+
+	// Get the environment variables for token, log folder & cache folder
+	envBotifyAPIToken, envSegmentLogFolder, envSegmentFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }

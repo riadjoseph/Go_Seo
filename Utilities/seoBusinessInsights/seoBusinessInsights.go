@@ -26,10 +26,10 @@ import (
 // Version
 var version = "v0.1"
 
-// Variables taken from environment variables
+// Token, log folder and cache folder taken from environment variables
 var envBotifyAPIToken string
-var envLogFolder string
-var envCacheFolder string
+var envInsightsLogFolder string
+var envInsightsFolder string
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -392,8 +392,8 @@ func getBusinessInsights(sessionID string) string {
 	fmt.Println()
 
 	// Create the insights folder for the generated HTML if it does not exist
-	insightsCacheFolder = envCacheFolder + "/" + sessionID + organization
-	createinsightsCacheFolder(insightsCacheFolder) //bloo
+	insightsCacheFolder = envInsightsFolder + "/" + sessionID + organization
+	createinsightsCacheFolder(insightsCacheFolder)
 
 	// Get the currency used
 	getCurrency()
@@ -1754,21 +1754,19 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
         }
     </style>
 </head>
-
 <body>
 	<p>
     <div class="content">
     <span class="keyword-font">
-        The winning keyword was <span class="blueText">%s</span> during <b>%s</b>. 
+        The winning keyword during <b>%s</b> was <span class="blueText">%s</span>. 
         This keyword generated <b>%s</b> clicks which is <b>%d%%</b> more clicks than the second placed keyword  <b>%s</b>. The click-through rate for the winning keyword was <b>%.2f%%</b> 
         from an average position of <b>%.2f</b>.
     </span>
 	</p>
 	</div>
-
 </body>
 </html>
-`, htmlKeyword, htmlLastMonthName, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
+`, htmlLastMonthName, htmlKeyword, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
 
 	if brandedMode {
 		htmlFileName = "/go_seo_WinningKeywordBranded.html"
@@ -2752,7 +2750,7 @@ func generateErrorPage(displayMessage string) {
 func writeLog(sessionID, organization, project, analyticsID, statusDescription string) {
 
 	// Define log file name
-	fileName := envLogFolder + "/_seoBusinessInsights.log"
+	fileName := envInsightsLogFolder + "/_seoBusinessInsights.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -2934,7 +2932,7 @@ func invertStringSlice(s []string) {
 }
 
 // Get environment variables for token and storage folders
-func getEnvVariables() (envBotifyAPIToken string, envLogFolder string, envCacheFolder string) {
+func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, envInsightsFolder string) {
 
 	// Botify API token from the env. variable getbotifyAPIToken
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
@@ -2945,27 +2943,27 @@ func getEnvVariables() (envBotifyAPIToken string, envLogFolder string, envCacheF
 	}
 
 	// Storage folder for the log file
-	envLogFolder = os.Getenv("envLogFolder")
-	if envLogFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envLogFolder environment variable not set." + reset)
+	envInsightsLogFolder = os.Getenv("envInsightsLogFolder")
+	if envInsightsLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envInsightsLogFolder environment variable not set." + reset)
 		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {
 		fmt.Println()
-		fmt.Println(green + "Log folder: " + envLogFolder + reset)
+		fmt.Println(green + "Log folder: " + envInsightsLogFolder + reset)
 	}
 
 	// Storage folder for the cached insights
-	envCacheFolder = os.Getenv("envCacheFolder")
-	if envCacheFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envCacheFolder environment variable not set." + reset)
+	envInsightsFolder = os.Getenv("envInsightsFolder")
+	if envInsightsFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envInsightsFolder environment variable not set." + reset)
 		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {
-		fmt.Println(green + "Cache folder: " + envCacheFolder + reset)
+		fmt.Println(green + "Insights cache folder: " + envInsightsFolder + reset)
 	}
 
-	return envBotifyAPIToken, envLogFolder, envCacheFolder
+	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder
 }
 
 // Display the welcome banner
@@ -3004,7 +3002,7 @@ func startup() {
 	getHostnamePort()
 
 	// Get the environment variables for token, log folder & cache folder
-	envBotifyAPIToken, envLogFolder, envCacheFolder = getEnvVariables()
+	envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }
