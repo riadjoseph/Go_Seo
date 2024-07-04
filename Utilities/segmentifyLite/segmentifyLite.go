@@ -1625,7 +1625,7 @@ func getEnvVariables() (envBotifyAPIToken string, envSegmentLogFolder string, en
 	// Botify API token from the env. variable getbotifyenvBotifyAPIToken
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
 	if envBotifyAPIToken == "" {
-		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable not set." + reset)
+		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable is not set." + reset)
 		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	}
@@ -1633,7 +1633,7 @@ func getEnvVariables() (envBotifyAPIToken string, envSegmentLogFolder string, en
 	// Storage folder for the log file
 	envSegmentLogFolder = os.Getenv("envSegmentLogFolder")
 	if envSegmentLogFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentLogFolder environment variable not set." + reset)
+		fmt.Println(red + "Error. getEnvVariables. envSegmentLogFolder environment variable is not set." + reset)
 		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	} else {
@@ -1644,7 +1644,7 @@ func getEnvVariables() (envBotifyAPIToken string, envSegmentLogFolder string, en
 	// Storage folder for the cached insights
 	envSegmentFolder = os.Getenv("envSegmentFolder")
 	if envSegmentFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentFolder environment variable not set." + reset)
+		fmt.Println(red + "Error. getEnvVariables. envSegmentFolder environment variable is not set." + reset)
 		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {

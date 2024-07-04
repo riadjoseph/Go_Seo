@@ -933,10 +933,10 @@ func badgeCMGR() {
 
 	// URL to full screen badge display
 	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRRevenue.html"
-	generateLiquidBadge("Revenue", cmgrRevenue32, clickURL, "Monthly revenue growth over the period")
+	generateLiquidBadge("Revenue", cmgrRevenue32, clickURL, "Revenue growth over the period")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisits.html"
-	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Average monthly organic visits")
+	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Organic visits growth")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
 	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value")
@@ -1079,7 +1079,7 @@ func barRevenueVisits() {
 	bar.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
-			Subtitle: "How many organic visits does the site attract and what is the generated revenue from those visits.",
+			Subtitle: "How many organic visits does the site attract and what is the generated revenue from those visits?",
 			Link:     clickURL,
 		}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1111,11 +1111,10 @@ func barRevenueVisits() {
 			),
 			charts.WithMarkPointStyleOpts(
 				opts.MarkPointStyle{
-					SymbolSize: 100,
+					SymbolSize: 90,
 				}),
 		)
 
-	// Declare the variable 'f' here
 	var f *os.File
 	var err error
 
@@ -1173,12 +1172,11 @@ func lineVisitsPerOrder() {
 		charts.WithMarkPointNameTypeItemOpts(
 			opts.MarkPointNameTypeItem{Name: "Highest No. of visits", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
 			opts.MarkPointNameTypeItem{Name: "Minimum  No. of visits", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
-			opts.MarkPointNameTypeItem{Name: "Average  No. of visits", Type: "average", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 165, 0)"}},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
 				// the size of the markLine symbol
-				SymbolSize: 100,
+				SymbolSize: 90,
 			}),
 	)
 
@@ -1618,7 +1616,7 @@ func gaugeVisitsPerOrder() {
 
 	gauge.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title: "The lowest, highest and current average number of organic visits per order",
+			Title: "Lowest, highest and average organic visits per order",
 			Link:  clickURL}),
 
 		charts.WithInitializationOpts(opts.Initialization{
@@ -1627,7 +1625,6 @@ func gaugeVisitsPerOrder() {
 			PageTitle: "Visits per order",
 		}),
 	)
-
 	gauge.AddSeries("",
 		[]opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
@@ -1733,9 +1730,9 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
             height: 100vh;
         }
         .content {
-  			border: 2px solid lightSkyBlue;  
-            border-radius: 40px; 
-            padding: 30px;
+  			border: 3px dashed lightSkyBlue;  
+            border-radius: 25px; 
+            padding: 15px;
             text-align: center;  
         }
         .blueText {
@@ -1755,14 +1752,12 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
     </style>
 </head>
 <body>
-	<p>
     <div class="content">
     <span class="keyword-font">
         The winning keyword during <b>%s</b> was <span class="blueText">%s</span>. 
         This keyword generated <b>%s</b> clicks which is <b>%d%%</b> more clicks than the second placed keyword  <b>%s</b>. The click-through rate for the winning keyword was <b>%.2f%%</b> 
         from an average position of <b>%.2f</b>.
     </span>
-	</p>
 	</div>
 </body>
 </html>
@@ -1838,7 +1833,7 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         <tbody>`
 
 	// Title
-	htmlContent += fmt.Sprintf("<h2>\n\nMonthly summary for the previous %d months</h2>", noOfMonths+1)
+	htmlContent += fmt.Sprintf("<h2>\n\nSummary for the previous %d months</h2>", noOfMonths+1)
 
 	// Insert tke KPI details
 	for _, row := range data {
@@ -1992,13 +1987,13 @@ func lineRevenueForecast() {
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
 			Type:  "slider",
-			Start: 0,
-			End:   100,
+			Start: 5,
+			End:   20,
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:     chartDefaultWidth,
 			Height:    chartDefaultHeight,
-			PageTitle: "Revenue forecast",
+			PageTitle: "Organic revenue forecast",
 		}),
 
 		charts.WithColorsOpts(opts.Colors{kpiColourRevenueForecast}),
@@ -2012,6 +2007,7 @@ func lineRevenueForecast() {
 	line.SetXAxis(forecastVisitIncrementsString).AddSeries("Revenue forecast", lineVisitsPerOrderValue).SetSeriesOptions(
 
 		charts.WithAreaStyleOpts(opts.AreaStyle{
+			Color:   "lightSkyBlue",
 			Opacity: 0.2,
 		}),
 		charts.WithLineChartOpts(opts.LineChart{
@@ -2024,8 +2020,7 @@ func lineRevenueForecast() {
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
-				// the size of the markLine symbol
-				SymbolSize: 100,
+				SymbolSize: 90,
 			}),
 	)
 
@@ -2196,7 +2191,8 @@ func saveHTML(genHTML string, genFilename string) {
 	}
 }
 
-// Define the HTML for the seoBusinessInsights.html container. Used to consolidate the generated charts into a single page.
+// Define the HTML for the container. Used to consolidate the generated charts into a single page.
+// Container here
 func generateDashboardContainer() {
 
 	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
@@ -2261,7 +2257,7 @@ func generateDashboardContainer() {
             height: 750px;
         }
         .medium-iframe {
-            height: 500px;
+            height: 600px;
         }
         .short-iframe {
             height: 450px;
@@ -2332,10 +2328,6 @@ func generateDashboardContainer() {
 </section>
 
 <section class="container row">
-    <iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
-</section>
-
-<section class="container row">
     <iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
 </section>
 
@@ -2344,13 +2336,8 @@ func generateDashboardContainer() {
 </section>
 
 <section class="container row">
-    <iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
-    <iframe src="go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
-</section>
-
-<section class="container row">
-    <iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
     <iframe src="go_seo_CMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
+    <iframe src="go_seo_CMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
 </section>
 
 <section class="container row">
@@ -2358,12 +2345,21 @@ func generateDashboardContainer() {
 </section>
 
 <section class="container row">
+    <iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
+</section>
+
+<section class="container row">
     <iframe src="go_seo_CMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
-    <iframe src="go_seo_CMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
+    <iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
 </section>
 
 <section class="container row no-border">
     <iframe src="go_seo_DataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
+</section>
+
+<section class="container row">
+    <iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
+    <iframe src="go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 </section>
 
 <section class="container row no-border">
