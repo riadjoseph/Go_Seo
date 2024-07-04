@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +26,7 @@ var green = "\033[0;32m"
 var red = "\033[0;31m"
 var bold = "\033[1m"
 var reset = "\033[0m"
+var clearScreen = "\033[H\033[2J"
 
 // Strings used to store the project credentials for API access
 var projectPrefix string
@@ -45,15 +45,10 @@ var noCrawlsToGenerate = 0
 // Used to store the project slug (region) based on the user selection
 var projectSlug = ""
 
-// Error detection
-var err error
-
 // No of URLs found in crawlme.txt
 var urlsFound = 0
 
 func main() {
-
-	clearScreen()
 
 	displayBanner()
 
@@ -69,7 +64,7 @@ func main() {
 	// If the crawl settings have been provided on the command line use them
 	if !configInput {
 		projectPrefix = os.Args[1]
-		urlCount, err = strconv.Atoi(os.Args[2])
+		urlCount, _ = strconv.Atoi(os.Args[2])
 	} else {
 		projectPrefix = projectPrefixInput
 		urlCount = urlCountInput
@@ -105,7 +100,12 @@ func validateCrawlmeTxt() {
 		fmt.Println("Error opening file:", err)
 		os.Exit(1)
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. validateCrawlmeTxt. Closing:"+reset, err)
+		}
+	}()
 
 	// Create a new scanner
 	scanner := bufio.NewScanner(file)
@@ -204,12 +204,12 @@ PASSWORD = "BotifyParis75!"
 		generateCrawlsYN = strings.TrimSpace(strings.ToUpper(generateCrawlsYN))
 
 		if generateCrawlsYN == "Y" {
-			clearScreen()
+			fmt.Print(clearScreen)
 			displayBanner()
 			fmt.Println(green + bold + "\nLet's go!" + reset)
 			break
 		} else if generateCrawlsYN == "N" {
-			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!")
 			os.Exit(0)
 		} else {
 			fmt.Println("Invalid input. Please enter Y or N.")
@@ -223,7 +223,12 @@ PASSWORD = "BotifyParis75!"
 		fmt.Printf("Failed to create file: %s\n", err)
 		return
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. generateEnv. Closing:"+reset, err)
+		}
+	}()
 
 	// Write the content to the file
 	_, err = file.WriteString(content)
@@ -247,7 +252,12 @@ func writeCSVContent() {
 	if err != nil {
 		log.Fatalf(red+"Error. writeCSVContent. Failed to open or create project_list.txt: %s"+reset, err)
 	}
-	defer projectListFile.Close()
+
+	defer func() {
+		if err := projectListFile.Close(); err != nil {
+			fmt.Println(red+"Error. writeCSVContent. Closing:"+reset, err)
+		}
+	}()
 
 	// Open crawlme.txt
 	file, err = os.Open("crawlme.txt")
@@ -266,21 +276,36 @@ func writeCSVContent() {
 
 	// Create a writer for project_list.txt
 	projectListWriter := bufio.NewWriter(projectListFile)
-	defer projectListWriter.Flush()
+
+	defer func() {
+		if err := projectListWriter.Flush(); err != nil {
+			fmt.Println(red+"Error. writeCSVContent. Flush (2):"+reset, err)
+		}
+	}()
 
 	// Open the input file
 	inputFile, err := os.Open("crawlme.txt")
 	if err != nil {
 		log.Fatalf(red+"Error. writeCSVContent. Failed to open crawlme.txt: %s"+reset, err)
 	}
-	defer inputFile.Close()
+
+	defer func() {
+		if err := inputFile.Close(); err != nil {
+			fmt.Println(red+"Error. writeCSVContent. Closing (2):"+reset, err)
+		}
+	}()
 
 	// Create the output file
 	outputFile, err := os.Create("crawlme.csv")
 	if err != nil {
 		log.Fatalf(red+"Error. writeCSVContent. Failed to create crawlme.csv: %s"+reset, err)
 	}
-	defer outputFile.Close()
+
+	defer func() {
+		if err := outputFile.Close(); err != nil {
+			fmt.Println(red+"Error. writeCSVContent. Closing (3):"+reset, err)
+		}
+	}()
 
 	// Create a writer for the CSV file
 	writer = csv.NewWriter(outputFile)
@@ -319,7 +344,12 @@ func writeCSVContent() {
 		}
 
 		writer.Flush()
-		projectListWriter.Flush()
+
+		defer func() {
+			if err := projectListWriter.Flush(); err != nil {
+				fmt.Println(red+"Error. writeCSVContent. Flush (2):"+reset, err)
+			}
+		}()
 
 		noCrawlsToGenerate += 1
 
@@ -328,7 +358,11 @@ func writeCSVContent() {
 		}
 	}
 
-	defer file.Close()
+	defer func() {
+		if err := inputFile.Close(); err != nil {
+			fmt.Println(red+"Error. writeCSVContent. Closing (2):"+reset, err)
+		}
+	}()
 
 	// Calculate the run duration of the script and round it up
 	noCrawlsToGenerate = noCrawlsToGenerate - 1
@@ -344,10 +378,10 @@ func writeCSVContent() {
 	formattedTime := currentTime.Format("15:04")
 	fmt.Println("Started at:", formattedTime+"\n")
 
-	fmt.Println("\n")
+	fmt.Println()
 	fmt.Printf(bold + "The crawls are currently being generated. Information indicating the progress of crawl generation will be displayed in a moment.\n" + reset)
 	fmt.Printf(bold + "\nPlease stand-by.\n" + reset)
-	fmt.Println("\n")
+	fmt.Println()
 }
 
 // Used to extract the domain from the record
@@ -371,7 +405,7 @@ func checkCrawlParameters() {
 		fmt.Scanln(&projectPrefixInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectPrefixInput) == "" {
-			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -380,7 +414,7 @@ func checkCrawlParameters() {
 
 		// Check if input is 0 if so exit
 		if urlCountInput == 0 {
-			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using botifyBotLite. Goodbye!")
 			os.Exit(0)
 		}
 		// Default to 100000 if the entered number of urls is than 100000
@@ -435,6 +469,8 @@ func executeBotPY() {
 
 // Display the welcome banner
 func displayBanner() {
+	fmt.Print(clearScreen)
+
 	//Banner
 	//https://patorjk.com/software/taag/#p=display&c=bash&f=ANSI%20Shadow&t=SegmentifyLite
 	fmt.Println(green + `
@@ -443,23 +479,9 @@ func displayBanner() {
 ██████╔╝██║   ██║   ██║   ██║█████╗   ╚████╔╝ ██████╔╝██║   ██║   ██║   ██║     ██║   ██║   █████╗  
 ██╔══██╗██║   ██║   ██║   ██║██╔══╝    ╚██╔╝  ██╔══██╗██║   ██║   ██║   ██║     ██║   ██║   ██╔══╝  
 ██████╔╝╚██████╔╝   ██║   ██║██║        ██║   ██████╔╝╚██████╔╝   ██║   ███████╗██║   ██║   ███████╗
-╚═════╝  ╚═════╝    ╚═╝   ╚═╝╚═╝        ╚═╝   ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
-`)
+╚═════╝  ╚═════╝    ╚═╝   ╚═╝╚═╝        ╚═╝   ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝`)
 
 	//Display welcome message
 	fmt.Println(purple + "botifyBotLite: Generate and launch Botify crawls, en masse!\n" + reset)
-	fmt.Println(purple+"Version:"+reset, version+"\n")
-}
-
-// Function to clear the screen
-func clearScreen() {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "cls")
-	default:
-		cmd = exec.Command("clear")
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	fmt.Println(purple+"Version:"+reset, version)
 }

@@ -3045,11 +3045,15 @@ func fetchNews(company string, sessionID string) ([]Article, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Println(red+"Error. executeBQL. Failed to close response body: %v\n"+reset, err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(red+"Error. fetchNews. Failed to fetch news: %s"+reset, resp.Status)
 		writeLog(sessionID, organization, project, company, "Failed to fetch news")
+		fmt.Printf(red+"Error. fetchNews. Failed to fetch news: %s"+reset, resp.Status)
 		return nil, nil
 	}
 
@@ -3122,7 +3126,12 @@ func generateNewsHTML(sessionID string, company string, articles []Article) erro
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Println(red+"Error. saveHTML. Failed to close file: %v\n"+reset, err)
+			return
+		}
+	}()
 
 	// Execute the template and write the output to the file
 	err = tmpl.Execute(file, data)
