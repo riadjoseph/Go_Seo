@@ -1052,13 +1052,13 @@ func tableVisitsOrdersRevenue() {
             <div class="column">
                 <table>
                     <tr>
-                        <th>Visits</th>
+					<th style="color: deepskyblue;">VISITS</th>
                     </tr>
                     <tr>
                         <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
                     </tr>
                     <tr>
-                        <th>Visit value</th>
+					<th style="color: deepskyblue;">VISIT VALUE</th>
                     </tr>
                     <tr>
 						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageVisitValueFormatted) + `</td>
@@ -1068,13 +1068,13 @@ func tableVisitsOrdersRevenue() {
             <div class="column">
                 <table>
                     <tr>
-                        <th>Orders</th>
+					<th style="color: deepskyblue;">ORDERS</th>
                     </tr>
                     <tr>
                         <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
                     </tr>
                     <tr>
-                        <th>Order value</th>
+					<th style="color: deepskyblue;">ORDER VALUE</th>
                     </tr>
                     <tr>
 						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
@@ -1084,13 +1084,13 @@ func tableVisitsOrdersRevenue() {
             <div class="column">
                 <table>
                     <tr>
-                        <th>Revenue</th>
+					<th style="color: deepskyblue;">REVENUE</th>
                     </tr>
                     <tr>
 						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
                     </tr>
                     <tr>
-                        <th>Visits per order</th>
+					<th style="color: deepskyblue;">VISITS PER ORDER</th>
                     </tr>
                     <tr>
                         <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
