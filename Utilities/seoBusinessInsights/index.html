@@ -62,13 +62,6 @@
         button:hover {
             background-color: #0056b3;
         }
-        button.demonstration {
-            background-color: LightGray;
-            color: white;
-        }
-        button.demonstration:hover {
-            background-color: #cccccc;
-        }
         label {
             display: inline-block;
             width: 100%;
@@ -95,6 +88,49 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: DeepSkyBlue;
+            color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            position: relative;
+            z-index: 3;
+        }
+        .close {
+            color: white;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: #ccc;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .disable-click {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: transparent;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
@@ -108,8 +144,7 @@
         <input type="text" id="organization" name="organization"><br>
         <label for="project">Project:</label>
         <input type="text" id="project" name="project"><br>
-        <button type="submit" id="displayButton">Display broadsheet</button>
-        <button type="button" class="demonstration" onclick="populateAndLoadDashboard()" id="demonstrationButton">Live data demonstration</button>
+        <button type="submit" id="displayButton" onclick="showModal(event)">Display broadsheet</button>
     </form>
     <div class="animation-container" id="animationContainer">
         <div class="loader" id="loader"></div>
@@ -118,6 +153,15 @@
 <div class="footer">
     <p>Jason Vicinanza. <a href="https://github.com/flaneur7508/Go_Seo" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_Seo</a></p>
 </div>
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <p>Your broadsheet is being generated. Please wait a moment as we prepare your business insights. This process will only take a few moments. Thank you for your patience.</p>
+    </div>
+</div>
+
+<div id="disableClick" class="disable-click" style="display: none;"></div>
+
 <script>
     function validateForm() {
         let organization = document.getElementById("organization").value;
@@ -129,15 +173,25 @@
         }
 
         document.getElementById("loader").style.display = "block";
-
         return true;
     }
 
-    function populateAndLoadDashboard() {
-        document.getElementById("organization").value = "carrefour-espana";
-        document.getElementById("project").value = "carrefour-es";
-        document.getElementById("loader").style.display = "block";
+    function showModal(event) {
+        event.preventDefault();
+        const organization = document.getElementById("organization").value;
+        const project = document.getElementById("project").value;
 
+        if (organization === "" || project === "") {
+            alert("The organization and project name are both required. Please try again.");
+            return;
+        }
+
+        const modal = document.getElementById("myModal");
+        const disableClick = document.getElementById("disableClick");
+        modal.style.display = "block";
+        disableClick.style.display = "block";
+
+        // Simulate form submission after showing the modal
         setTimeout(function() {
             document.getElementById("dashboardForm").submit();
         }, 1500);
