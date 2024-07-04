@@ -14,6 +14,7 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"gopkg.in/ini.v1"
+	"html/template"
 	"io"
 	"math"
 	"net/http"
@@ -177,6 +178,17 @@ var insightsCacheFolderTrimmed string
 type botifyResponse struct {
 	Count   int `json:"count"`
 	Results []struct {
+		Owner struct {
+			Login          string      `json:"login"`
+			Email          string      `json:"email"`
+			IsOrganisation bool        `json:"is_organisation"`
+			URL            string      `json:"url"`
+			DateJoined     string      `json:"date_joined"`
+			Status         interface{} `json:"status"`
+			FirstName      string      `json:"first_name"`
+			LastName       string      `json:"last_name"`
+			CompanyName    interface{} `json:"company_name"`
+		} `json:"owner"`
 		Features struct {
 			SemanticMetadata struct {
 				StructuredData struct {
@@ -210,6 +222,31 @@ type Result struct {
 }
 type Response struct {
 	Results []Result `json:"results"`
+}
+
+// News feed
+// https://newsapi.org/
+const newsAPIKey = "346b0c73ab0540928ef81d8167759bf1"
+const newsAPIProvider = "https://newsapi.org/"
+
+var company string
+
+type Article struct {
+	Source struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"source"`
+	Author      string    `json:"author"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	URL         string    `json:"url"`
+	PublishedAt time.Time `json:"publishedAt"`
+}
+
+type NewsResponse struct {
+	Status       string    `json:"status"`
+	TotalResults int       `json:"totalResults"`
+	Articles     []Article `json:"articles"`
 }
 
 func main() {
@@ -256,7 +293,7 @@ func main() {
 			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
 			// Generate the broadsheet components and container
 			businessInsightsDashboard(sessionID)
-			writeLog(sessionID, organization, project, "-", "Broadsheet generated")
+			writeLog(sessionID, organization, project, company, "Broadsheet generated")
 			// Respond to the client with a success message or redirect to another page
 			http.Redirect(w, r, insightsCacheFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
 		}
@@ -364,6 +401,9 @@ func businessInsightsDashboard(sessionID string) {
 	// Footer notes
 	footerNotes()
 
+	// Get the news feed
+	generateNewsFeed(company, sessionID)
+
 	// Generate the container to present the previously generated components
 	generateDashboardContainer()
 
@@ -393,10 +433,10 @@ func getBusinessInsights(sessionID string) string {
 
 	// Create the insights folder for the generated HTML if it does not exist
 	insightsCacheFolder = envInsightsFolder + "/" + sessionID + organization
-	createinsightsCacheFolder(insightsCacheFolder)
+	createInsightsCacheFolder(insightsCacheFolder)
 
 	// Get the currency used
-	getCurrency()
+	getCurrencyCompany()
 
 	// Identify the analytics tool in use
 	analyticsID, analyticsDateStart := getAnalyticsID()
@@ -1730,7 +1770,7 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
             height: 100vh;
         }
         .content {
-  			border: 3px dashed lightSkyBlue;  
+  			border: 3px solid lightSkyBlue;  
             border-radius: 25px; 
             padding: 15px;
             text-align: center;  
@@ -2125,6 +2165,8 @@ func footerNotes() {
 		"The current month is not included in the analysis, only full months are reported on.",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
 		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
+		"The news is provided by <a href=\"" + newsAPIProvider + "\" target=\"_blank\">" + newsAPIProvider + "</a>",
+
 		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\" target=\"_blank\">" + dashboardPermaLink + "</a>",
 	}
 
@@ -2380,6 +2422,11 @@ func generateDashboardContainer() {
 <section class="container section-padding-top row no-border">
     <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 </section>
+
+<!-- News -->
+<footer class="container row">
+    <iframe src="go_seo_news.html" title="News" class="tall-iframe" style="height: 500px; font-size: 10px; border: none;"></iframe>
+</footer>
 
 <!-- Footer notes -->
 <footer class="container row">
@@ -2800,13 +2847,13 @@ func generateSessionID(length int) (string, error) {
 }
 
 // Get the currency used
-func getCurrency() {
+func getCurrencyCompany() {
 
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", organization, project)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println(red+"\nError. getCurrency. Cannot create request:"+reset, err)
+		fmt.Println(red+"\nError. getCurrencyCompany. Cannot create request:"+reset, err)
 	}
 	// Define the headers
 	req.Header.Add("accept", "application/json")
@@ -2815,13 +2862,13 @@ func getCurrency() {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(red+"\nError. getCurrency. Cannot sent request:"+reset, err)
+		fmt.Println(red+"\nError. getCurrencyCompany. Cannot sent request:"+reset, err)
 	}
 
 	//defer resp.Body.Close()
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Println(red+"Error. getCurrency. Failed to close response body: %v\n"+reset, err)
+			fmt.Println(red+"Error. getCurrencyCompany. Failed to close response body: %v\n"+reset, err)
 			return
 		}
 	}()
@@ -2829,19 +2876,19 @@ func getCurrency() {
 	responseData, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		fmt.Println(red+"\nError. getCurrency. Cannot read response body:"+reset, err)
+		fmt.Println(red+"\nError. getCurrencyCompany. Cannot read response body:"+reset, err)
 	}
 
 	var responseObject botifyResponse
 	err = json.Unmarshal(responseData, &responseObject)
 
 	if err != nil {
-		fmt.Println(red+"\nError. getCurrency. Cannot unmarshall JSON:"+reset, err)
+		fmt.Println(red+"\nError. getCurrencyCompany. Cannot unmarshall JSON:"+reset, err)
 	}
 
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
-		fmt.Println(red + "\nError. getCurrency. Invalid crawl or no crawls found in the project" + reset)
+		fmt.Println(red + "\nError. getCurrencyCompany. Invalid crawl or no crawls found in the project" + reset)
 	}
 
 	// If one currency has been found assume that's the base currency. If multiple currencies are found assume a default of $
@@ -2879,9 +2926,18 @@ func getCurrency() {
 	default:
 		currencySymbol = currencyCode // Unknown currency defaults to the code
 	}
+
+	// To determine the company first check the CompanyName. if it is empty use the first word of the FirstName, if a CompanyName is present use it.
+	if responseObject.Results[0].Owner.CompanyName == nil {
+		fullFirstName := strings.Fields(responseObject.Results[0].Owner.FirstName)
+		company = fullFirstName[0]
+	} else {
+		companyInterface := responseObject.Results[0].Owner.CompanyName
+		company = companyInterface.(string)
+	}
 }
 
-func createinsightsCacheFolder(cacheFolder string) {
+func createInsightsCacheFolder(cacheFolder string) {
 
 	insightsDir := cacheFolder
 	// Check if the folder already exists
@@ -2960,6 +3016,125 @@ func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, e
 	}
 
 	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder
+}
+
+func generateNewsFeed(company string, sessionID string) {
+	articles, err := fetchNews(company, sessionID)
+	if err != nil {
+		fmt.Println(red+"Error. generateNewsFeed. Cannot fetch news:"+reset, err)
+		os.Exit(1)
+	}
+
+	err = generateNewsHTML(sessionID, company, articles)
+	if err != nil {
+		fmt.Println(red+"Error. generateNewsFeed. Cannot generate news HTML:"+reset, err)
+		os.Exit(1)
+	}
+}
+
+func fetchNews(company string, sessionID string) ([]Article, error) {
+
+	// Get the date 3 months ago
+	currentTime := time.Now()
+	oneMonthAgo := currentTime.AddDate(0, -1, -0)
+	dateFormatted := oneMonthAgo.Format("2006-01-02")
+
+	url := fmt.Sprintf("https://newsapi.org/v2/everything?q=%s&from=%s&apiKey=%s", company, dateFormatted, newsAPIKey)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(red+"Error. fetchNews. Failed to fetch news: %s"+reset, resp.Status)
+		writeLog(sessionID, organization, project, company, "Failed to fetch news")
+		return nil, nil
+	}
+
+	body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var newsResponse NewsResponse
+	err = json.Unmarshal(body, &newsResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return newsResponse.Articles, nil
+}
+
+func generateNewsHTML(sessionID string, company string, articles []Article) error {
+	// Define HTML template
+	htmlTemplate := `
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>News Feed for {{ .Company }}</title>
+		<style>
+			h1 {
+				color: DeepSkyBlue;
+			}
+			h2 {
+				color: DeepSkyBlue;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>{{ .Company }} in the news</h1>
+		{{ range .Articles }}
+		<div style="margin-bottom: 20px;">
+			<h2><a href="{{ .URL }}" target="_blank">{{ .Title }}</a></h2>
+			<p>{{ .Description }}</p>
+			<p>Published: {{ .PublishedAt.Format "2006-01-02 15:04:05" }}</p>
+			<p>Source: {{ .Source.Name }}</p>
+			<p>Author: {{ .Author }}</p>
+		</div>
+		{{ end }}
+	</body>
+	</html>
+`
+
+	// Prepare data for template
+	data := struct {
+		Company  string
+		Articles []Article
+	}{
+		Company:  company,
+		Articles: articles,
+	}
+
+	// Create a new template and parse the HTML template string
+	tmpl := template.New("newsTemplate")
+	tmpl, err := tmpl.Parse(htmlTemplate)
+	if err != nil {
+		return err
+	}
+
+	// Create output file
+	fileName := fmt.Sprintf("/go_seo_news.html")
+	file, err := os.Create(insightsCacheFolder + fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Execute the template and write the output to the file
+	err = tmpl.Execute(file, data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println()
+	fmt.Println(yellow + sessionID + reset + " News feed generated")
+	writeLog(sessionID, organization, project, company, "News feed generated")
+
+	return nil
 }
 
 // Display the welcome banner
