@@ -1005,7 +1005,7 @@ func tableVisitsOrdersRevenue() {
 <!DOCTYPE html>
 <html>
 <head>
-     <style>
+    <style>
         body {
             font-family: Arial, sans-serif;
             color: #333;
@@ -1014,6 +1014,13 @@ func tableVisitsOrdersRevenue() {
             align-items: center;
             margin: 0;
             height: 100vh;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
         }
         .wrapper {
             display: flex;
@@ -1033,7 +1040,7 @@ func tableVisitsOrdersRevenue() {
             border-collapse: collapse;
         }
         th, td {
-            font-size: 30px;
+            font-size: 35px;
             padding: 10px;
         }
         th {
@@ -1204,7 +1211,9 @@ func lineVisitsPerOrder() {
 
 	line.SetXAxis(startMonthNames).AddSeries("Visits per order", lineVisitsPerOrderValue).SetSeriesOptions(
 		charts.WithAreaStyleOpts(opts.AreaStyle{
-			Opacity: 0.2,
+			Color: "lightSkyBlue",
+
+			//		Opacity: 0.2,
 		}),
 		charts.WithLineChartOpts(opts.LineChart{
 			Smooth: opts.Bool(true),
@@ -2045,10 +2054,9 @@ func lineRevenueForecast() {
 	lineVisitsPerOrderValue := generateLineItemsRevenueForecast(forecastRevenue)
 
 	line.SetXAxis(forecastVisitIncrementsString).AddSeries("Revenue forecast", lineVisitsPerOrderValue).SetSeriesOptions(
-
 		charts.WithAreaStyleOpts(opts.AreaStyle{
-			Color:   "lightSkyBlue",
-			Opacity: 0.2,
+			Color: "lightSkyBlue",
+			//Opacity: 0.1, //bloo
 		}),
 		charts.WithLineChartOpts(opts.LineChart{
 			Smooth: opts.Bool(true),
@@ -2240,6 +2248,9 @@ func generateDashboardContainer() {
 	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
 	width100 := "100%"
+	width0 := "0%"
+	percent := "%"
+
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html lang="en">
@@ -2328,9 +2339,29 @@ func generateDashboardContainer() {
         .section-padding-bottom {
             padding-bottom: 35px;
         }
+       /* Scroll Indicator Styles */
+        #progressContainer {
+            position: fixed;
+            width: %s;
+            height: 8px;
+            top: 0;
+            left: 0;
+            background: #f3f3f3;
+            z-index: 9999;
+        }
+        #progressBar {
+            height: %s;
+            background: DeepSkyBlue;
+            width: %s;
+        }
     </style>
 </head>
 <body>
+
+<!-- Scroll Indicator -->
+<div id="progressContainer">
+    <div id="progressBar"></div>
+</div>
 
 <!-- Top Banner -->
 <header class="banner top">
@@ -2345,6 +2376,16 @@ func generateDashboardContainer() {
     function goHome() {
         window.open('http://%s/', '_blank');
     }
+  // Scroll Indicator Script
+    window.onscroll = function() { updateProgressBar(); };
+
+    function updateProgressBar() {
+        const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+        const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        document.getElementById('progressBar').style.width = scrolled + "%s";
+    }
 </script>
 
 <!-- Sections with iframes -->
@@ -2353,7 +2394,7 @@ func generateDashboardContainer() {
 </section>
 
 <section class="container row no-border">
-    <iframe src="go_seo_TableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 300px;"></iframe>
+    <iframe src="go_seo_TableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 340px;"></iframe>
 </section>
 
 <section class="container row">
@@ -2441,7 +2482,7 @@ func generateDashboardContainer() {
 <body style="background-color:rgba(204, 255, 204, 0.5);">
 </body>
 </html>
-`, width90, width90, width100, fullHost)
+`, width90, width90, width100, width100, width100, width0, fullHost, percent)
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
