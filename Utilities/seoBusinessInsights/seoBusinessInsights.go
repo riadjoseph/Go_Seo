@@ -979,10 +979,10 @@ func badgeCMGR() {
 	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Organic visits growth")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
-	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Average organic visit value")
+	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Visit value")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrders.html"
-	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders placed by organic visitors")
+	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
 	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value")
@@ -2289,6 +2289,7 @@ func generateDashboardContainer() {
             align-items: center;
             gap: 20px;
             margin: 5px auto;
+
             width: %s;
         }
         .row {
@@ -2300,6 +2301,7 @@ func generateDashboardContainer() {
             width: %s; 
             border: 2px solid lightSkyBlue;
             border-radius: 10px;
+margin: 10px 0;
         }
         .no-border iframe {
             border: none;
@@ -2521,7 +2523,7 @@ func generateDashboardContainer() {
 
 </body>
 </html>
-`, width90, width100, width100, width100, width100, width0, fullHost, percent)
+`, width90, width90, width100, width100, width100, width0, fullHost, percent)
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
@@ -3220,8 +3222,8 @@ func generateNewsHTML(sessionID string, company string, articles []Article) erro
 	}
 
 	fmt.Println()
-	fmt.Println(yellow + sessionID + reset + " News feed generated")
-	writeLog(sessionID, organization, project, company, "News feed generated")
+	fmt.Println(yellow + sessionID + reset + " Newsfeed generated")
+	writeLog(sessionID, organization, project, company, "Newsfeed generated")
 
 	return nil
 }
