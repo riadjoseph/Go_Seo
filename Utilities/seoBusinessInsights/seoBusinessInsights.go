@@ -976,7 +976,7 @@ func badgeCMGR() {
 	generateLiquidBadge("Revenue", cmgrRevenue32, clickURL, "Revenue growth over the period")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisits.html"
-	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Organic visits growth")
+	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Visits growth")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
 	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Visit value")
@@ -985,7 +985,7 @@ func badgeCMGR() {
 	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
-	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Average order value")
+	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Order value")
 }
 
 // Total Visits, Orders & Revenue
@@ -1251,7 +1251,7 @@ func barVisitValue() {
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Organic visit value",
+		Title:    "Visit value",
 		Subtitle: "Organic visit value shows visits from search engines without paid promotion. Higher values indicate effective SEO strategies and potentially lower acquisition costs.",
 		Link:     clickURL,
 	}),
@@ -2171,7 +2171,6 @@ func footerNotes() {
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
 		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
 		"The news is provided by <a href=\"" + newsAPIProvider + "\" target=\"_blank\">" + newsAPIProvider + "</a>",
-
 		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\" target=\"_blank\">" + dashboardPermaLink + "</a>",
 	}
 
@@ -2182,8 +2181,8 @@ func footerNotes() {
 	<style>
 		body {
 		font-family: Arial, sans-serif;
-		font-size: 15px;
-		color: LightSlateGray;
+		font-size: 18px;
+		color: LightSlateGray; 
 		}
 	</style>
 <body>
@@ -2239,7 +2238,7 @@ func saveHTML(genHTML string, genFilename string) {
 }
 
 // Define the HTML for the container. Used to consolidate the generated charts into a single page.
-// Container here
+// Container start
 func generateDashboardContainer() {
 
 	// Using these variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
@@ -2259,7 +2258,7 @@ func generateDashboardContainer() {
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: rgba(204, 255, 204, 0.5);
+            background-color: #e5ffe5;
         }
         .banner {
             background-color: DeepSkyBlue;
@@ -2365,9 +2364,9 @@ margin: 10px 0;
         nav ul {
             list-style-type: none;
             display: flex;
-            justify-content: center; /* Center justify the links horizontally */
+            justify-content: center; 
             margin: 0;
-            padding: 10px 0;
+            padding: 25px 0;
             background-color: #f2f2f2;
             border-bottom: 2px solid #ddd;
         }
@@ -2377,7 +2376,7 @@ margin: 10px 0;
         }
         nav a {
             text-decoration: none;
-            color: #999; /* Light grey color */
+            color: #999;
             font-weight: bold;
             font-size: 16px;
             transition: color 0.3s;
@@ -2497,7 +2496,7 @@ margin: 10px 0;
 	</section>
 
 	<section class="container row no-border section-padding-top section-padding-bottom">
- 	   <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
+ 	   <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword"s class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 	</section>
 
 	<section id="wordcloud_non_branded" class="container row no-border">
@@ -2506,15 +2505,11 @@ margin: 10px 0;
 	</section>
 
 	<section class="container row no-border section-padding-top section-padding-bottom">
- 	   <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
+ 	   <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non-branded keywords" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 	</section>
 
 	<section id="news" class="container row no-border">
     	<iframe src="go_seo_news.html" title="News" class="tall-iframe" style="height: 500px;"></iframe>
-	</section>
-
-	<section class="container row no-border">
-    	<iframe src="go_seo_FooterNotes.html" title="Footer notes" class="tall-iframe" style="height: 900px;"></iframe>
 	</section>
 </div>
 
@@ -3157,33 +3152,95 @@ func fetchNews(company string, sessionID string) ([]Article, error) {
 func generateNewsHTML(sessionID string, company string, articles []Article) error {
 	// Define HTML template
 	htmlTemplate := `
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<meta charset="UTF-8">
-		<title>News Feed for {{ .Company }}</title>
-		<style>
-			h1 {
-				color: DeepSkyBlue;
-			}
-			h2 {
-				color: DeepSkyBlue;
-			}
-		</style>
-	</head>
-	<body>
-		<h1>{{ .Company }} in the news</h1>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>News Feed for {{ .Company }}</title>
+	<style>
+		h1 {
+			color: DeepSkyBlue;
+		}
+		h2 {
+			color: DeepSkyBlue;
+		}
+		.collapsible {
+			background-color: DeepSkyBlue;
+            color: white; 
+			cursor: pointer;
+			padding: 10px;
+			width: 100%;
+			border: none;
+			text-align: left;
+			outline: none;
+			font-size: 25px;
+			transition: background-color 0.2s;
+		}
+		.collapsible:hover {
+			background-color: Green;
+		}
+		.collapsible:after {
+			content: '\002B';
+			color: DeepSkyBlue;
+			font-weight: bold;
+			float: right;
+			margin-left: 5px;
+		}
+		.collapsible.active:after {
+			content: "\2212";
+		}
+		.content {
+			padding: 0 18px;
+			display: none;
+			overflow: hidden;
+			margin-bottom: 20px;
+            background-color: #e5ffe5; 
+		}
+      .iframe-container {
+            margin-top: 20px;
+        }
+        .iframe-container iframe {
+            width: 90%;  
+            border: none;
+            height: 500px;  
+            display: block;
+            margin: auto;  
+        }
+	</style>
+</head>
+<body>
+	<h1>{{ .Company }} in the news</h1>
+	<button class="collapsible">Show / hide news articles</button>
+	<div class="content">
 		{{ range .Articles }}
 		<div style="margin-bottom: 20px;">
 			<h2><a href="{{ .URL }}" target="_blank">{{ .Title }}</a></h2>
 			<p>{{ .Description }}</p>
-			<p>Published: {{ .PublishedAt.Format "2006-01-02 15:04:05" }}</p>
-			<p>Source: {{ .Source.Name }}</p>
-			<p>Author: {{ .Author }}</p>
+			<p><b>Published:</b> {{ .PublishedAt.Format "2006-01-02 15:04:05" }}</p>
+			<p><b>Source:</b> {{ .Source.Name }}</p>
 		</div>
 		{{ end }}
-	</body>
-	</html>
+	</div>
+       <div class="iframe-container">
+        <iframe src="go_seo_FooterNotes.html" title="Footer"; style="height: 250px;"></iframe>
+    </div>
+
+	<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			var coll = document.getElementsByClassName("collapsible")[0];
+			coll.addEventListener("click", function() {
+				this.classList.toggle("active");
+				var content = this.nextElementSibling;
+				if (content.style.display === "block") {
+					content.style.display = "none";
+				} else {
+					content.style.display = "block";
+				}
+			});
+		});
+	</script>
+</body>
+</html>
 `
 
 	// Prepare data for template
