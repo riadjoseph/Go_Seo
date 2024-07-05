@@ -113,7 +113,7 @@ var reset = "\033[0m"
 var checkmark = "\u2713"
 
 // Specify your Botify API token here
-var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
 var orgName string
@@ -777,7 +777,7 @@ func crawlStats() {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request
@@ -927,7 +927,7 @@ func getLatestSlug() string {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	res, errorCheck := http.DefaultClient.Do(req)
@@ -1009,7 +1009,7 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request
@@ -1057,7 +1057,7 @@ func getAnalyticsID() string {
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	if errorCheck != nil {
@@ -1199,7 +1199,7 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 
 	// Define the headers
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	// Create HTTP client and execute the request

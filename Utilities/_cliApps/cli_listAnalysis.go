@@ -27,7 +27,7 @@ var reset = "\033[0m"
 var clearScreen = "\033[H\033[2J"
 
 // Specify your Botify API token here
-var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
 var orgName string
@@ -233,7 +233,7 @@ func main() {
 		os.Exit(1)
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

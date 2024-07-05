@@ -345,18 +345,18 @@ func writeCSVContent() {
 
 		writer.Flush()
 
-		defer func() {
-			if err := projectListWriter.Flush(); err != nil {
-				fmt.Println(red+"Error. writeCSVContent. Flush (2):"+reset, err)
-			}
-		}()
-
 		noCrawlsToGenerate += 1
 
 		if err != nil {
 			log.Fatalf(red+"Error. writeCSVContent. Failed to write to crawlme.csv: %s"+reset, err)
 		}
 	}
+
+	defer func() {
+		if err := projectListWriter.Flush(); err != nil {
+			fmt.Println(red+"Error. writeCSVContent. Flush (2):"+reset, err)
+		}
+	}()
 
 	defer func() {
 		if err := inputFile.Close(); err != nil {

@@ -1186,7 +1186,7 @@ func lineVisitsPerOrder() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Average visits per order",
+			Title:    "Visits per order",
 			Subtitle: "High number of visits per order indicates poor quality traffic or conversion inefficiency.",
 			Link:     clickURL,
 		}),
@@ -1212,8 +1212,6 @@ func lineVisitsPerOrder() {
 	line.SetXAxis(startMonthNames).AddSeries("Visits per order", lineVisitsPerOrderValue).SetSeriesOptions(
 		charts.WithAreaStyleOpts(opts.AreaStyle{
 			Color: "lightSkyBlue",
-
-			//		Opacity: 0.2,
 		}),
 		charts.WithLineChartOpts(opts.LineChart{
 			Smooth: opts.Bool(true),
@@ -1356,7 +1354,7 @@ func barOrderValue() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Average order value",
+		Title:    "Order value",
 		Subtitle: "Indicates the average value of an order placed by a visitor from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
 		Link:     clickURL,
 	}),
@@ -2056,7 +2054,6 @@ func lineRevenueForecast() {
 	line.SetXAxis(forecastVisitIncrementsString).AddSeries("Revenue forecast", lineVisitsPerOrderValue).SetSeriesOptions(
 		charts.WithAreaStyleOpts(opts.AreaStyle{
 			Color: "lightSkyBlue",
-			//Opacity: 0.1, //bloo
 		}),
 		charts.WithLineChartOpts(opts.LineChart{
 			Smooth: opts.Bool(true),
@@ -2245,7 +2242,7 @@ func saveHTML(genHTML string, genFilename string) {
 // Container here
 func generateDashboardContainer() {
 
-	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
+	// Using these variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
 	width100 := "100%"
 	width0 := "0%"
@@ -2262,6 +2259,7 @@ func generateDashboardContainer() {
         body {
             margin: 0;
             font-family: Arial, sans-serif;
+            background-color: rgba(204, 255, 204, 0.5);
         }
         .banner {
             background-color: DeepSkyBlue;
@@ -2291,7 +2289,7 @@ func generateDashboardContainer() {
             align-items: center;
             gap: 20px;
             margin: 5px auto;
-            width: %s
+            width: %s;
         }
         .row {
             flex-wrap: nowrap;
@@ -2333,13 +2331,13 @@ func generateDashboardContainer() {
             background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
-     .section-padding-top {
+        .section-padding-top {
             padding-top: 35px;
         }
         .section-padding-bottom {
             padding-bottom: 35px;
         }
-       /* Scroll Indicator Styles */
+        /* Scroll Indicator Styles */
         #progressContainer {
             position: fixed;
             width: %s;
@@ -2354,6 +2352,37 @@ func generateDashboardContainer() {
             background: DeepSkyBlue;
             width: %s;
         }
+        /* Navigation Links */
+		nav {
+            position: sticky;
+            top: 0;
+            background-color: #f2f2f2;
+            border-bottom: 2px solid #ddd;
+            z-index: 1000; /* Ensure it appears above other content */
+        }
+        nav ul {
+            list-style-type: none;
+            display: flex;
+            justify-content: center; /* Center justify the links horizontally */
+            margin: 0;
+            padding: 10px 0;
+            background-color: #f2f2f2;
+            border-bottom: 2px solid #ddd;
+        }
+        nav li {
+            padding: 0 10px;
+			text-align: center;
+        }
+        nav a {
+            text-decoration: none;
+            color: #999; /* Light grey color */
+            font-weight: bold;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+        nav a:hover {
+            color: DeepSkyBlue;
+        }
     </style>
 </head>
 <body>
@@ -2363,20 +2392,35 @@ func generateDashboardContainer() {
     <div id="progressBar"></div>
 </div>
 
-<!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
     <span style="font-size: 20px;">Business insights broadsheet</span>
 </header>
 
-<!-- Back Button to create a new broadsheet -->
+<!-- Navigation Links -->
+<nav>
+    <ul>
+        <li><a href="#revenue_visits">Revenue & visits</a></li>
+        <li><a href="#orders">No. of orders</a></li>
+        <li><a href="#order_value">Order value</a></li>
+        <li><a href="#visit_value">Organic visit value</a></li>
+        <li><a href="#visits_per_order">Visits per order</a></li>
+        <li><a href="#detailed_insights">Monthly summary</a></li>
+        <li><a href="#revenue_forecast">Revenue forecast</a></li>
+        <li><a href="#wordcloud_branded">Branded wordcloud</a></li>
+        <li><a href="#wordcloud_non_branded">Non branded wordcloud</a></li>
+        <li><a href="#news">In the news</a></li>
+    </ul>
+</nav>
+
+<!-- Create a new broadsheet -->
 <button class="back-button" onclick="goHome()">New broadsheet</button>
 
 <script>
     function goHome() {
         window.open('http://%s/', '_blank');
     }
-  // Scroll Indicator Script
+    // Scroll Indicator Script
     window.onscroll = function() { updateProgressBar(); };
 
     function updateProgressBar() {
@@ -2388,101 +2432,97 @@ func generateDashboardContainer() {
     }
 </script>
 
-<!-- Sections with iframes -->
-<section class="container row no-border">
-    <iframe src="go_seo_headerNotes.html" title="Header" style="height: 120px;"></iframe>
-</section>
+<div class="content">
+	<section class="container row no-border">
+		<iframe src="go_seo_headerNotes.html" title="Header" style="height: 120px;"></iframe>
+	</section>
+	
+	<section class="container row no-border">
+		<iframe src="go_seo_TableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 340px;"></iframe>
+	</section>
+	
+	<section id="revenue_visits" class="container row">
+		<iframe src="go_seo_RevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
+	</section>
+	
+	<section class="container row">
+		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
+	</section>
 
-<section class="container row no-border">
-    <iframe src="go_seo_TableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 340px;"></iframe>
-</section>
+	<section class="container row">
+		<iframe src="go_seo_CMGRRevenue.html" title="CMGR Revenue" class="short-iframe"></iframe>
+		<iframe src="go_seo_CMGRVisits.html" title="CMGR Visits" class="short-iframe"></iframe>
+	</section>
+	
+	<section id="orders" class="container row">
+		<iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
+	</section>
+	
+	<section id="order_value" class="container row">
+		<iframe src="go_seo_OrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
+	</section>
+	
+	<section class="container row">
+		<iframe src="go_seo_CMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
+		<iframe src="go_seo_CMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_RevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
-</section>
+	<section id="visit_value" class="container row">
+		<iframe src="go_seo_VisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
+	</section>
+	
+	<section id="visits_per_order" class="container row">
+		<iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
+	</section>
+	
+	<section class="container row">
+		<iframe src="go_seo_CMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
+		<iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
+	</section>
+	
+	<section id="detailed_insights" class="container row no-border">
+		<iframe src="go_seo_DataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
-</section>
+	<section id="revenue_forecast" class="container row">
+		<iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
+		<iframe src="go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_CMGRRevenue.html" title="CMGR Revenue" class="short-iframe"></iframe>
-    <iframe src="go_seo_CMGRVisits.html" title="CMGR Visits" class="short-iframe"></iframe>
-</section>
+	<section id="wordcloud_branded" class="container row no-border">
+ 	   <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+ 	   <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
-</section>
+	<section class="container row no-border section-padding-top section-padding-bottom">
+ 	   <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_OrderValueBar.html" title="Order value" class="medium-iframe"></iframe>
-</section>
+	<section id="wordcloud_non_branded" class="container row no-border">
+  	  <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+  	  <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_CMGROrders.html" title="CMGR Orders" class="short-iframe"></iframe>
-    <iframe src="go_seo_CMGROrderValue.html" title="CMGR Order Value" class="short-iframe"></iframe>
-</section>
+	<section class="container row no-border section-padding-top section-padding-bottom">
+ 	   <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_VisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
-</section>
+	<section id="news" class="container row no-border">
+    	<iframe src="go_seo_news.html" title="News" class="tall-iframe" style="height: 500px;"></iframe>
+	</section>
 
-<section class="container row">
-    <iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
-</section>
+	<section class="container row no-border">
+    	<iframe src="go_seo_FooterNotes.html" title="Footer notes" class="tall-iframe" style="height: 900px;"></iframe>
+	</section>
+</div>
 
-<section class="container row">
-    <iframe src="go_seo_CMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
-    <iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
-</section>
+<!-- Create a new broadsheet -->
+<button class="back-button" onclick="goHome()">New broadsheet</button>
 
-<section class="container row no-border">
-    <iframe src="go_seo_DataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
-</section>
-
-<section class="container row">
-    <iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
-    <iframe src="go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
-</section>
-
-<section class="container row no-border">
-    <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-    <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-</section>
-
-<section class="container row no-border section-padding-top section-padding-bottom">
-    <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
-</section>
-
-<section class="container row no-border" section-padding-bottom>
-     <br><br><br><br><br><br><br>
-    <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-    <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded keyword insights" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-</section>
-
-<section class="container section-padding-top row no-border">
-    <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non Branded keyword" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
-</section>
-
-<!-- News -->
-<footer class="container row">
-    <iframe src="go_seo_news.html" title="News" class="tall-iframe" style="height: 500px; font-size: 10px; border: none;"></iframe>
-</footer>
-
-<!-- Footer notes -->
-<footer class="container row">
-    <iframe src="go_seo_FooterNotes.html" title="Footer notes" class="tall-iframe" style="height: 200px; font-size: 10px; border: none;"></iframe>
-</footer>
-
-<!-- Bottom Banner -->
-<footer class="banner bottom">
-    Jason Vicinanza. <a href="https://github.com/flaneur7508/Go_Seo" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_Seo</a>
-</footer>
-
-<body style="background-color:rgba(204, 255, 204, 0.5);">
 </body>
 </html>
-`, width90, width90, width100, width100, width100, width0, fullHost, percent)
+`, width90, width100, width100, width100, width100, width0, fullHost, percent)
+
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
@@ -2803,7 +2843,6 @@ func generateErrorPage(displayMessage string) {
 </head>
 <body>
 
-<!-- Top Banner -->
 <header class="banner top">
     <span>Go_Seo</span><br>
     <span style="font-size: 20px;">Business insights broadsheet</span>

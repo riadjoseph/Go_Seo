@@ -24,7 +24,7 @@ import (
 var version = "v0.1"
 
 // Specify your Botify API token here
-var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours & text formatting
 var purple = "\033[0;35m"
@@ -238,7 +238,7 @@ func processURLsInProject() {
 		log.Fatal("\nError creating request: "+reset, errorCheck)
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 
 	res, errorCheck := http.DefaultClient.Do(req)
 	if errorCheck != nil {
@@ -300,7 +300,7 @@ func processURLsInProject() {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+botify_api_token)
+		req.Header.Add("Authorization", "token "+APIToken)
 
 		res, errorCheck := http.DefaultClient.Do(req)
 		if errorCheck != nil {

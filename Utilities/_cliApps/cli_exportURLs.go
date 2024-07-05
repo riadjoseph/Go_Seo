@@ -20,7 +20,7 @@ import (
 var version = "v0.1"
 
 // Specify your Botify API token here
-var botify_api_token = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours
 var purple = "\033[0;35m"
@@ -234,7 +234,7 @@ func main() {
 		log.Fatal(red+"\nError: Cannot create request:"+reset, err)
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+botify_api_token)
+	req.Header.Add("Authorization", "token "+APIToken)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -289,14 +289,13 @@ func main() {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+botify_api_token)
+		req.Header.Add("Authorization", "token "+APIToken)
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			fmt.Println(red+"\nError: Cannot connect to the API:"+red, err)
 			os.Exit(1)
 		}
-		defer res.Body.Close()
 
 		// Decode JSON response
 		var response map[string]interface{}
@@ -337,6 +336,8 @@ func main() {
 
 		fmt.Printf("\nPage %d: %d URLs exported\n", page, count)
 	}
+
+	defer res.Body.Close()
 
 	// Print total number of URLs saved
 	fmt.Printf(purple+"\nTotal no. of URLs exported: %d\n"+reset, totalCount)
