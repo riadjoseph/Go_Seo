@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -246,10 +247,10 @@ func processURLsInProject() {
 	}
 	defer res.Body.Close()
 
-	responseData, errorCheck := ioutil.ReadAll(res.Body)
+	responseData, errorCheck := io.ReadAll(res.Body)
+
 	if errorCheck != nil {
 		log.Fatal(red+"\nError reading response body: "+reset, errorCheck)
-		os.Exit(1)
 	}
 
 	var responseObject botifyResponse
@@ -257,7 +258,6 @@ func processURLsInProject() {
 
 	if errorCheck != nil {
 		log.Fatal(red+"\nError: Cannot unmarshall JSON: "+reset, errorCheck)
-		os.Exit(1)
 	}
 
 	//Display an error if no crawls found
@@ -1162,7 +1162,6 @@ func insertStaticRegex(regexText string) error {
 	if errorCheck != nil {
 		fmt.Printf(red+"\ninsertStaticRegex. Error: Cannot write to outputfile: %v\n"+reset, errorCheck)
 		panic(errorCheck)
-		os.Exit(1)
 	}
 
 	//Flush the writer to ensure all data is written to the file

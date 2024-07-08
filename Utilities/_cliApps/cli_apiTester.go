@@ -7,7 +7,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -46,22 +46,6 @@ var credentialsInput = false
 var collectionIdentifiers []string
 
 // API STRUCTS
-
-// DatasourceResponse represents the JSON structure
-type datasourceResponse struct {
-	SiteMapInfos map[string]SiteMapInfo `json:"sitemaps"`
-}
-
-type SiteMapInfo struct {
-	Sitemaps struct {
-		Runnable                   bool         `json:"runnable"`
-		Datasource                 string       `json:"datasource"`
-		DateLastSuccessfulRevision string       `json:"date_last_successful_revision"`
-		LastRevisionStatus         string       `json:"last_revision_status"`
-		Stats                      StatsInfo    `json:"stats"`
-		Segments                   SegmentsInfo `json:"segments"`
-	} `json:"sitemaps"`
-}
 
 type StatsInfo struct {
 	Linkrels           int         `json:"Linkrels"`
@@ -325,7 +309,8 @@ func datasourceApiTest() {
 		return
 	}
 
-	responseData, err := ioutil.ReadAll(res.Body)
+	responseData, err := io.ReadAll(res.Body)
+
 	if err != nil {
 		log.Fatal(red+"\nError. datasourceApiTest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
 		return
@@ -652,7 +637,8 @@ func projectApiTest() {
 	}
 	defer res.Body.Close()
 
-	responseData, err := ioutil.ReadAll(res.Body)
+	responseData, err := io.ReadAll(res.Body)
+
 	if err != nil {
 		log.Fatal(red+"\nError. projectApiTest. Cannot read response body. The specified credentials are probably invalid: "+reset, err)
 		return

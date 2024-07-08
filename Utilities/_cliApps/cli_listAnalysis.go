@@ -7,7 +7,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -230,7 +230,6 @@ func main() {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal(red+"\nError: Cannot create request:"+reset, err)
-		os.Exit(1)
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "token "+APIToken)
@@ -241,10 +240,10 @@ func main() {
 	}
 	defer res.Body.Close()
 
-	responseData, err := ioutil.ReadAll(res.Body)
+	responseData, err := io.ReadAll(res.Body)
+
 	if err != nil {
 		log.Fatal(red+"\nError: Cannot read response body:"+reset, err)
-		os.Exit(1)
 	}
 
 	var responseObject botifyResponse
@@ -252,7 +251,6 @@ func main() {
 
 	if err != nil {
 		log.Fatal(red+"\nError: Cannot unmarshall JSON:"+reset, err)
-		os.Exit(1)
 	}
 
 	fmt.Println("\nOrganisation name:", orgName)

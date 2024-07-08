@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -39,12 +39,6 @@ type basicKPIs struct {
 type DateRanges struct {
 	MonthlyRanges [][2]time.Time
 	YTDRange      [2]time.Time
-}
-
-// monthDate structs used to store string values of the calculated start/end month dates for BQL use
-type monthDates struct {
-	StartMthDate string
-	EndMthDate   string
 }
 
 // Used to identify which analytics tool is in use
@@ -791,7 +785,8 @@ func crawlStats() {
 	defer resp.Body.Close()
 
 	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	responseData, errorCheck := io.ReadAll(resp.Body)
+
 	if errorCheck != nil {
 		log.Fatal(red+"Error. seoFunnel. Cannot read response body: "+reset, errorCheck)
 		return
@@ -936,10 +931,10 @@ func getLatestSlug() string {
 	}
 	defer res.Body.Close()
 
-	responseData, errorCheck := ioutil.ReadAll(res.Body)
+	responseData, errorCheck := io.ReadAll(res.Body)
+
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. seoFunnel. Cannot read request body: "+reset, errorCheck)
-		os.Exit(1)
 	}
 
 	var responseObject latestSlug
@@ -947,7 +942,6 @@ func getLatestSlug() string {
 
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. seoFunnel. Cannot unmarshall JSON: "+reset, errorCheck)
-		os.Exit(1)
 	}
 
 	//Display an error if no crawls found
@@ -1019,22 +1013,20 @@ func getRevenueData(analyticsID string, startYTDDate string, endYTDDate string, 
 	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. getRevenueData. Cannot create request: "+reset, errorCheck)
-		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	responseData, errorCheck := io.ReadAll(res.Body)
+
 	if errorCheck != nil {
 		log.Fatal(red+"Error. getRevenueData. Cannot read response body: "+reset, errorCheck)
-		os.Exit(1)
 	}
 
 	// Unmarshal the JSON data into the struct
 	var transRevIDs transRevID
 	if err := json.Unmarshal(responseData, &transRevIDs); err != nil {
 		log.Fatal(red+"Error. getRevenueData. Cannot unmarshall the JSON: "+reset, err)
-		os.Exit(1)
 	}
 
 	// Get YTD insights
@@ -1062,7 +1054,6 @@ func getAnalyticsID() string {
 
 	if errorCheck != nil {
 		log.Fatal(red+"\nError. getAnalyticsID. Cannot create request: "+reset, errorCheck)
-		os.Exit(1)
 	}
 	// Create HTTP client and execute the request
 	client := &http.Client{
@@ -1071,22 +1062,20 @@ func getAnalyticsID() string {
 	resp, errorCheck := client.Do(req)
 	if errorCheck != nil {
 		log.Fatal("Error. getAnalyticsID. Error: ", errorCheck)
-		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	responseData, errorCheck := io.ReadAll(resp.Body)
+
 	if errorCheck != nil {
 		log.Fatal(red+"Error. getAnalyticsID. Cannot read response body: "+reset, errorCheck)
-		os.Exit(1)
 	}
 
 	// Unmarshal the JSON data into the struct
 	var analyticsIDs []AnalyticsID
 	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
 		log.Fatal(red+"Error. getAnalyticsID. Cannot unmarshall the JSON: "+reset, err)
-		os.Exit(1)
 	}
 
 	// Find and print the name value when the ID contains the word "visit"
@@ -1213,7 +1202,8 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 	defer resp.Body.Close()
 
 	// Read the response body
-	responseData, errorCheck := ioutil.ReadAll(resp.Body)
+	responseData, errorCheck := io.ReadAll(resp.Body)
+
 	if errorCheck != nil {
 		log.Fatal(red+"Error. executeRevenueBQL. Cannot read response body: "+reset, errorCheck)
 		return

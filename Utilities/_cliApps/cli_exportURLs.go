@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -242,7 +243,8 @@ func main() {
 	}
 	defer res.Body.Close()
 
-	responseData, err := ioutil.ReadAll(res.Body)
+	responseData, err := io.ReadAll(res.Body)
+
 	if err != nil {
 		log.Fatal(red+"\nError: Cannot read request bodY:"+reset, err)
 	}
@@ -258,7 +260,6 @@ func main() {
 
 	if err != nil {
 		log.Fatal(red+"\nError: Cannot unmarshall JSON:"+reset, err)
-		os.Exit(1)
 	}
 
 	fmt.Println(purple + "\nExporting URLs" + reset)
@@ -403,6 +404,7 @@ func copyURLsToClipboard() {
 
 	if response == "Y" {
 		content, err := ioutil.ReadFile("siteurlsExport.txt")
+
 		if err != nil {
 			panic(err)
 		}

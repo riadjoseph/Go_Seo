@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -147,7 +147,8 @@ func getAnalysis(orgName, projectname string) string {
 	}
 	defer res.Body.Close()
 
-	responseData, err := ioutil.ReadAll(res.Body)
+	responseData, err := io.ReadAll(res.Body)
+
 	if err != nil {
 		log.Fatal(red+"\nError: Cannot read request body:"+reset, err)
 	}
@@ -162,46 +163,6 @@ func getAnalysis(orgName, projectname string) string {
 		os.Exit(1)
 	}
 	return responseObject.Results[0].Slug
-}
-
-// Use the API to get the first 300k URLs and export them to a file
-func exportURLsFromProject() {
-	//Get the last analysis slug
-	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", orgName, projectName)
-
-	req, errorCheck := http.NewRequest("GET", url, nil)
-	if errorCheck != nil {
-		log.Fatal("\nError creating request: "+reset, errorCheck)
-	}
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+APIToken)
-
-	res, errorCheck := http.DefaultClient.Do(req)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError: Check your network connection: "+reset, errorCheck)
-	}
-	defer res.Body.Close()
-
-	responseData, errorCheck := ioutil.ReadAll(res.Body)
-	if errorCheck != nil {
-		log.Fatal(red+"\nError reading response body: "+reset, errorCheck)
-		os.Exit(1)
-	}
-
-	var responseObject botifyResponse
-	errorCheck = json.Unmarshal(responseData, &responseObject)
-
-	if errorCheck != nil {
-		log.Fatal(red+"\nError: Cannot unmarshall JSON: "+reset, errorCheck)
-		os.Exit(1)
-	}
-
-	//Display an error if no crawls found
-	if responseObject.Count == 0 {
-		fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
-		fmt.Println(red+"End point:", url, "\n")
-		os.Exit(1)
-	}
 }
 
 func generateFolderStats(analysisSlug string, urlEndpoint string) {
@@ -355,12 +316,6 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 	var input string
 	fmt.Scanln(&input)
 	os.Exit(0)
-
-	// Check for any errors during scanning
-	if err := scanner.Err(); err != nil {
-		fmt.Printf("Error scanning extract file: %v\n", err)
-		os.Exit(1)
-	}
 }
 
 // Display the welcome banner
