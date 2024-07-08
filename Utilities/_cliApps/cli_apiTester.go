@@ -28,7 +28,7 @@ var bold = "\033[1m"
 var reset = "\033[0m"
 var checkmark = "\u2713"
 
-// Specify your Botify API token here
+// APIToken. Replace this with your Botify API token
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
@@ -447,7 +447,7 @@ func collectionsApiTest() {
 
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/collections", orgName, projectName)
 
-	fmt.Println(bold+"Endpoint:"+reset, url, "\n")
+	fmt.Println(bold+"Endpoint:"+reset, url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -523,10 +523,10 @@ func collectionsDetailApiTest() {
 
 	// Iterate through the collectionIdentifiers array
 	collectionName := collectionIdentifiers[0] // Only return attributes for the first collection only
-	fmt.Println(bold+"\nCollection:"+reset, collectionName, "\n")
+	fmt.Println(bold+"\nCollection:"+reset, collectionName)
 
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/collections/%s", orgName, projectName, collectionName)
-	fmt.Println(bold+"Endpoint:"+reset, url, "\n")
+	fmt.Println(bold+"Endpoint:"+reset, url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -885,7 +885,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -893,7 +893,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!")
 			os.Exit(0)
 		}
 	}
@@ -902,7 +902,7 @@ func checkCredentials() {
 func apiTesterDone() {
 
 	// We're done
-	fmt.Println(purple + "\napiTester: Done!\n")
+	fmt.Println(purple + "\napiTester: Done!")
 	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
@@ -922,7 +922,7 @@ func displayBanner() {
 ██║  ██║██║     ██║   ██║   ███████╗███████║   ██║   ███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝     ╚═╝   ╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 `)
-	fmt.Println(purple+"Version:"+reset, version+"\n")
+	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "apiTester: Test Botify APIs\n" + reset)
 	fmt.Println(purple + "This utility calls a range of Botify APIs and displays the results.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)

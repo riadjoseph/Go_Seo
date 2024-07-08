@@ -20,7 +20,7 @@ import (
 // Version
 var version = "v0.1"
 
-// Specify your Botify API token here
+// APIToken. Replace this with your Botify API token
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours
@@ -267,7 +267,7 @@ func main() {
 	fmt.Println("Project name:", projectName)
 	fmt.Println("Analysis slug:", responseObject.Results[0].Slug)
 	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, responseObject.Results[0].Slug)
-	fmt.Println("End point:", urlEndpoint, "\n")
+	fmt.Println("End point:", urlEndpoint)
 
 	// Create a file for writing
 	file, err := os.Create("siteurlsExport.txt")
@@ -347,7 +347,7 @@ func main() {
 	copyURLsToClipboard()
 
 	// We're done
-	fmt.Println(purple + "\nlistURLs: Done\n")
+	fmt.Println(purple + "\nlistURLs: Done")
 	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
@@ -370,7 +370,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -378,7 +378,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!")
 			os.Exit(0)
 		}
 	}

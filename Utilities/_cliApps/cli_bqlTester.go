@@ -81,7 +81,7 @@ type meta struct {
 	RequiredFields []string `json:"required_fields"`
 }
 
-// Used to store the revenue, transactions and visits
+// Result used to store the revenue, transactions and visits
 type Result struct {
 	Dimensions []interface{} `json:"dimensions"`
 	Metrics    []float64     `json:"metrics"`
@@ -106,7 +106,7 @@ var bold = "\033[1m"
 var reset = "\033[0m"
 var checkmark = "\u2713"
 
-// Specify your Botify API token here
+// APIToken. Replace this with your Botify API token
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
@@ -176,7 +176,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using bqlTester. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using bqlTester. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -184,7 +184,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using bqlTester. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using bqlTester. Goodbye!")
 			os.Exit(0)
 		}
 	}
@@ -752,7 +752,7 @@ func crawlStats() {
 
 	// Define the URL
 	url := fmt.Sprintf("https://api.botify.com/v1/projects/%s/%s/query", orgName, projectName)
-	fmt.Println("End point:", url, "\n")
+	fmt.Println("End point:", url)
 
 	// GET the HTTP request
 	req, errorCheck := http.NewRequest("GET", url, nil)
@@ -1242,7 +1242,7 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 		//var avgVisitValue float64 = 0.0 // example value
 		//avgVisitValue = float64(ytdMetricsRevenue) / float64(ytdMetricsVisits)
 		//fmt.Printf("Average visit value: %.3f\n", avgVisitValue)
-		fmt.Println("\n")
+		fmt.Println()
 
 	}
 
@@ -1262,7 +1262,7 @@ func executeRevenueBQL(analyticsID string, startYTDDate string, endYTDDate strin
 func bqlTesterDone() {
 
 	// We're done
-	fmt.Println(purple + "\nbqlTester: Done!\n")
+	fmt.Println(purple + "\nbqlTester: Done!")
 	fmt.Println(bold + green + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
@@ -1282,7 +1282,7 @@ func displayBanner() {
 ██████╔╝╚██████╔╝███████╗██║   ███████╗███████║   ██║   ███████╗██║  ██║
 ╚═════╝  ╚══▀▀═╝ ╚══════╝╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 `)
-	fmt.Println(purple+"Version:"+reset, version+"\n")
+	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "bqlTester: Test Botify BQL.\n" + reset)
 	fmt.Println(purple + "Use it as a template for your Botify integration needs.\n" + reset)
 	fmt.Println(purple + "BQL tests performed in this version.\n" + reset)

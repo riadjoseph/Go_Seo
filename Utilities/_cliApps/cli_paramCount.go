@@ -19,7 +19,7 @@ import (
 // Version
 var version = "v0.1"
 
-// Specify your Botify API token here
+// APIToken. Replace this with your Botify API token
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours
@@ -60,7 +60,7 @@ type botifyResponse struct {
 	Size int `json:"size"`
 }
 
-// Implement sorting interface for ValueCount slice
+// ByCount. Implement sorting interface for ValueCount slice
 type ByCount []ValueCount
 
 func (a ByCount) Len() int           { return len(a) }
@@ -91,7 +91,7 @@ func main() {
 	fmt.Println("Project name:", projectName)
 	fmt.Println("Analysis slug:", analysisSlug)
 	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, analysisSlug)
-	fmt.Println("End point:", urlEndpoint, "\n")
+	fmt.Println("End point:", urlEndpoint)
 
 	// Generate and display the folder stats
 	generateFolderStats(analysisSlug, urlEndpoint)
@@ -113,7 +113,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using paramCount. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using paramCount. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -121,7 +121,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using paramCount. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using paramCount. Goodbye!")
 			os.Exit(0)
 		}
 	}
@@ -156,7 +156,7 @@ func getAnalysis(orgName, projectname string) string {
 	//Display an error and exit if no crawls found
 	if responseObject.Count == 0 {
 		fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project")
-		fmt.Println(red+"End point:", url, "\n")
+		fmt.Println(red+"End point:", url)
 		os.Exit(1)
 	}
 	return responseObject.Results[0].Slug
@@ -204,7 +204,7 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 		results, ok := response["results"].([]interface{})
 		if !ok {
 			fmt.Println(red + "\nError: Invalid credentials or no crawls found in the project" + reset)
-			fmt.Println(red+"End point:", urlEndpoint, "\n")
+			fmt.Println(red+"End point:", urlEndpoint)
 			os.Exit(1)
 		}
 
@@ -258,7 +258,7 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 
 	// Display welcome message
 	fmt.Println(purple + "paramCount: Count the number of first level folders found." + reset)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
+	fmt.Println(purple+"Version:"+reset, version)
 
 	// Variable to keep track of the number of records with at least one question mark
 	questionMarkRecords := 0
@@ -308,7 +308,7 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 
 	// Display the percentage of records with at least one question mark
 	fmt.Printf("Percentage of URLs that contain Parameters: %.2f%%\n", percentage)
-	fmt.Println("\n")
+	fmt.Println()
 
 	// Create a slice to hold ValueCount structs
 	var sortedCounts []ValueCount
@@ -327,7 +327,7 @@ func generateFolderStats(analysisSlug string, urlEndpoint string) {
 	}
 
 	// We're done
-	fmt.Println(purple + "\nParamCount: Done\n")
+	fmt.Println(purple + "\nParamCount: Done")
 	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
@@ -348,8 +348,7 @@ func displayBanner() {
 ██████╔╝███████║██████╔╝███████║██╔████╔██║██║     ██║   ██║██║   ██║██╔██╗ ██║   ██║   
 ██╔═══╝ ██╔══██║██╔══██╗██╔══██║██║╚██╔╝██║██║     ██║   ██║██║   ██║██║╚██╗██║   ██║   
 ██║     ██║  ██║██║  ██║██║  ██║██║ ╚═╝ ██║╚██████╗╚██████╔╝╚██████╔╝██║ ╚████║   ██║   
-╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝   ╚═╝
-`)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
+╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝   ╚═╝`)
+	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "paramCount: Count the number of parameter keys found.\n" + reset)
 }

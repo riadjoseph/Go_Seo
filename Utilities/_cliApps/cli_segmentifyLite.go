@@ -24,7 +24,7 @@ import (
 // Version
 var version = "v0.1"
 
-// Specify your Botify API token here
+// APIToken. Replace this with your Botify API token
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours & text formatting
@@ -79,13 +79,13 @@ type botifyResponse struct {
 	Size int `json:"size"`
 }
 
-// Define a struct to hold text value and its associated count
+// FolderCount. Define a struct to hold text value and its associated count
 type FolderCount struct {
 	Text  string
 	Count int
 }
 
-// Implement sorting interface for FolderCount slice
+// ByCount. Implement sorting interface for FolderCount slice
 type ByCount []FolderCount
 
 func (a ByCount) Len() int           { return len(a) }
@@ -183,7 +183,7 @@ func main() {
 	// Clean-up. Delete the temp. file
 	os.Remove(urlExtractFile)
 
-	fmt.Println(purple + "\nsegmentifyLite: Done!\n")
+	fmt.Println(purple + "\nsegmentifyLite: Done!")
 	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
@@ -205,7 +205,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using Segmentify Lite. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -213,7 +213,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using segmentifyLite. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using segmentifyLite. Goodbye!")
 			os.Exit(0)
 		}
 	}
@@ -286,7 +286,7 @@ func processURLsInProject() {
 
 	analysisSlug := responseObject.Results[0].Slug
 	urlEndpoint := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s/%s/", orgName, projectName, analysisSlug)
-	fmt.Println("End point:", urlEndpoint, "\n")
+	fmt.Println("End point:", urlEndpoint)
 
 	//Iterate through pages 1 through to the maximum no of pages defined by maxURLsToProcess
 	//Each page returns 1000 URLs
@@ -556,7 +556,7 @@ func segmentFolders(thresholdValue int, slashCount int) {
 		os.Exit(1)
 	}
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 }
 
 // Regex for subdomains
@@ -684,7 +684,7 @@ func subDomains() {
 		os.Exit(1)
 	}
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 }
 
 // Regex to identify which parameter keys are used
@@ -810,7 +810,7 @@ func parameterKeys() {
 		os.Exit(1)
 	}
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 }
 
 // Regex to identify of a parameter key is used in the URL
@@ -836,7 +836,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 }
 
 // Regex to count the number of parameters in the URL
@@ -878,7 +878,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 
 }
 
@@ -921,7 +921,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 
 }
 
@@ -952,7 +952,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 
 }
 
@@ -992,7 +992,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 
 }
 
@@ -1065,7 +1065,7 @@ path /*
 	}
 
 	//Finished
-	fmt.Println("Done!", green+checkmark+reset, "\n")
+	fmt.Println("Done!", green+checkmark+reset)
 }
 
 // Get the folder size threshold for level 1 & 2 folders
@@ -1212,7 +1212,7 @@ func displayBanner() {
 ███████║███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║██║        ██║   ███████╗██║   ██║   ███████╗
 ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝   ╚═╝   ╚══════╝
 `)
-	fmt.Println(purple+"Version:"+reset, version, "\n")
+	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "\nsegmentifyLite: Fast segmentation regex generation\n" + reset)
 
 }

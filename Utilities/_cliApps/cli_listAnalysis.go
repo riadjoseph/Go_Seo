@@ -26,7 +26,7 @@ var bold = "\033[1m"
 var reset = "\033[0m"
 var clearScreen = "\033[H\033[2J"
 
-// Specify your Botify API token here
+// APIToken. Replace this with your Botify API token
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
@@ -453,7 +453,7 @@ func main() {
 	}
 
 	// We're done
-	fmt.Println(purple + "\nlistAnalysis: Done!\n")
+	fmt.Println(purple + "\nlistAnalysis: Done!")
 	fmt.Println(green + bold + "\nPress any key to exit..." + reset)
 	var input string
 	fmt.Scanln(&input)
@@ -476,7 +476,7 @@ func checkCredentials() {
 		fmt.Scanln(&orgNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(orgNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!")
 			os.Exit(0)
 		}
 
@@ -484,7 +484,7 @@ func checkCredentials() {
 		fmt.Scanln(&projectNameInput)
 		// Check if input is empty if so exit
 		if strings.TrimSpace(projectNameInput) == "" {
-			fmt.Println(green + "\nThank you for using listURLs. Goodbye!\n")
+			fmt.Println(green + "\nThank you for using listURLs. Goodbye!")
 			os.Exit(0)
 		}
 	}
@@ -506,6 +506,6 @@ func displayBanner() {
 ███████╗██║███████║   ██║   ██║  ██║██║ ╚████║██║  ██║███████╗██║   ███████║██║███████║
 ╚══════╝╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝   ╚══════╝╚═╝╚══════╝
 `)
-	fmt.Println(purple+"Version:"+reset, version+"\n")
+	fmt.Println(purple+"Version:"+reset, version)
 	fmt.Println(purple + "listAnalysis: Report the project metadata for the last crawl\n" + reset)
 }
