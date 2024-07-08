@@ -75,6 +75,7 @@ var seoVisits []int
 var seoOrders []int
 var seoOrderValue []int
 var seoVisitValue []float64
+var visitsPerOrder []int
 
 // Slices used to store branded Keywords KPIs
 var kwKeywords []string
@@ -105,9 +106,6 @@ var totalAverageOrderValue int
 var revenueDataIssue bool
 var visitsDataIssue bool
 var ordersDataIssue bool
-
-// Slices used  to store the visits per order for each month
-var visitsPerOrder []int
 
 // Project URL. Used to provide a link to the Botify project
 var projectURL string
@@ -516,11 +514,16 @@ func getBusinessInsights(sessionID string) string {
 
 	writeLog(sessionID, organization, project, analyticsID, "Keyword data acquired")
 
+	seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, visitsPerOrder, startMonthDates, endMonthDates, startMonthNames = filterZeroValues(seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, visitsPerOrder, startMonthDates, endMonthDates, startMonthNames)
+
 	// Calculate the CMGR values
 	calculateCMGR(sessionID)
 
 	// Calculate the forecast
 	forecastDataCompute()
+
+	println()
+	println(green+"No. of months: "+reset, noOfMonths)
 
 	return "success"
 }
@@ -585,19 +588,15 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		// Check revenue, visits or orders values are missing
 		if metricsRevenue == 0 {
 			revenueDataIssue = true
-			fmt.Println("revenue error")
+			println("revenue issue")
 		}
 		if metricsVisits == 0 {
+			println("visits issue")
 			visitsDataIssue = true
-			fmt.Println("visits error")
-
 		}
 		if metricsOrders == 0 {
 			ordersDataIssue = true
-			fmt.Println("orders error")
-
 		}
-
 		// Append the metrics to the slices
 		seoOrders = append(seoOrders, metricsOrders)
 		seoRevenue = append(seoRevenue, metricsRevenue)
@@ -944,7 +943,7 @@ func headerNotes() {
 // If data issue have been detected generate the HTML to include in the header
 func generateDataIssueHTML(revenueDataIssue bool, visitsDataIssue bool, ordersDataIssue bool) string {
 
-	htmlDataIssue := "<span style=\"color: red;\">Warning: There are possible data quality issues with "
+	htmlDataIssue := "<span style=\"color: red;\">Warning: Less than 12 months valid data has been found for "
 
 	// Check which variables are true and include them in the HTML content
 	if revenueDataIssue {
@@ -1588,7 +1587,7 @@ func riverRevenueVisits() {
 	river.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title:    "Revenue & visits",
-			Subtitle: "Gain an insight into the fluctuations in organic visitors to a site and the corresponding revenue generation.",
+			Subtitle: "Insights into the fluctuations in organic visitors to a site and the corresponding revenue generation.",
 			Link:     clickURL}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
@@ -1606,6 +1605,11 @@ func riverRevenueVisits() {
 			Height:    chartDefaultHeight,
 			PageTitle: "Revenue & visits",
 		}),
+		//charts.WithDataZoomOpts(opts.DataZoom{
+		//	Type:  "slider",
+		//	Start: 1,
+		//	End:   100,
+		//}),
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 		// disable show the legend
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
@@ -1691,7 +1695,7 @@ func textTableDataDetail() {
 
 	formatInteger := message.NewPrinter(language.English)
 
-	for i := 0; i < noOfMonths+1; i++ {
+	for i := 0; i < noOfMonths; i++ {
 		formattedDate := formatDate(startMonthDates[i])
 		orders := formatInteger.Sprintf("%d", seoOrders[i])
 		revenue := formatInteger.Sprintf("%d", seoRevenue[i])
@@ -1884,7 +1888,7 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         <tbody>`
 
 	// Title
-	htmlContent += fmt.Sprintf("<h2>\n\nSummary for the previous %d months</h2>", noOfMonths+1)
+	htmlContent += fmt.Sprintf("<h2>\n\nSummary for the previous %d months</h2>", noOfMonths)
 
 	// Insert tke KPI details
 	for _, row := range data {
@@ -2322,7 +2326,7 @@ margin: 10px 0;
             padding: 12px 24px;
             font-size: 18px;
             color: white;
-            background-color: Green;
+            background-color: DeepSkyBlue;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -2333,7 +2337,7 @@ margin: 10px 0;
             transition: background-color 0.3s, box-shadow 0.3s;
         }
         .back-button:hover {
-            background-color: DeepSkyBlue;
+            background-color: Green;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
         .section-padding-top {
@@ -2415,7 +2419,7 @@ margin: 10px 0;
         <li><a href="#revenue_forecast">Revenue forecast</a></li>
         <li><a href="#wordcloud_branded">Branded wordcloud</a></li>
         <li><a href="#wordcloud_non_branded">Non branded wordcloud</a></li>
-        <li><a href="#news">In the news</a></li>
+        <li><a href="#news">In the news (experimental)</a></li>
     </ul>
 </nav>
 
@@ -2591,35 +2595,35 @@ func calculateCMGR(sessionID string) {
 		seoRevenueFloat = append(seoRevenueFloat, float64(v))
 	}
 
-	cmgrRevenue = computeCMGR(seoRevenueFloat)
+	cmgrRevenue = computeCMGR(seoRevenueFloat, "Revenue")
 
 	// Visits
 	var seoVisitsFloat []float64
 	for _, v := range seoVisits {
 		seoVisitsFloat = append(seoVisitsFloat, float64(v))
 	}
-	cmgrVisits = computeCMGR(seoVisitsFloat)
+	cmgrVisits = computeCMGR(seoVisitsFloat, "Visits")
 
 	// Visit value
 	var seoMetricsVisitValueFloat []float64
 	for _, v := range seoVisitValue {
 		seoMetricsVisitValueFloat = append(seoMetricsVisitValueFloat, v)
 	}
-	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat)
+	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat, "Visit Value")
 
 	// No. of Orders
 	var seoOrdersFloat []float64
 	for _, v := range seoOrders {
 		seoOrdersFloat = append(seoOrdersFloat, float64(v))
 	}
-	cmgrOrderValue = computeCMGR(seoOrdersFloat)
+	cmgrOrderValue = computeCMGR(seoOrdersFloat, "Orders")
 
 	// Order value
 	var seoOrdersValueFloat []float64
 	for _, v := range seoOrderValue {
 		seoOrdersValueFloat = append(seoOrdersValueFloat, float64(v))
 	}
-	cmgrOrderValueValue := computeCMGR(seoOrdersValueFloat)
+	cmgrOrderValueValue := computeCMGR(seoOrdersValueFloat, "Order value")
 
 	fmt.Printf("\n" + yellow + sessionID + reset + " Compound Monthly Growth Rate\n" + reset)
 	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
@@ -2629,7 +2633,7 @@ func calculateCMGR(sessionID string) {
 	fmt.Printf("Order value: %.2f\n", cmgrOrderValueValue)
 }
 
-func computeCMGR(values []float64) float64 {
+func computeCMGR(values []float64, calculatedKPIName string) float64 {
 
 	if len(values) < 2 {
 		return 0.0 // Cannot calculate CMGR with less than 2 values
@@ -2639,10 +2643,17 @@ func computeCMGR(values []float64) float64 {
 
 	// The final period value is not included as it is not a full month
 	finalValue := values[len(values)-1]
-	numberOfPeriods := float64(len(values))
+	numberOfPeriods := float64(noOfMonths)
 
 	// CMGR formula: (finalValue / initialValue) ^ (1 / numberOfPeriods) - 1
 	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
+
+	println()
+	println(green + "CMGR Inputs" + reset)
+	println(yellow + calculatedKPIName + reset)
+	fmt.Printf("finalValue: %f\n", finalValue)
+	fmt.Printf("initialValue: %f\n", initialValue)
+	fmt.Printf("numberOfPeriods: %f\n", numberOfPeriods)
 
 	return cmgr
 }
@@ -3222,7 +3233,7 @@ func generateNewsHTML(sessionID string, company string, articles []Article) erro
 </head>
 <body>
 	<h1>{{ .Company }} in the news</h1>
-	<button class="collapsible">Click to show / hide news articles</button>
+	<button class="collapsible">Click to show / hide news articles (experimental)</button>
 	<div class="content">
 		{{ range .Articles }}
 		<div style="margin-bottom: 20px;">
@@ -3336,4 +3347,36 @@ func startup() {
 	envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
+}
+
+func filterZeroValues(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderValue []int, seoVisitValue []float64, visitsPerOrder []int, startMonthDates, endMonthDates, startMonthNames []string) ([]int, []int, []int, []int, []float64, []int, []string, []string, []string) {
+	var filteredSEORevenue []int
+	var filteredSEOVisits []int
+	var filteredSEOOrders []int
+	var filteredSEOOrderValue []int
+	var filteredSEOVisitValue []float64
+	var filteredVisitsPerOrder []int
+
+	var filteredStartMonthDates []string
+	var filteredEndMonthDates []string
+	var filteredStartMonthNames []string
+
+	for i, value := range seoRevenue {
+		if value != 0 {
+			filteredSEORevenue = append(filteredSEORevenue, value)
+			filteredSEOVisits = append(filteredSEOVisits, seoVisits[i])
+			filteredSEOOrders = append(filteredSEOOrders, seoOrders[i])
+			filteredSEOOrderValue = append(filteredSEOOrderValue, seoOrderValue[i])
+			filteredSEOVisitValue = append(filteredSEOVisitValue, seoVisitValue[i])
+			filteredVisitsPerOrder = append(filteredVisitsPerOrder, visitsPerOrder[i])
+			filteredStartMonthDates = append(filteredStartMonthDates, startMonthDates[i])
+			filteredEndMonthDates = append(filteredEndMonthDates, endMonthDates[i])
+			filteredStartMonthNames = append(filteredStartMonthNames, startMonthNames[i])
+		}
+	}
+
+	// Update the number of months based on the reduced slice
+	noOfMonths = len(filteredStartMonthDates)
+
+	return filteredSEORevenue, filteredSEOVisits, filteredSEOOrders, filteredSEOOrderValue, filteredSEOVisitValue, filteredVisitsPerOrder, filteredStartMonthDates, filteredEndMonthDates, filteredStartMonthNames
 }

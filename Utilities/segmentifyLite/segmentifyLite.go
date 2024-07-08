@@ -1346,7 +1346,7 @@ func generateSegmentationRegex() {
             padding: 12px 24px;
             font-size: 18px;
             color: white;
-            background-color: Green;
+            background-color: DeepSkyBlue;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -1357,7 +1357,7 @@ func generateSegmentationRegex() {
             transition: background-color 0.3s, box-shadow 0.3s;
         }
    		 .back-button:hover {
-            background-color: DeepSkyBlue;
+            background-color: Green;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
     </style>
