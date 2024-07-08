@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -74,6 +75,9 @@ var fullHost string
 var cacheFolder string
 var cacheFolderRoot = "./_cache"
 
+// No of executions
+var sessionIDCounter int
+
 type botifyResponse struct {
 	Count   int `json:"count"`
 	Results []struct {
@@ -116,13 +120,14 @@ func main() {
 		// Generate a session ID used for grouping log entries
 		var sessionID string
 
-		sessionID, err = generateLogSessionID(8)
+		sessionID, err = generateSessionID(8)
 		if err != nil {
 			fmt.Println(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
 
 		cacheFolderRoot = envSegmentFolder
-		cacheFolder = cacheFolderRoot + "/" + sessionID
+		cacheFolder = cacheFolderRoot + "/" + sessionID + organisation
+
 		createCacheFolder()
 
 		// Process URLs
@@ -1261,16 +1266,23 @@ func writeLog(sessionID, organisation, project, statusDescription string) {
 	}
 }
 
-//goland:noinspection GoDeprecation
-func generateLogSessionID(length int) (string, error) {
-
-	// Generate random bytes
-	sessionIDLength := make([]byte, length)
-	if _, err := rand.Read(sessionIDLength); err != nil {
+func generateSessionID(length int) (string, error) {
+	// Generate random sessionID
+	sessionID := make([]byte, length)
+	if _, err := rand.Read(sessionID); err != nil {
 		return "", err
 	}
-	// Encode bytes to base64 string
-	return base64.URLEncoding.EncodeToString(sessionIDLength), nil
+
+	// Add to the execution increment
+	sessionIDCounter++
+
+	var builder strings.Builder
+	builder.WriteString(strconv.Itoa(sessionIDCounter))
+	builder.WriteString("-")
+	builder.WriteString(base64.URLEncoding.EncodeToString(sessionID))
+
+	// Convert the builder to a string and return
+	return builder.String(), nil
 }
 
 // Generate the HTML pages used to present the segmentation regex

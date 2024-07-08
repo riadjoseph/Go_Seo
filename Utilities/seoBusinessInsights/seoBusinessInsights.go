@@ -19,6 +19,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -133,6 +134,9 @@ var noKeywordsInCloud = 50
 
 // No. of keywords returned by the API
 var noKeywordsFound int
+
+// No of executions
+var sessionIDCounter int
 
 // The number of top keywords to include in the keywords detail table
 var noTopKeywords = 50
@@ -2913,15 +2917,22 @@ func writeLog(sessionID, organization, project, analyticsID, statusDescription s
 }
 
 func generateSessionID(length int) (string, error) {
-
-	// Generate random bytes
-	sessionIDLength := make([]byte, length)
-	if _, err := rand.Read(sessionIDLength); err != nil {
+	// Generate random sessionID
+	sessionID := make([]byte, length)
+	if _, err := rand.Read(sessionID); err != nil {
 		return "", err
 	}
 
-	// Encode bytes to base64 string
-	return base64.URLEncoding.EncodeToString(sessionIDLength), nil
+	// Add to the execution increment
+	sessionIDCounter++
+
+	var builder strings.Builder
+	builder.WriteString(strconv.Itoa(sessionIDCounter))
+	builder.WriteString("-")
+	builder.WriteString(base64.URLEncoding.EncodeToString(sessionID))
+
+	// Convert the builder to a string and return
+	return builder.String(), nil
 }
 
 // Get the currency used
