@@ -20,7 +20,7 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken. Replace this with your Botify API token
+// APIToken should be replaced with your own Botify API token.
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours

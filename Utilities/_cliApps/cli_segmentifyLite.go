@@ -24,7 +24,7 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken. Replace this with your Botify API token
+// APIToken should be replaced with your own Botify API token.
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Colours & text formatting
@@ -79,13 +79,13 @@ type botifyResponse struct {
 	Size int `json:"size"`
 }
 
-// FolderCount. Define a struct to hold text value and its associated count
+// FolderCount is used to store the folder name and count
 type FolderCount struct {
 	Text  string
 	Count int
 }
 
-// ByCount. Implement sorting interface for FolderCount slice
+// ByCount implements sorting interface for FolderCount slice
 type ByCount []FolderCount
 
 func (a ByCount) Len() int           { return len(a) }

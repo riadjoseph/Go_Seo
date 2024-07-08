@@ -26,7 +26,7 @@ var bold = "\033[1m"
 var reset = "\033[0m"
 var clearScreen = "\033[H\033[2J"
 
-// APIToken. Replace this with your Botify API token
+// APIToken should be replaced with your own Botify API token.
 var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
 
 // Strings used to store the project credentials for API access
