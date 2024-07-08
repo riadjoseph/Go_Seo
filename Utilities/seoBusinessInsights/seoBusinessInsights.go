@@ -2371,7 +2371,7 @@ margin: 10px 0;
             border-bottom: 2px solid #ddd;
         }
         nav li {
-            padding: 0 10px;
+            padding: 0 30px;
 			text-align: center;
         }
         nav a {
@@ -2383,6 +2383,7 @@ margin: 10px 0;
         }
         nav a:hover {
             color: DeepSkyBlue;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -2402,10 +2403,10 @@ margin: 10px 0;
 <nav>
     <ul>
         <li><a href="#revenue_visits">Revenue & visits</a></li>
+        <li><a href="#visits_per_order">Visits per order</a></li>
         <li><a href="#orders">No. of orders</a></li>
         <li><a href="#order_value">Order value</a></li>
         <li><a href="#visit_value">Organic visit value</a></li>
-        <li><a href="#visits_per_order">Visits per order</a></li>
         <li><a href="#detailed_insights">Monthly summary</a></li>
         <li><a href="#revenue_forecast">Revenue forecast</a></li>
         <li><a href="#wordcloud_branded">Branded wordcloud</a></li>
@@ -2445,9 +2446,13 @@ margin: 10px 0;
 	<section id="revenue_visits" class="container row">
 		<iframe src="go_seo_RevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
 	</section>
-	
+
 	<section class="container row">
 		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
+	</section>
+
+	<section id="visits_per_order" class="container row">
+		<iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
 	</section>
 
 	<section class="container row">
@@ -2470,10 +2475,6 @@ margin: 10px 0;
 
 	<section id="visit_value" class="container row">
 		<iframe src="go_seo_VisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
-	</section>
-	
-	<section id="visits_per_order" class="container row">
-		<iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
 	</section>
 	
 	<section class="container row">
@@ -3210,7 +3211,7 @@ func generateNewsHTML(sessionID string, company string, articles []Article) erro
 </head>
 <body>
 	<h1>{{ .Company }} in the news</h1>
-	<button class="collapsible">Show / hide news articles</button>
+	<button class="collapsible">Click to show / hide news articles</button>
 	<div class="content">
 		{{ range .Articles }}
 		<div style="margin-bottom: 20px;">
