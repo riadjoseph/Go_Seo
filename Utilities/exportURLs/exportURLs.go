@@ -189,7 +189,7 @@ func generateExport(sessionID string) string {
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. generateExport. Failed to close file: %v\n"+reset, err)
+			fmt.Println(red+"Error. generateExport. Failed to close file: %v\n", err)
 			return
 		}
 	}()
@@ -467,18 +467,17 @@ func generateCompletionPage() {
 </section>
 
 <script>
-    function downloadFile() {
-        const fileName = 'exportedURLs.txt';
-        const fileContent = 'Replace this with actual file content if dynamically generated.';
-
-        const blob = new Blob([fileContent], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
+function downloadFile() {
+    const fileName = 'exportedURLs.txt';
+    const filePath = './' + fileName;  // Adjust this path to the actual location of the file
+    const a = document.createElement('a');
+    a.href = filePath;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    alert("Your URL export file has been downloaded.");
+}
 </script>
 
 </body>
@@ -497,13 +496,6 @@ func generatePreviewHTML() {
 		fmt.Println(red+"Error. generateCompletionPage. Cannot open file:"+reset, err)
 		return
 	}
-
-	defer func() {
-		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. generatePreviewHTML. Failed to close file: %v\n"+reset, err)
-			return
-		}
-	}()
 
 	scanner := bufio.NewScanner(file)
 	var content []string
@@ -683,6 +675,41 @@ func getHostnamePort() {
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
 }
 
+// Get environment variables for token and storage folders
+func getEnvVariables() (envBotifyAPIToken string, envExportURLsLogFolder string, envExportURLsFolder string) {
+
+	// Botify API token from the env. variable getbotifyenvBotifyAPIToken
+	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
+	if envBotifyAPIToken == "" {
+		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable is not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		os.Exit(0)
+	}
+
+	// Storage folder for the log file
+	envExportURLsLogFolder = os.Getenv("envExportURLsFolder")
+	if envExportURLsLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envExportURLsLogFolder environment variable is not set." + reset)
+		fmt.Println(red + "Cannot start exportURLs server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println()
+		fmt.Println(green + "Log folder: " + envExportURLsLogFolder + reset)
+	}
+
+	// Storage folder for the cached insights
+	envExportURLsFolder = os.Getenv("envExportURLsFolder")
+	if envExportURLsFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envExportURLsFolder environment variable is not set." + reset)
+		fmt.Println(red + "Cannot start exportURLs server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "URL export folder: " + envExportURLsFolder + reset)
+	}
+
+	return envBotifyAPIToken, envExportURLsLogFolder, envExportURLsFolder
+}
+
 // Display the welcome banner
 func displayBanner() {
 
@@ -708,8 +735,7 @@ func displayBanner() {
 
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
-	fmt.Println(purple + "\nexportURLs server.\n" + reset)
-	fmt.Println(green + "\nThe exportURLs server is ON.\n" + reset)
+	fmt.Println(green + "\nThe exportURLs server is ON\n" + reset)
 
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")

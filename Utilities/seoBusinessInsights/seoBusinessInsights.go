@@ -75,7 +75,7 @@ var seoVisits []int
 var seoOrders []int
 var seoOrderValue []int
 var seoVisitValue []float64
-var visitsPerOrder []int
+var seoVisitsPerOrder []int
 
 // Slices used to store branded Keywords KPIs
 var kwKeywords []string
@@ -514,7 +514,7 @@ func getBusinessInsights(sessionID string) string {
 
 	writeLog(sessionID, organization, project, analyticsID, "Keyword data acquired")
 
-	seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, visitsPerOrder, startMonthDates, endMonthDates, startMonthNames = filterZeroValues(seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, visitsPerOrder, startMonthDates, endMonthDates, startMonthNames)
+	seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, seoVisitsPerOrder, startMonthDates, endMonthDates, startMonthNames = cleanInsights(seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, seoVisitsPerOrder, startMonthDates, endMonthDates, startMonthNames)
 
 	// Calculate the CMGR values
 	calculateCMGR(sessionID)
@@ -540,7 +540,7 @@ func resetMetrics() {
 	seoOrderValue = nil
 	totalAverageOrderValue = 0
 	seoVisitValue = nil
-	visitsPerOrder = nil
+	seoVisitsPerOrder = nil
 	kwKeywords = nil
 	kwCountClicks = nil
 	kwMetricsCTR = nil
@@ -611,10 +611,10 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		// Check division by zero
 		visitsPerOrderDisplay := 0
 		if metricsOrders != 0 {
-			visitsPerOrder = append(visitsPerOrder, metricsVisits/metricsOrders)
+			seoVisitsPerOrder = append(seoVisitsPerOrder, metricsVisits/metricsOrders)
 			visitsPerOrderDisplay = metricsVisits / metricsOrders
 		} else {
-			visitsPerOrder = append(visitsPerOrder, 0)
+			seoVisitsPerOrder = append(seoVisitsPerOrder, 0)
 		}
 
 		// Calculate the grand total for revenue visits & orders
@@ -640,20 +640,20 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 	// Calculate the average visits per order
 	totalVisitsPerOrder := 0
 	// Sum the total visits per order over the period
-	for _, value := range visitsPerOrder {
+	for _, value := range seoVisitsPerOrder {
 		totalVisitsPerOrder += value
 	}
 	// Divide the total by the number of periods
-	if len(visitsPerOrder) > 0 {
-		totalAverageVisitsPerOrder = totalVisitsPerOrder / len(visitsPerOrder)
+	if len(seoVisitsPerOrder) > 0 {
+		totalAverageVisitsPerOrder = totalVisitsPerOrder / len(seoVisitsPerOrder)
 	}
 
 	// Calculate the minimum and maximum visits per order
 	minVisitsPerOrder = -1
-	maxVisitsPerOrder = visitsPerOrder[0]
+	maxVisitsPerOrder = seoVisitsPerOrder[0]
 
 	// Iterate through the slice to find the min and max values
-	for _, value := range visitsPerOrder {
+	for _, value := range seoVisitsPerOrder {
 		if value >= 2 {
 			if minVisitsPerOrder == -1 || value < minVisitsPerOrder {
 				minVisitsPerOrder = value
@@ -921,7 +921,7 @@ func headerNotes() {
 </head>
 <body>
     <div class="content">
-	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths+1) + ` months.</span>
+	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
         <br>
@@ -937,13 +937,15 @@ func headerNotes() {
 `
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_headerNotes.html")
+	saveHTML(htmlContent, "/go_seo_HeaderNotes.html")
 }
 
 // If data issue have been detected generate the HTML to include in the header
 func generateDataIssueHTML(revenueDataIssue bool, visitsDataIssue bool, ordersDataIssue bool) string {
 
-	htmlDataIssue := "<span style=\"color: red;\">Warning: Less than 12 months valid data has been found for "
+	htmlDataIssue := "<br>"
+
+	htmlDataIssue += "<span style=\"color: red;\">Warning: Less than 12 months valid data has been found for "
 
 	// Check which variables are true and include them in the HTML content
 	if revenueDataIssue {
@@ -955,6 +957,8 @@ func generateDataIssueHTML(revenueDataIssue bool, visitsDataIssue bool, ordersDa
 	if ordersDataIssue {
 		htmlDataIssue += "orders data, "
 	}
+
+	htmlDataIssue += "</br>"
 
 	// Trim the trailing comma and space
 	htmlDataIssue = htmlDataIssue[:len(htmlDataIssue)-2] + ". </span>"
@@ -1114,7 +1118,7 @@ func tableVisitsOrdersRevenue() {
 `
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_TableTotalsVisitsOrdersRevenue.html")
+	saveHTML(htmlContent, "/go_seo_TotalsVisitsOrdersRevenue.html")
 }
 
 // Bar chart. Revenue and Visits
@@ -1209,8 +1213,7 @@ func lineVisitsPerOrder() {
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	// Pass visitsPerOrder directly to generaLineItems
-	lineVisitsPerOrderValue := generateLineItems(visitsPerOrder)
+	lineVisitsPerOrderValue := generateLineItems(seoVisitsPerOrder)
 
 	line.SetXAxis(startMonthNames).AddSeries("Visits per order", lineVisitsPerOrderValue).SetSeriesOptions(
 		charts.WithAreaStyleOpts(opts.AreaStyle{
@@ -1255,7 +1258,7 @@ func barVisitValue() {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Visit value",
-		Subtitle: "Organic visit value shows visits from search engines without paid promotion. Higher values indicate effective SEO strategies and potentially lower acquisition costs.",
+		Subtitle: "A high organic visit value is a strong indicator of the effectiveness and profitability of the site's organic traffic.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1306,7 +1309,7 @@ func barOrders() {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Number of orders",
-		Subtitle: "Number of orders placed in organic visits represents conversions from search engine traffic without paid promotion. Higher numbers indicate effective SEO driving direct sales.",
+		Subtitle: "Number of orders placed during a visit from an organic source.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1358,7 +1361,7 @@ func barOrderValue() {
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Order value",
-		Subtitle: "Indicates the average value of an order placed by a visitor from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
+		Subtitle: "The average value of an order placed during a visit from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1423,6 +1426,7 @@ func generateBarItemsFloat(revenue []float64) []opts.BarData {
 func generateLiquidBadge(badgeKPI string, badgeKPIValue float32, clickURL string, title string) {
 
 	badgeKPIValueCalc := badgeKPIValue * 100
+
 	subTitle := fmt.Sprintf("Compound growth CMGR. Rounded from %.2f%%", badgeKPIValueCalc)
 
 	liquid := charts.NewLiquid()
@@ -1481,14 +1485,14 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordCloudBranded.html"
+		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordcloudBranded.html"
 		pageTitle = "Branded wordcloud"
 	}
 	if !brandedMode {
 		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordCloudNonBranded.html"
+		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordcloudNonBranded.html"
 		pageTitle = "Non Branded wordcloud"
 	}
 
@@ -1532,12 +1536,12 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 	}
 
 	if brandedMode {
-		f, _ := os.Create(insightsCacheFolder + "/go_seo_WordCloudBranded.html")
+		f, _ := os.Create(insightsCacheFolder + "/go_seo_WordcloudBranded.html")
 		_ = wordcloud.Render(f)
 	}
 
 	if !brandedMode {
-		f, _ := os.Create(insightsCacheFolder + "/go_seo_WordCloudNonBranded.html")
+		f, _ := os.Create(insightsCacheFolder + "/go_seo_WordcloudNonBranded.html")
 		_ = wordcloud.Render(f)
 	}
 
@@ -1702,7 +1706,7 @@ func textTableDataDetail() {
 		orderValue := formatInteger.Sprintf("%d", seoOrderValue[i])
 		visits := formatInteger.Sprintf("%d", seoVisits[i])
 		visitValue := formatInteger.Sprintf("%.2f", seoVisitValue[i])
-		visitsPerOrderValue := formatInteger.Sprintf("%d", visitsPerOrder[i])
+		visitsPerOrderValue := formatInteger.Sprintf("%d", seoVisitsPerOrder[i])
 
 		row := []string{
 			formattedDate,
@@ -1993,11 +1997,11 @@ func textDetailedKeywordsInsights(brandedMode bool) {
 	// Save the HTML to a file
 	// Branded keywords details
 	if brandedMode {
-		saveHTML(htmlContent, "/go_seo_DataInsightKeywordsKPIsBranded.html")
+		saveHTML(htmlContent, "/go_seo_BrandedInsights.html")
 	}
 	// Branded keywords details
 	if !brandedMode {
-		saveHTML(htmlContent, "/go_seo_DataInsightKeywordsKPIsNonBranded.html")
+		saveHTML(htmlContent, "/go_seo_NonBrandedInsights.html")
 	}
 }
 
@@ -2031,7 +2035,7 @@ func lineRevenueForecast() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitsPerOrderLineRevenueForecast.html"
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_Forecast.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
@@ -2077,7 +2081,7 @@ func lineRevenueForecast() {
 			}),
 	)
 
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsPerOrderLineRevenueForecast.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_Forecast.html")
 
 	_ = line.Render(f)
 }
@@ -2162,7 +2166,7 @@ func textForecastNarrative() {
 	)
 
 	// Define the HTML filename
-	htmlFileName = "/go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html"
+	htmlFileName = "/go_seo_ForecastNarrative.html"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
@@ -2326,7 +2330,7 @@ margin: 10px 0;
             padding: 12px 24px;
             font-size: 18px;
             color: white;
-            background-color: DeepSkyBlue;
+            background-color: Green;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -2337,7 +2341,7 @@ margin: 10px 0;
             transition: background-color 0.3s, box-shadow 0.3s;
         }
         .back-button:hover {
-            background-color: Green;
+            background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
         .section-padding-top {
@@ -2419,7 +2423,7 @@ margin: 10px 0;
         <li><a href="#revenue_forecast">Revenue forecast</a></li>
         <li><a href="#wordcloud_branded">Branded wordcloud</a></li>
         <li><a href="#wordcloud_non_branded">Non branded wordcloud</a></li>
-        <li><a href="#news">In the news (experimental)</a></li>
+        <li><a href="#news">In the news</a></li>
     </ul>
 </nav>
 
@@ -2444,11 +2448,11 @@ margin: 10px 0;
 
 <div class="content">
 	<section class="container row no-border">
-		<iframe src="go_seo_headerNotes.html" title="Header" style="height: 120px;"></iframe>
+		<iframe src="go_seo_HeaderNotes.html" title="Header" style="height: 130px;"></iframe>
 	</section>
 	
 	<section class="container row no-border">
-		<iframe src="go_seo_TableTotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 340px;"></iframe>
+		<iframe src="go_seo_TotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 340px;"></iframe>
 	</section>
 	
 	<section id="revenue_visits" class="container row">
@@ -2495,13 +2499,13 @@ margin: 10px 0;
 	</section>
 
 	<section id="revenue_forecast" class="container row">
-		<iframe src="go_seo_VisitsPerOrderLineRevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
-		<iframe src="go_seo_VisitsPerOrderLineRevenuetextForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
+		<iframe src="go_seo_Forecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
+		<iframe src="go_seo_ForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 	</section>
 
 	<section id="wordcloud_branded" class="container row no-border">
  	   <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
- 	   <iframe src="go_seo_DataInsightKeywordsKPIsBranded.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+ 	   <iframe src="go_seo_BrandedInsights.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 	</section>
 
 	<section class="container row no-border section-padding-top section-padding-bottom">
@@ -2510,7 +2514,7 @@ margin: 10px 0;
 
 	<section id="wordcloud_non_branded" class="container row no-border">
   	  <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-  	  <iframe src="go_seo_DataInsightKeywordsKPIsNonBranded.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+  	  <iframe src="go_seo_NonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 	</section>
 
 	<section class="container row no-border section-padding-top section-padding-bottom">
@@ -2528,7 +2532,6 @@ margin: 10px 0;
 </body>
 </html>
 `, width90, width90, width100, width100, width100, width0, fullHost, percent)
-
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
@@ -2651,8 +2654,8 @@ func computeCMGR(values []float64, calculatedKPIName string) float64 {
 	println()
 	println(green + "CMGR Inputs" + reset)
 	println(yellow + calculatedKPIName + reset)
-	fmt.Printf("finalValue: %f\n", finalValue)
 	fmt.Printf("initialValue: %f\n", initialValue)
+	fmt.Printf("finalValue: %f\n", finalValue)
 	fmt.Printf("numberOfPeriods: %f\n", numberOfPeriods)
 
 	return cmgr
@@ -2921,14 +2924,13 @@ func writeLog(sessionID, organization, project, analyticsID, statusDescription s
 		}
 	}
 
-	// Write log record to file
 	if _, err := file.WriteString(logRecord); err != nil {
 		fmt.Printf(red+"Error. writeLog. Cannot write to log file: %s"+reset, err)
 	}
 }
 
 func generateSessionID(length int) (string, error) {
-	// Generate random sessionID
+	// Generate sessionID
 	sessionID := make([]byte, length)
 	if _, err := rand.Read(sessionID); err != nil {
 		return "", err
@@ -2965,7 +2967,6 @@ func getCurrencyCompany() {
 		fmt.Println(red+"\nError. getCurrencyCompany. Cannot sent request:"+reset, err)
 	}
 
-	//defer resp.Body.Close()
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			fmt.Println(red+"Error. getCurrencyCompany. Failed to close response body: %v\n"+reset, err)
@@ -3027,13 +3028,13 @@ func getCurrencyCompany() {
 		currencySymbol = currencyCode // Unknown currency defaults to the code
 	}
 
-	// To determine the company first check the CompanyName. if it is empty use the first word of the FirstName, if a CompanyName is present use it.
+	// To determine the customer name first check the CompanyName. if it is empty use the first word of the FirstName, if a CompanyName is present use it.
 	if responseObject.Results[0].Owner.CompanyName == nil {
 		fullFirstName := strings.Fields(responseObject.Results[0].Owner.FirstName)
 		company = fullFirstName[0]
 	} else {
-		companyInterface := responseObject.Results[0].Owner.CompanyName
-		company = companyInterface.(string)
+		companyName := responseObject.Results[0].Owner.CompanyName
+		company = companyName.(string)
 	}
 }
 
@@ -3045,7 +3046,7 @@ func createInsightsCacheFolder(cacheFolder string) {
 		// Create the folder and any necessary parents
 		err := os.MkdirAll(insightsDir, 0755)
 		if err != nil {
-			fmt.Printf(red+"Error. Failed to create the insights folder: %v"+insightsDir+reset, err)
+			fmt.Printf(red+"Error. Failed to create the insights cache folder: %v"+insightsDir+reset, err)
 			fmt.Println()
 		}
 	}
@@ -3059,31 +3060,28 @@ func getHostnamePort() {
 		fmt.Printf(red+"Error. getHostnamePort. Failed to read seoBusinessInsights.ini file: %v"+reset, err)
 	}
 
-	// Get values from the INI file
+	// Get values from the .ini file
 	protocol = cfg.Section("").Key("protocol").String()
 	hostname = cfg.Section("").Key("hostname").String()
 	port = cfg.Section("").Key("port").String()
 	fullHost = hostname + ":" + port
 
-	// Save the values to variables
 	var serverHostname, serverPort string
 	serverHostname = hostname
 	serverPort = port
 
-	// Display the hostname and port
 	fmt.Printf(green+"\nHostname: %s\n"+reset, serverHostname)
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
-
 }
 
-// Function used to inverse the dates in  the date slice
+// Function used to inverse the dates in the date slice. Used to ensure the latest data is display to the right side of the chart
 func invertStringSlice(s []string) {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 }
 
-// Get environment variables for token and storage folders
+// Get environment variables for token and cache folders
 func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, envInsightsFolder string) {
 
 	// Botify API token from the env. variable getbotifyAPIToken
@@ -3118,6 +3116,7 @@ func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, e
 	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder
 }
 
+// Generate the news feed
 func generateNewsFeed(company string, sessionID string) {
 	articles, err := fetchNews(company, sessionID)
 	if err != nil {
@@ -3283,7 +3282,7 @@ func generateNewsHTML(sessionID string, company string, articles []Article) erro
 	}
 
 	// Create output file
-	fileName := fmt.Sprintf("/go_seo_news.html")
+	fileName := fmt.Sprintf("/go_seo_News.html")
 	file, err := os.Create(insightsCacheFolder + fileName)
 	if err != nil {
 		return err
@@ -3308,7 +3307,7 @@ func generateNewsHTML(sessionID string, company string, articles []Article) erro
 	return nil
 }
 
-// Display the welcome banner
+// Display the welcome banner, get the hostname and environment variables
 func startup() {
 
 	// Clear the screen
@@ -3333,7 +3332,6 @@ func startup() {
 
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
-	fmt.Println(purple + "\nseoBusinessInsights server.\n" + reset)
 	fmt.Println(green + "\nThe seoBusinessInsights server is ON.\n" + reset)
 
 	now := time.Now()
@@ -3349,14 +3347,14 @@ func startup() {
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }
 
-func filterZeroValues(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderValue []int, seoVisitValue []float64, visitsPerOrder []int, startMonthDates, endMonthDates, startMonthNames []string) ([]int, []int, []int, []int, []float64, []int, []string, []string, []string) {
+// CleanInsights is used to remove all slices where there are zero values in the revenue and / or visits data
+func cleanInsights(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderValue []int, seoVisitValue []float64, visitsPerOrder []int, startMonthDates, endMonthDates, startMonthNames []string) ([]int, []int, []int, []int, []float64, []int, []string, []string, []string) {
 	var filteredSEORevenue []int
 	var filteredSEOVisits []int
 	var filteredSEOOrders []int
 	var filteredSEOOrderValue []int
 	var filteredSEOVisitValue []float64
 	var filteredVisitsPerOrder []int
-
 	var filteredStartMonthDates []string
 	var filteredEndMonthDates []string
 	var filteredStartMonthNames []string
@@ -3375,7 +3373,7 @@ func filterZeroValues(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrd
 		}
 	}
 
-	// Update the number of months based on the reduced slice
+	// Update the number of months based on the reduced slice size
 	noOfMonths = len(filteredStartMonthDates)
 
 	return filteredSEORevenue, filteredSEOVisits, filteredSEOOrders, filteredSEOOrderValue, filteredSEOVisitValue, filteredVisitsPerOrder, filteredStartMonthDates, filteredEndMonthDates, filteredStartMonthNames
