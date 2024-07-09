@@ -22,8 +22,10 @@ import (
 // Version
 var version = "v0.1"
 
-// APIToken should be updated to include your own token
-var APIToken = "c1e6c5ab4a8dc6a16620fd0a885dd4bee7647205"
+// Token, log folder and cache folder taken from environment variables
+var envBotifyAPIToken string
+var envSegmentLogFolder string
+var envSegmentFolder string
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -141,7 +143,7 @@ func generateExport(sessionID string) string {
 		return "errorGenerateExport"
 	}
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", "token "+APIToken)
+	req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -207,7 +209,7 @@ func generateExport(sessionID string) string {
 
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
-		req.Header.Add("Authorization", "token "+APIToken)
+		req.Header.Add("Authorization", "token "+envBotifyAPIToken)
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -501,7 +503,7 @@ func generatePreviewHTML() {
 	var content []string
 	lineCount := 0
 
-	// Read up to the first 100 lines
+	// Read up to the first 100 lines for preview purposes
 	for scanner.Scan() {
 		content = append(content, scanner.Text())
 		lineCount++
@@ -682,12 +684,12 @@ func getEnvVariables() (envBotifyAPIToken string, envExportURLsLogFolder string,
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
 	if envBotifyAPIToken == "" {
 		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable is not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		fmt.Println(red + "Cannot start exportURLs server." + reset)
 		os.Exit(0)
 	}
 
 	// Storage folder for the log file
-	envExportURLsLogFolder = os.Getenv("envExportURLsFolder")
+	envExportURLsLogFolder = os.Getenv("envExportURLsLogFolder")
 	if envExportURLsLogFolder == "" {
 		fmt.Println(red + "Error. getEnvVariables. envExportURLsLogFolder environment variable is not set." + reset)
 		fmt.Println(red + "Cannot start exportURLs server." + reset)
@@ -743,6 +745,9 @@ func displayBanner() {
 
 	// Get the hostname and port
 	getHostnamePort()
+
+	// Get the environment variables for token, log folder & cache folder
+	envBotifyAPIToken, envSegmentLogFolder, envSegmentFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }
