@@ -1,4 +1,4 @@
-// botifyBotLite: Generate Botify crawl en-masse
+// botifyBotLite: Generate Botify crawls en-masse
 // Written by Jason Vicinanza
 
 package main

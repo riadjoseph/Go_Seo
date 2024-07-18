@@ -1,5 +1,4 @@
 // exportURLs: Export URLs from a project
-// Analysis based on 1MM URL maximum
 // Written by Jason Vicinanza
 
 package main

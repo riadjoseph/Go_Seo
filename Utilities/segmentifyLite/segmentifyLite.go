@@ -1,5 +1,4 @@
-// segmentifyLite. Generate the regex for a specified crawl
-// See the readme for details on segments generated
+// segmentifyLite. Generate the segmentation regex for a specified crawl
 // Written by Jason Vicinanza
 
 package main
@@ -26,10 +25,10 @@ import (
 // Version
 var version = "v0.1"
 
-// Token, log folder and cache folder taken from environment variables
+// Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
-var envSegmentLogFolder string
-var envSegmentFolder string
+var envSegmentifyLiteLogFolder string
+var envSegmentifyLiteFolder string
 
 // Colours & text formatting
 var purple = "\033[0;35m"
@@ -73,7 +72,7 @@ var fullHost string
 
 // Name of the cache folder used to store the generated HTML
 var cacheFolder string
-var cacheFolderRoot = "./_cache"
+var cacheFolderRoot string
 
 // No of executions
 var sessionIDCounter int
@@ -125,7 +124,7 @@ func main() {
 			fmt.Println(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
 		}
 
-		cacheFolderRoot = envSegmentFolder
+		cacheFolderRoot = envSegmentifyLiteFolder
 		cacheFolder = cacheFolderRoot + "/" + sessionID + organisation
 
 		createCacheFolder()
@@ -1224,8 +1223,7 @@ func insertStaticRegex(regexText string) error {
 func writeLog(sessionID, organisation, project, statusDescription string) {
 
 	// Define log file name
-	//fileName := "_seoSegmentifyLite.log"
-	fileName := envSegmentLogFolder + "/_seoBusinessInsights.log"
+	fileName := envSegmentifyLiteLogFolder + "/_segmentifyLite.log"
 
 	// Check if the log file exists
 	fileExists := true
@@ -1393,7 +1391,7 @@ func generateSegmentationRegex() {
 
 	htmlContent += fmt.Sprintf("<div style='text-align: center;'>\n")
 	htmlContent += fmt.Sprintf("<h2 style='color: deepskyblue;'>Segmentation regex generation is complete</h2>\n")
-	htmlContent += fmt.Sprintf("<h3 style='color: dimgray; padding-left: 20px; padding-right: 20px;'>The regex has been copied into the clipboard ready for pasting directly into your Botify project.</h3>\n")
+	htmlContent += fmt.Sprintf("<h3 style='color: dimgray; padding-left: 20px; padding-right: 20px;'>The regex has been copied to the clipboard ready for pasting directly into your Botify project.</h3>\n")
 	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, organisation)
 
 	htmlContent += fmt.Sprintf("</div>\n")
@@ -1632,41 +1630,40 @@ func getHostnamePort() {
 }
 
 // Get environment variables for token and storage folders
-func getEnvVariables() (envBotifyAPIToken string, envSegmentLogFolder string, envSegmentFolder string) {
+func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string) {
 
 	// Botify API token from the env. variable getbotifyenvBotifyAPIToken
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
 	if envBotifyAPIToken == "" {
 		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable is not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	}
 
 	// Storage folder for the log file
-	envSegmentLogFolder = os.Getenv("envSegmentLogFolder")
-	if envSegmentLogFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentLogFolder environment variable is not set." + reset)
+	envSegmentifyLiteLogFolder = os.Getenv("envSegmentifyLiteLogFolder")
+	if envSegmentifyLiteLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteLogFolder environment variable is not set." + reset)
 		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	} else {
 		fmt.Println()
-		fmt.Println(green + "Log folder: " + envSegmentLogFolder + reset)
+		fmt.Println(green + "Log folder: " + envSegmentifyLiteLogFolder + reset)
 	}
 
 	// Storage folder for the cached insights
-	envSegmentFolder = os.Getenv("envSegmentFolder")
-	if envSegmentFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentFolder environment variable is not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+	envSegmentifyLiteFolder = os.Getenv("envSegmentifyLiteFolder")
+	if envSegmentifyLiteFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteFolder environment variable is not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	} else {
-		fmt.Println(green + "Segment folder: " + envSegmentFolder + reset)
+		fmt.Println(green + "segmentifyLite cache folder: " + envSegmentifyLiteFolder + reset)
 	}
 
-	return envBotifyAPIToken, envSegmentLogFolder, envSegmentFolder
+	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder
 }
 
-// Display the welcome banner
 func startUp() {
 
 	//Banner
@@ -1704,7 +1701,7 @@ func startUp() {
 	getHostnamePort()
 
 	// Get the environment variables for token, log folder & cache folder
-	envBotifyAPIToken, envSegmentLogFolder, envSegmentFolder = getEnvVariables()
+	envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }

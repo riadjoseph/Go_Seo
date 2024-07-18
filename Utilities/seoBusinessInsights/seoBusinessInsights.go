@@ -28,7 +28,7 @@ import (
 // Version
 var version = "v0.1"
 
-// Token, log folder and cache folder taken from environment variables
+// Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
 var envInsightsLogFolder string
 var envInsightsFolder string
@@ -164,7 +164,7 @@ var forecastVisitIncrementsString []string
 var currencyCode string
 var currencySymbol string
 
-// Name of the insights folder used to store the generated HTML
+// Name of the seoBusinessInsights folder used to store the generated HTML
 var insightsCacheFolder string
 
 // Host name and port the web server runs on
@@ -407,7 +407,7 @@ func businessInsightsDashboard(sessionID string) {
 	generateNewsFeed(company, sessionID)
 
 	// Generate the container to present the previously generated components
-	generateDashboardContainer()
+	generateDashboardContainer(company)
 
 	fmt.Println()
 	fmt.Println(lineSeparator)
@@ -433,7 +433,7 @@ func getBusinessInsights(sessionID string) string {
 	fmt.Printf("\n%s%s%s Organization: %s, Project: %s\n", yellow, sessionID, reset, organization, project)
 	fmt.Println()
 
-	// Create the insights folder for the generated HTML if it does not exist
+	// Create the seoBusinessInsights folder for the generated HTML if it does not exist
 	insightsCacheFolder = envInsightsFolder + "/" + sessionID + organization
 	createInsightsCacheFolder(insightsCacheFolder)
 
@@ -986,13 +986,13 @@ func badgeCMGR() {
 	generateLiquidBadge("Visits", cmgrVisits32, clickURL, "Visits growth")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGRVisitValue.html"
-	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Visit value")
+	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Visit value (RPV)")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrders.html"
 	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
-	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Order value")
+	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Order value (AOV)")
 }
 
 // Total Visits, Orders & Revenue
@@ -1072,7 +1072,7 @@ func tableVisitsOrdersRevenue() {
                         <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
                     </tr>
                     <tr>
-					<th style="color: deepskyblue;">VISIT VALUE</th>
+					<th style="color: deepskyblue;">VISIT VALUE (RPV)</th>
                     </tr>
                     <tr>
 						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageVisitValueFormatted) + `</td>
@@ -1088,7 +1088,7 @@ func tableVisitsOrdersRevenue() {
                         <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
                     </tr>
                     <tr>
-					<th style="color: deepskyblue;">ORDER VALUE</th>
+					<th style="color: deepskyblue;">ORDER VALUE (AOV)</th>
                     </tr>
                     <tr>
 						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
@@ -1257,7 +1257,7 @@ func barVisitValue() {
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Visit value",
+		Title:    "Revenue per visit (RPV)",
 		Subtitle: "A high organic visit value is a strong indicator of the effectiveness and profitability of the site's organic traffic.",
 		Link:     clickURL,
 	}),
@@ -1309,7 +1309,7 @@ func barOrders() {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title:    "Number of orders",
-		Subtitle: "Number of orders placed during a visit from an organic source.",
+		Subtitle: "Number of orders placed during an organic visit.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1360,7 +1360,7 @@ func barOrderValue() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Order value",
+		Title:    "Order value (AOV)",
 		Subtitle: "The average value of an order placed during a visit from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
 		Link:     clickURL,
 	}),
@@ -1892,7 +1892,7 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         <tbody>`
 
 	// Title
-	htmlContent += fmt.Sprintf("<h2>\n\nSummary for the previous %d months</h2>", noOfMonths)
+	htmlContent += fmt.Sprintf("<h2>\n\nSEO Business insights for the previous %d months</h2>", noOfMonths)
 
 	// Insert tke KPI details
 	for _, row := range data {
@@ -2151,7 +2151,7 @@ func textForecastNarrative() {
 		<p class="keyword-font">
 			<b>Example scenario:</b>
 			On average an order is placed every
-			<span class="blueText">%d</span> organic visits. For each additional 
+			<span class="blueText">%d</span> visit from an organic source. For each additional 
 			<span class="blueText">%s</span> organic visits, the current forecast is 
 			<span class="blueText">%d</span> orders will be placed. With an average 
 			order value of <span class="blueText">%s%d</span> the projected 
@@ -2251,7 +2251,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 // Define the HTML for the container. Used to consolidate the generated charts into a single page.
 // Container start
-func generateDashboardContainer() {
+func generateDashboardContainer(company string) {
 
 	// Using these variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
@@ -2265,7 +2265,7 @@ func generateDashboardContainer() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Insights Broadsheet</title>
+    <title>seoBusinessInsights</title>
     <style>
         body {
             margin: 0;
@@ -2371,7 +2371,7 @@ margin: 10px 0;
             top: 0;
             background-color: #f2f2f2;
             border-bottom: 2px solid #ddd;
-            z-index: 1000; /* Ensure it appears above other content */
+            z-index: 1000; 
         }
         nav ul {
             list-style-type: none;
@@ -2408,7 +2408,7 @@ margin: 10px 0;
 
 <header class="banner top">
     <span>Go_Seo</span><br>
-    <span style="font-size: 20px;">Business insights broadsheet</span>
+    <span style="font-size: 20px;">Business Insights Broadsheet for %s</span>
 </header>
 
 <!-- Navigation Links -->
@@ -2531,7 +2531,7 @@ margin: 10px 0;
 
 </body>
 </html>
-`, width90, width90, width100, width100, width100, width0, fullHost, percent)
+`, width90, width90, width100, width100, width100, width0, company, fullHost, percent)
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
@@ -3110,7 +3110,7 @@ func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, e
 		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {
-		fmt.Println(green + "Insights cache folder: " + envInsightsFolder + reset)
+		fmt.Println(green + "seoBusinessInsights cache folder: " + envInsightsFolder + reset)
 	}
 
 	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder
@@ -3332,7 +3332,7 @@ func startup() {
 
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
-	fmt.Println(green + "\nThe seoBusinessInsights server is ON.\n" + reset)
+	fmt.Println(green + "\nThe seoBusinessInsights server is ON\n" + reset)
 
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
