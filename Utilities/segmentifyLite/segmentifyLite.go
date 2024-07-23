@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -69,6 +70,7 @@ var slashCountLevel2 = 5
 var hostname string
 var port string
 var fullHost string
+var protocol string
 
 // Name of the cache folder used to store the generated HTML
 var cacheFolder string
@@ -76,6 +78,9 @@ var cacheFolderRoot string
 
 // No of executions
 var sessionIDCounter int
+
+// Declare the mutex
+var mutex sync.Mutex
 
 type botifyResponse struct {
 	Count   int `json:"count"`
@@ -101,13 +106,18 @@ func main() {
 
 	startUp()
 
-	// Serve static files from the current directory
+	// Serve static files from the current folder
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/", fs)
 
 	// Define a handler function for form submission
 	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
-		// Retrieve the form data from the request
+
+		// Lock the function until it's complete to prevent race conditions
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		// Retrieve the form data from the request (org and username)
 		err := r.ParseForm()
 		if err != nil {
 			fmt.Println(red+"Error. Cannot parse form:"+reset, err)
@@ -117,11 +127,10 @@ func main() {
 		project = r.Form.Get("project")
 
 		// Generate a session ID used for grouping log entries
-		var sessionID string
-
-		sessionID, err = generateSessionID(8)
+		sessionID, err := generateSessionID(8)
 		if err != nil {
-			fmt.Println(red+"Error. writeLog. Failed generating session ID: %s"+reset, err)
+			fmt.Println(red+"Error. writeLog. Failed generating a session ID: %s"+reset, err)
+			os.Exit(0)
 		}
 
 		cacheFolderRoot = envSegmentifyLiteFolder
@@ -200,7 +209,7 @@ func main() {
 	})
 
 	// Start the HTTP server
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
 		fmt.Println(red+"Error. main. Cannot start HTTP server.:"+reset, err)
 		os.Exit(1)
@@ -1403,7 +1412,8 @@ func generateSegmentationRegex() {
 	generateSegmentHTML()
 
 	// Copy the regex to the clipboard
-	copyRegexToClipboard()
+	// Not used, unable to do this when segmentifyLite is hosted by Botify.
+	//copyRegexToClipboard()
 }
 
 // Copy Regex to the clipboard
@@ -1605,63 +1615,44 @@ func createCacheFolder() {
 	}
 }
 
-// Get the hostname and port from the .ini
 func getHostnamePort() {
 
 	// Load the INI file
 	cfg, err := ini.Load("segmentifyLite.ini")
 	if err != nil {
-		log.Fatalf(red+"Error. getHostnamePort. Failed to read go_seo_segmentifyLite.ini file: %v"+reset, err)
+		fmt.Printf(red+"Error. getHostnamePort. Failed to read segmentifyLite.ini file: %v"+reset, err)
 	}
 
-	// Get values from the INI file
-	hostname = cfg.Section("").Key("hostname").String()
-	port = cfg.Section("").Key("port").String()
-	fullHost = hostname + ":" + port
+	// Get values from the .ini file
+	if !cfg.Section("").HasKey("protocol") {
+		fmt.Println(yellow + "Warning: 'protocol' not found in configuration file. Will default to HTTPS." + reset)
+		// Default when no protocol key is found in the .ini file
+		protocol = "https"
+	} else {
+		protocol = cfg.Section("").Key("protocol").String()
+	}
 
-	// Save the values to variables
+	if !cfg.Section("").HasKey("hostname") {
+		fmt.Println(yellow + "Warning: 'hostname' not found in configuration file. Will default to localhost." + reset)
+	} else {
+		hostname = cfg.Section("").Key("hostname").String()
+	}
+
+	if !cfg.Section("").HasKey("port") {
+		fmt.Println(yellow + "Warning: 'port' not found in configuration file. By default no port number will be used." + reset)
+		port = ""
+	} else {
+		port = cfg.Section("").Key("port").String()
+		port = ":" + port
+	}
+	fullHost = hostname + port
+
 	var serverHostname, serverPort string
 	serverHostname = hostname
 	serverPort = port
 
-	// Print the values (for demonstration purposes)
 	fmt.Printf(green+"\nHostname: %s\n"+reset, serverHostname)
 	fmt.Printf(green+"Port: %s\n"+reset, serverPort)
-}
-
-// Get environment variables for token and storage folders
-func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string) {
-
-	// Botify API token from the env. variable getbotifyenvBotifyAPIToken
-	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
-	if envBotifyAPIToken == "" {
-		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable is not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
-		os.Exit(0)
-	}
-
-	// Storage folder for the log file
-	envSegmentifyLiteLogFolder = os.Getenv("envSegmentifyLiteLogFolder")
-	if envSegmentifyLiteLogFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteLogFolder environment variable is not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
-		os.Exit(0)
-	} else {
-		fmt.Println()
-		fmt.Println(green + "Log folder: " + envSegmentifyLiteLogFolder + reset)
-	}
-
-	// Storage folder for the cached insights
-	envSegmentifyLiteFolder = os.Getenv("envSegmentifyLiteFolder")
-	if envSegmentifyLiteFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteFolder environment variable is not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
-		os.Exit(0)
-	} else {
-		fmt.Println(green + "segmentifyLite cache folder: " + envSegmentifyLiteFolder + reset)
-	}
-
-	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder
 }
 
 func startUp() {
@@ -1704,4 +1695,39 @@ func startUp() {
 	envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
+}
+
+// Get environment variables for token and cache folders
+func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string) {
+
+	// Botify API token from the env. variable getbotifyAPIToken
+	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
+	if envBotifyAPIToken == "" {
+		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		os.Exit(0)
+	}
+
+	// Storage folder for the log file
+	envSegmentifyLiteLogFolder = os.Getenv("envSegmentifyLiteLogFolder")
+	if envSegmentifyLiteLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteLogFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println()
+		fmt.Println(green + "Log folder: " + envSegmentifyLiteLogFolder + reset)
+	}
+
+	// Storage folder for the cached insights
+	envSegmentifyLiteFolder = os.Getenv("envSegmentifyLiteFolder")
+	if envSegmentifyLiteFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "segmentifyLite cache folder: " + envSegmentifyLiteFolder + reset)
+	}
+
+	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder
 }

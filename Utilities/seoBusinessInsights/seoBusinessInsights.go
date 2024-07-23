@@ -26,7 +26,14 @@ import (
 )
 
 // Version
-var version = "v0.1"
+var version = "v0.2"
+
+// changelog v0.2
+// Added tooltips to login page (org and project name)
+// Set API time out to 30 seconds
+// Version displayed in broadsheet header
+// Port & protocol not required keys in .ini file when hosted on Botify infra
+// Wordclouds and News section now display correctly (fixed 404 errors)
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
@@ -336,7 +343,7 @@ func main() {
 	})
 
 	// Start the HTTP server
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
 		fmt.Printf(red+"Error. Main. Failed to start HTTP server: %v\n"+reset, err)
 	}
@@ -863,7 +870,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
-		fmt.Println(red+"Error. generateRevenueBQL. No engagement analytics configured, or data is not available for computed date ranges for", organization+"/"+project+reset)
+		fmt.Println(red+"Error. generateRevenueBQL. Engagement analytics with visits, revenue & transactions (orders) has not been configured for the specified project ", organization+"/"+project+reset)
 		getRevenueDataStatus := "errorNoEAFound"
 		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
 	} else {
@@ -917,10 +924,16 @@ func headerNotes() {
 	.header-font {
             font-size: 15px;  
         }
+	.right-justify {
+            text-align: right;
+            display: block; /* Ensure span takes the full width */
+        }
     </style>
 </head>
 <body>
     <div class="content">
+        <span class="header-font right-justify">Version: ` + fmt.Sprintf("%s", version) + `</span>
+
 	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
@@ -935,7 +948,6 @@ func headerNotes() {
 </body>
 </html>
 `
-
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_HeaderNotes.html")
 }
@@ -1160,8 +1172,8 @@ func barRevenueVisits() {
 		AddSeries("Visits", barDataVisits).
 		SetSeriesOptions(
 			charts.WithMarkPointNameTypeItemOpts(
-				opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
-				opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
+				opts.MarkPointNameTypeItem{Name: "Highest", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
+				opts.MarkPointNameTypeItem{Name: "Lowest", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
 			),
 			charts.WithMarkPointStyleOpts(
 				opts.MarkPointStyle{
@@ -1224,7 +1236,7 @@ func lineVisitsPerOrder() {
 		}),
 		charts.WithMarkPointNameTypeItemOpts(
 			opts.MarkPointNameTypeItem{Name: "Highest No. of visits", Type: "max", ItemStyle: &opts.ItemStyle{Color: "rgb(255, 55, 55)"}},
-			opts.MarkPointNameTypeItem{Name: "Minimum  No. of visits", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
+			opts.MarkPointNameTypeItem{Name: "Lowest  No. of visits", Type: "min", ItemStyle: &opts.ItemStyle{Color: "rgb(144, 238, 144)"}},
 		),
 		charts.WithMarkPointStyleOpts(
 			opts.MarkPointStyle{
@@ -1282,8 +1294,8 @@ func barVisitValue() {
 	bar.SetXAxis(startMonthNames).
 		AddSeries("Organic visit value", barDataVisitValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Minimum visit value", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Maximum visit value", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Lowest visit value", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Highest visit value", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Average visit value", Type: "average"},
 		),
 			charts.WithMarkLineStyleOpts(
@@ -1333,8 +1345,8 @@ func barOrders() {
 	bar.SetXAxis(startMonthNames).
 		AddSeries("Orders", barDataOrders).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Minimum No. orders", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Maximum No. orders", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Lowest No. orders", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Highest No. orders", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Average No. orders", Type: "average"},
 		),
 			charts.WithMarkLineStyleOpts(
@@ -1385,8 +1397,8 @@ func barOrderValue() {
 	bar.SetXAxis(startMonthNames).
 		AddSeries("Order value", barDataOrderValue).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Minimum order value", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Maximum order value", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Lowest order value", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Highest order value", Type: "max"},
 			opts.MarkLineNameTypeItem{Name: "Average order value", Type: "average"},
 		),
 			charts.WithMarkLineStyleOpts(
@@ -2504,7 +2516,7 @@ margin: 10px 0;
 	</section>
 
 	<section id="wordcloud_branded" class="container row no-border">
- 	   <iframe src="go_seo_WordCloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+ 	   <iframe src="go_seo_WordcloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
  	   <iframe src="go_seo_BrandedInsights.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 	</section>
 
@@ -2513,7 +2525,7 @@ margin: 10px 0;
 	</section>
 
 	<section id="wordcloud_non_branded" class="container row no-border">
-  	  <iframe src="go_seo_WordCloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+  	  <iframe src="go_seo_WordcloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
   	  <iframe src="go_seo_NonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 	</section>
 
@@ -2522,7 +2534,7 @@ margin: 10px 0;
 	</section>
 
 	<section id="news" class="container row no-border">
-    	<iframe src="go_seo_news.html" title="News" class="tall-iframe" style="height: 500px;"></iframe>
+    	<iframe src="go_seo_News.html" title="News" class="tall-iframe" style="height: 500px;"></iframe>
 	</section>
 </div>
 
@@ -3061,10 +3073,28 @@ func getHostnamePort() {
 	}
 
 	// Get values from the .ini file
-	protocol = cfg.Section("").Key("protocol").String()
-	hostname = cfg.Section("").Key("hostname").String()
-	port = cfg.Section("").Key("port").String()
-	fullHost = hostname + ":" + port
+	if !cfg.Section("").HasKey("protocol") {
+		fmt.Println(yellow + "Warning: 'protocol' not found in configuration file. Will default to HTTPS." + reset)
+		// Default when no protocol key is found in the .ini file
+		protocol = "https"
+	} else {
+		protocol = cfg.Section("").Key("protocol").String()
+	}
+
+	if !cfg.Section("").HasKey("hostname") {
+		fmt.Println(yellow + "Warning: 'hostname' not found in configuration file. Will default to localhost." + reset)
+	} else {
+		hostname = cfg.Section("").Key("hostname").String()
+	}
+
+	if !cfg.Section("").HasKey("port") {
+		fmt.Println(yellow + "Warning: 'port' not found in configuration file. By default no port number will be used." + reset)
+		port = ""
+	} else {
+		port = cfg.Section("").Key("port").String()
+		port = ":" + port
+	}
+	fullHost = hostname + port
 
 	var serverHostname, serverPort string
 	serverHostname = hostname
