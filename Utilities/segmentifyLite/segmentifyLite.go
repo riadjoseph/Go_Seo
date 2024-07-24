@@ -14,8 +14,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -202,7 +200,7 @@ func main() {
 		generateSegmentationRegex()
 
 		// Display results and clean up
-		cleanUp(sessionID)
+		finishUp(sessionID)
 
 		// Respond to the client with a success message or redirect to another page
 		http.Redirect(w, r, cacheFolder+"/go_seo_segmentifyLite.html", http.StatusFound)
@@ -1166,18 +1164,8 @@ func levelThreshold(inputFilename string, slashCount int) (largestValueSize, fiv
 	return largestValueSize, fivePercentValue
 }
 
-// Display the results and cleanup
-func cleanUp(sessionID string) {
-
-	// Clean-up. Delete the temp. file
-	err := os.Remove(urlExtractFile)
-	if err != nil {
-		fmt.Printf(red+"Error. cleanUp. Cannot delete extract file %s: %v\n"+reset, urlExtractFile, err)
-	}
-	err = os.Remove("segment.txt")
-	if err != nil {
-		fmt.Printf(red+"Error. cleanUp. Cannot delete segment.txt %s: %v\n"+reset, urlExtractFile, err)
-	}
+// Display the results and finishUp
+func finishUp(sessionID string) {
 
 	// We're done
 	fmt.Println(lineSeparator)
@@ -1382,8 +1370,25 @@ func generateSegmentationRegex() {
 
 <script>
     function goHome() {
-        window.open('http://%s/', '_blank');
+        window.open('%s://%s/', '_blank');
     }
+async function copyFileToClipboard() {
+        try {
+            const response = await fetch('../../segment.txt');
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            const text = await response.text();
+            await navigator.clipboard.writeText(text);
+            console.log('Text copied to clipboard');
+        } catch (error) {
+            console.error('Failed to copy text to clipboard: ', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        copyFileToClipboard();
+    });
 </script>
 
 <!-- Sections with Iframes -->
@@ -1393,7 +1398,7 @@ func generateSegmentationRegex() {
 
 </body>
 </html>
-`, width100, width50, width100, fullHost)
+`, width100, width50, width100, protocol, fullHost)
 
 	// Generate the URL to link to the segment editor in the project
 	projectURL := "https://app.botify.com/" + organisation + "/" + project + "/segmentation"
@@ -1540,12 +1545,13 @@ func generateErrorPage(displayMessage string) {
 
 <script>
     function goHome() {
-        window.open('http://%s/', '_blank');
+        window.open('%s://%s/', '_blank');
     }
+
 </script>
 
 </body>
-</html>`, displayMessage, fullHost)
+</html>`, displayMessage, protocol, fullHost)
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_segmentifyLiteError.html")
@@ -1572,31 +1578,6 @@ func saveHTML(genHTML string, genFilename string) {
 	if err != nil {
 		fmt.Printf(red+"Error. saveHTML. Can write %s: "+reset+"%s\n", genFilename, err)
 		return
-	}
-}
-
-// Copy Regex to the clipboard
-func copyRegexToClipboard() {
-
-	content, err := os.ReadFile(regexOutputFile)
-	if err != nil {
-		panic(err)
-	}
-
-	// Copy the content to the clipboard using pbcopy (macOS) or type to clip (Windows)
-	var copyCmd string
-
-	switch runtime.GOOS {
-	case "windows":
-		copyCmd = "type segment.txt | clip"
-	default:
-		copyCmd = "pbcopy"
-	}
-
-	cmd := exec.Command(copyCmd)
-	cmd.Stdin = strings.NewReader(string(content))
-	if err := cmd.Run(); err != nil {
-		panic(err)
 	}
 }
 

@@ -46,7 +46,6 @@
             border: 1px solid #ccc;
             box-sizing: border-box;
             font-size: 14px;
-            position: relative;
         }
         button {
             padding: 10px 20px;
@@ -71,19 +70,75 @@
             font-weight: bold;
             font-size: 14px;
         }
-        .tooltip {
+        .modal {
             display: none;
+            position: fixed;
+            z-index: 2;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: DeepSkyBlue;
+            color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px; /* Increased max-width for larger modal */
+            position: relative;
+            z-index: 3;
+            border-radius: 15px;
+            animation: fadeInScale 0.5s;
+            text-align: center; /* Center the spinner and text */
+        }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid white;
+            border-radius: 50%;
+            width: 60px; /* Increased spinner size */
+            height: 60px; /* Increased spinner size */
+            animation: spin 2s linear infinite;
+            margin: 0 auto; /* Center the spinner */
+        }
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .disable-click {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: transparent;
+            z-index: 1;
+        }
+        .tooltip {
             position: absolute;
             background-color: DeepSkyBlue;
             color: white;
             padding: 10px;
-            border-radius: 10px;
-            font-size: 15px;
-            z-index: 1;
-            width: 400px;
-            top: 0;
-            left: 105%;
+            border-radius: 5px;
+            font-size: 16px;
+            display: none;
+            white-space: normal;
+            max-width: 400px;
             text-align: left;
+            transform: translateX(20px);
         }
         .tooltip::after {
             content: '';
@@ -91,15 +146,9 @@
             top: 50%;
             left: -10px;
             transform: translateY(-50%);
-            border-width: 5px;
+            border-width: 10px;
             border-style: solid;
             border-color: transparent DeepSkyBlue transparent transparent;
-        }
-        .input-container {
-            position: relative;
-        }
-        .input-container input:hover + .tooltip {
-            display: block;
         }
     </style>
 </head>
@@ -110,28 +159,33 @@
 </div>
 <div class="content">
     <form id="dashboardForm" action="/submit" method="post" onsubmit="return validateForm()">
-        <div class="input-container">
-            <label for="organization">Organization:</label>
-            <input type="text" id="organization" name="organization">
-            <div class="tooltip">
-                Enter the name of your organisation.<br>
-                Remember that the Botify project needs to have Revenue, Transactions (orders) and Visits integrated.<br>
-                The organisation can be found in the first part of the project URL. i.e.<br>
-                <span>https://app.botify.com/<span style="color: purple;">my_org_name</span></span>
-            </div>        </div>
-        <div class="input-container">
-            <label for="project">Project:</label>
-            <input type="text" id="project" name="project">
-            <div class="tooltip">
-                Enter the name of your project. The project can be found in the second part of the project URL. i.e.<br>
-                <span>https://app.botify.com/my_org_name/<span style="color: purple;">my_project_name</span></span>
-            </div>        </div>
-        <button type="submit">Display broadsheet</button>
+        <label for="organization">Organization:</label>
+        <input type="text" id="organization" name="organization"><br>
+        <span id="organizationTooltip" class="tooltip">Enter the name of your organisation.<br><br>
+        Remember that the Botify project needs to have revenue, transactions (orders) and visits integrated.<br><br>The organisation name can be found in the first part of the project URL, for example:<br><br>
+        https://app.botify.com/<span style="color: purple;">my_org_name</span></span>
+        <label for="project">Project:</label>
+        <input type="text" id="project" name="project"><br>
+        <span id="projectTooltip" class="tooltip">Enter the name of your project.<br><br> The project name can be found in the second part of the project URL, for example:<br><br>
+        <span>https://app.botify.com/my_org_name/<span style="color: purple;">my_project_name</span></span>
+        </span>
+
+        <button type="submit" id="displayButton" onclick="showModal(event)">Display broadsheet</button>
     </form>
 </div>
 <div class="footer">
     <p>Jason Vicinanza. <a href="https://github.com/flaneur7508/Go_Seo" style="color: white; text-decoration: none;">https://github.com/flaneur7508/Go_Seo</a></p>
 </div>
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <div class="spinner"></div>
+        <p>Your broadsheet is being prepared.</p>
+        <p>Please wait a moment.</p>
+    </div>
+</div>
+
+<div id="disableClick" class="disable-click" style="display: none;"></div>
 
 <script>
     function validateForm() {
@@ -145,6 +199,55 @@
 
         return true;
     }
+
+    function showModal(event) {
+        event.preventDefault();
+        const organization = document.getElementById("organization").value;
+        const project = document.getElementById("project").value;
+
+        if (organization === "" || project === "") {
+            alert("The organization and project name are both required. Please try again.");
+            return;
+        }
+
+        const modal = document.getElementById("myModal");
+        const disableClick = document.getElementById("disableClick");
+        modal.style.display = "block";
+        disableClick.style.display = "block";
+
+        // Simulate form submission after showing the modal
+        setTimeout(function() {
+            document.getElementById("dashboardForm").submit();
+        }, 1500);
+    }
+
+    // Tooltip functions
+    function showTooltip(element, tooltip) {
+        const rect = element.getBoundingClientRect();
+        tooltip.style.top = rect.top + window.scrollY + 'px';
+        tooltip.style.left = rect.right + window.scrollX + 10 + 'px'; // Position tooltip to the right of the field
+        tooltip.style.display = 'block';
+    }
+
+    function hideTooltip(tooltip) {
+        tooltip.style.display = 'none';
+    }
+
+    document.getElementById("organization").addEventListener("focus", function() {
+        showTooltip(this, document.getElementById("organizationTooltip"));
+    });
+
+    document.getElementById("organization").addEventListener("blur", function() {
+        hideTooltip(document.getElementById("organizationTooltip"));
+    });
+
+    document.getElementById("project").addEventListener("focus", function() {
+        showTooltip(this, document.getElementById("projectTooltip"));
+    });
+
+    document.getElementById("project").addEventListener("blur", function() {
+        hideTooltip(document.getElementById("projectTooltip"));
+    });
 </script>
 </body>
 </html>

@@ -961,13 +961,13 @@ func generateDataIssueHTML(revenueDataIssue bool, visitsDataIssue bool, ordersDa
 
 	// Check which variables are true and include them in the HTML content
 	if revenueDataIssue {
-		htmlDataIssue += "revenue data, "
+		htmlDataIssue += "revenue, "
 	}
 	if visitsDataIssue {
-		htmlDataIssue += "visits data, "
+		htmlDataIssue += "visits, "
 	}
 	if ordersDataIssue {
-		htmlDataIssue += "orders data, "
+		htmlDataIssue += "orders, "
 	}
 
 	htmlDataIssue += "</br>"
@@ -1074,9 +1074,11 @@ func tableVisitsOrdersRevenue() {
 </head>
 <body>
     <div class="container">
+        <div class="header" style="font-size: 30px; font-weight: bold; color: Grey; margin-bottom: 20px; text-align: center;">Key Performance Metrics</div>
         <div class="wrapper">
             <div class="column">
                 <table>
+            	<div class="row">
                     <tr>
 					<th style="color: deepskyblue;">VISITS</th>
                     </tr>
@@ -2444,7 +2446,7 @@ margin: 10px 0;
 
 <script>
     function goHome() {
-        window.open('http://%s/', '_blank');
+        window.open('%s://%s/', '_blank');
     }
     // Scroll Indicator Script
     window.onscroll = function() { updateProgressBar(); };
@@ -2460,7 +2462,7 @@ margin: 10px 0;
 
 <div class="content">
 	<section class="container row no-border">
-		<iframe src="go_seo_HeaderNotes.html" title="Header" style="height: 130px;"></iframe>
+		<iframe src="go_seo_HeaderNotes.html" title="Header" style="height: 180px;"></iframe>
 	</section>
 	
 	<section class="container row no-border">
@@ -2543,7 +2545,7 @@ margin: 10px 0;
 
 </body>
 </html>
-`, width90, width90, width100, width100, width100, width0, company, fullHost, percent)
+`, width90, width90, width100, width100, width100, width0, company, protocol, fullHost, percent)
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
