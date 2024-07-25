@@ -14,7 +14,6 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"gopkg.in/ini.v1"
-	"html/template"
 	"io"
 	"math"
 	"net/http"
@@ -34,6 +33,7 @@ var version = "v0.2"
 // Version displayed in broadsheet header
 // Port & protocol not required keys in .ini file when hosted on Botify infra
 // Wordclouds and News section now display correctly (fixed 404 errors)
+// Fixed "division by zero" error when EA is configured but not data availanle
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
@@ -233,11 +233,6 @@ type Response struct {
 	Results []Result `json:"results"`
 }
 
-// News feed
-// https://newsapi.org/
-const newsAPIKey = "346b0c73ab0540928ef81d8167759bf1"
-const newsAPIProvider = "https://newsapi.org/"
-
 var company string
 
 type Article struct {
@@ -312,7 +307,7 @@ func main() {
 		// An invalid org/project name has been specified
 		if dataStatus == "errorNoProjectFound" {
 			writeLog(sessionID, organization, project, "-", "No project found")
-			generateErrorPage("No project found. Try another organisation and project name. (" + organization + "/" + project + ")")
+			generateErrorPage("No project found. Try another organisation and project. (" + organization + "/" + project + ")")
 			http.Redirect(w, r, insightsCacheFolder+"/"+"go_seo_BusinessInsights_error.html", http.StatusFound)
 			return
 		}
@@ -410,9 +405,6 @@ func businessInsightsDashboard(sessionID string) {
 	// Footer notes
 	footerNotes()
 
-	// Get the news feed
-	generateNewsFeed(company, sessionID)
-
 	// Generate the container to present the previously generated components
 	generateDashboardContainer(company)
 
@@ -445,7 +437,11 @@ func getBusinessInsights(sessionID string) string {
 	createInsightsCacheFolder(insightsCacheFolder)
 
 	// Get the currency used
-	getCurrencyCompany()
+	getCurrencyStatus := getCurrencyCompany()
+	if getCurrencyStatus == "errorNoProjectFound" {
+		fmt.Println(red+"Error. getBusinessInsights. No project found for", organization+"/"+project+reset)
+		return getCurrencyStatus
+	}
 
 	// Identify the analytics tool in use
 	analyticsID, analyticsDateStart := getAnalyticsID()
@@ -515,7 +511,6 @@ func getBusinessInsights(sessionID string) string {
 	// Exit if Real Keywords has not been configured
 	if getKeywordsDataStatus == "errorNoKWFound" {
 		writeLog(sessionID, organization, project, analyticsID, "RealKeywords not configured")
-
 		return getKeywordsDataStatus
 	}
 
@@ -1785,7 +1780,10 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
 	}
 
 	// Get the last month name
-	htmlLastMonthName := startMonthNames[len(startMonthNames)-1]
+	htmlLastMonthName := ""
+	if len(startMonthNames) > 0 {
+		htmlLastMonthName = startMonthNames[len(startMonthNames)-1]
+	}
 
 	// HTML content for the winning keyword
 	htmlContent := fmt.Sprintf(`
@@ -1933,31 +1931,60 @@ func textDetailedKeywordsInsights(brandedMode bool) {
 	htmlContent := `<!DOCTYPE html>
 <html>
 <head>
-    <style>
+	<style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .table-container {
+            overflow: auto;
+            height: 500px; /* Adjust height as needed */
+            border: 2px solid transparent; /* Outer border */
+            border-radius: 16px; /* Rounded corners */
+            margin: 20px; /* Optional: add margin for spacing */
         }
         table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: collapse; /* Ensure no inner borders */
             color: DimGray;
-            margin: 5px 0;
             font-size: 17px;
             text-align: left;
+            border-radius: 16px; /* Ensure table has rounded corners */
         }
         th, td {
             padding: 12px;
-            border-bottom: 1px solid #ddd;
         }
         th {
             background-color: White;
             color: deepskyblue;
+            position: sticky; /* Sticky position */
+            top: 0; /* Stick to the top */
+            z-index: 1; /* Ensure header stays on top */
+            border-top: 2px solid transparent; /* Top border for the header */
+        }
+        td {
+            border-bottom: 1px solid transparent; /* Bottom border for rows */
         }
         tr:nth-child(odd) {
             background-color: #f9f9f9;
         }
         tr:hover {
             background-color: DeepSkyBlue;
+            color: white; /* Optional: Change text color on hover */
+        }
+        /* Apply rounded corners to header and footer rows */
+        thead th:first-child {
+            border-top-left-radius: 16px;
+        }
+        thead th:last-child {
+            border-top-right-radius: 16px;
+        }
+        tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 16px;
+        }
+        tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 16px;
         }
     </style>
 </head>
@@ -2038,9 +2065,12 @@ func forecastDataCompute() {
 
 	// Create a slice to hold the forecast revenue values
 	forecastRevenue = make([]int, numElements)
-	// Populate the forecast revenue slice
 	for i := 0; i < numElements; i++ {
-		forecastRevenue[i] = forecastVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValue
+		if totalAverageVisitsPerOrder != 0 {
+			forecastRevenue[i] = forecastVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValue
+		} else {
+			forecastRevenue[i] = 0
+		}
 	}
 }
 
@@ -2113,7 +2143,14 @@ func generateLineItemsRevenueForecast(forecastRevenue []int) []opts.LineData {
 func textForecastNarrative() {
 
 	var htmlFileName = ""
-	var noOfOrderVisits = forecastIncrement / totalAverageVisitsPerOrder
+
+	var noOfOrderVisits = 0
+	if totalAverageVisitsPerOrder != 0 {
+		noOfOrderVisits = forecastIncrement / totalAverageVisitsPerOrder
+	} else {
+		noOfOrderVisits = 0
+	}
+
 	var projectedRevenue = noOfOrderVisits * totalAverageOrderValue
 
 	// Format the integers with commas
@@ -2196,7 +2233,6 @@ func footerNotes() {
 		"The current month is not included in the analysis, only full months are reported on.",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
 		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
-		"The news is provided by <a href=\"" + newsAPIProvider + "\" target=\"_blank\">" + newsAPIProvider + "</a>",
 		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\" target=\"_blank\">" + dashboardPermaLink + "</a>",
 	}
 
@@ -2282,9 +2318,10 @@ func generateDashboardContainer(company string) {
     <title>seoBusinessInsights</title>
     <style>
         body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #e5ffe5;
+   			margin: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
         }
         .banner {
             background-color: DeepSkyBlue;
@@ -2326,7 +2363,7 @@ func generateDashboardContainer(company string) {
             width: %s; 
             border: 2px solid lightSkyBlue;
             border-radius: 10px;
-margin: 10px 0;
+			margin: 10px 0;
         }
         .no-border iframe {
             border: none;
@@ -2390,26 +2427,25 @@ margin: 10px 0;
         nav ul {
             list-style-type: none;
             display: flex;
-            justify-content: center; 
+            justify-content: center;
             margin: 0;
-            padding: 25px 0;
-            background-color: #f2f2f2;
+            padding: 15px 0;
+            background-color: #f4f7f6;
             border-bottom: 2px solid #ddd;
         }
         nav li {
-            padding: 0 30px;
-			text-align: center;
+            padding: 0 20px;
+            text-align: center;
         }
-        nav a {
+		nav a {
             text-decoration: none;
-            color: #999;
+            color: #00796b;
             font-weight: bold;
             font-size: 16px;
             transition: color 0.3s;
         }
         nav a:hover {
-            color: DeepSkyBlue;
-            font-weight: bold;
+            color: #00aaff;
         }
     </style>
 </head>
@@ -2437,11 +2473,9 @@ margin: 10px 0;
         <li><a href="#revenue_forecast">Revenue forecast</a></li>
         <li><a href="#wordcloud_branded">Branded wordcloud</a></li>
         <li><a href="#wordcloud_non_branded">Non branded wordcloud</a></li>
-        <li><a href="#news">In the news</a></li>
     </ul>
 </nav>
 
-<!-- Create a new broadsheet -->
 <button class="back-button" onclick="goHome()">New broadsheet</button>
 
 <script>
@@ -2535,8 +2569,8 @@ margin: 10px 0;
  	   <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non-branded keywords" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 	</section>
 
-	<section id="news" class="container row no-border">
-    	<iframe src="go_seo_News.html" title="News" class="tall-iframe" style="height: 500px;"></iframe>
+	<section id="footer" class="container row no-border">
+    	<iframe src="go_seo_FooterNotes.html" title="Footer" class="tall-iframe"></iframe>
 	</section>
 </div>
 
@@ -2844,7 +2878,7 @@ func generateErrorPage(displayMessage string) {
             padding: 12px 24px;
             font-size: 18px;
             color: white;
-            background-color: #007BFF;
+            background-color: Green;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -2855,7 +2889,7 @@ func generateErrorPage(displayMessage string) {
             transition: background-color 0.3s, box-shadow 0.3s;
         }
         .back-button:hover {
-            background-color: #0056b3;
+            background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
 		.error-container {
@@ -2963,7 +2997,7 @@ func generateSessionID(length int) (string, error) {
 }
 
 // Get the currency used
-func getCurrencyCompany() {
+func getCurrencyCompany() string {
 
 	url := fmt.Sprintf("https://api.botify.com/v1/analyses/%s/%s?page=1&only_success=true", organization, project)
 
@@ -3004,6 +3038,7 @@ func getCurrencyCompany() {
 	// Display an error if no crawls found
 	if responseObject.Count == 0 {
 		fmt.Println(red + "\nError. getCurrencyCompany. Invalid crawl or no crawls found in the project" + reset)
+		return "errorNoProjectFound"
 	}
 
 	// If one currency has been found assume that's the base currency. If multiple currencies are found assume a default of $
@@ -3050,6 +3085,8 @@ func getCurrencyCompany() {
 		companyName := responseObject.Results[0].Owner.CompanyName
 		company = companyName.(string)
 	}
+
+	return "success"
 }
 
 func createInsightsCacheFolder(cacheFolder string) {
@@ -3146,197 +3183,6 @@ func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, e
 	}
 
 	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder
-}
-
-// Generate the news feed
-func generateNewsFeed(company string, sessionID string) {
-	articles, err := fetchNews(company, sessionID)
-	if err != nil {
-		fmt.Println(red+"Error. generateNewsFeed. Cannot fetch news:"+reset, err)
-		os.Exit(1)
-	}
-
-	err = generateNewsHTML(sessionID, company, articles)
-	if err != nil {
-		fmt.Println(red+"Error. generateNewsFeed. Cannot generate news HTML:"+reset, err)
-		os.Exit(1)
-	}
-}
-
-func fetchNews(company string, sessionID string) ([]Article, error) {
-
-	// Get the date 3 months ago
-	currentTime := time.Now()
-	oneMonthAgo := currentTime.AddDate(0, -1, -0)
-	dateFormatted := oneMonthAgo.Format("2006-01-02")
-
-	url := fmt.Sprintf("https://newsapi.org/v2/everything?q=%s&from=%s&apiKey=%s", company, dateFormatted, newsAPIKey)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			fmt.Println(red+"Error. executeBQL. Failed to close response body: %v\n"+reset, err)
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		writeLog(sessionID, organization, project, company, "Failed to fetch news")
-		fmt.Printf(red+"Error. fetchNews. Failed to fetch news: %s"+reset, resp.Status)
-		return nil, nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var newsResponse NewsResponse
-	err = json.Unmarshal(body, &newsResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return newsResponse.Articles, nil
-}
-
-func generateNewsHTML(sessionID string, company string, articles []Article) error {
-	// Define HTML template
-	htmlTemplate := `
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="UTF-8">
-	<title>News Feed for {{ .Company }}</title>
-	<style>
-		h1 {
-			color: DeepSkyBlue;
-		}
-		h2 {
-			color: DeepSkyBlue;
-		}
-		.collapsible {
-			background-color: DeepSkyBlue;
-            color: white; 
-			cursor: pointer;
-			padding: 10px;
-			width: 100%;
-			border: none;
-			text-align: left;
-			outline: none;
-			font-size: 25px;
-			transition: background-color 0.2s;
-		}
-		.collapsible:hover {
-			background-color: Green;
-		}
-		.collapsible:after {
-			content: '\002B';
-			color: DeepSkyBlue;
-			font-weight: bold;
-			float: right;
-			margin-left: 5px;
-		}
-		.collapsible.active:after {
-			content: "\2212";
-		}
-		.content {
-			padding: 0 18px;
-			display: none;
-			overflow: hidden;
-			margin-bottom: 20px;
-            background-color: #e5ffe5; 
-		}
-      .iframe-container {
-            margin-top: 20px;
-        }
-        .iframe-container iframe {
-            width: 90%;  
-            border: none;
-            height: 500px;  
-            display: block;
-            margin: auto;  
-        }
-	</style>
-</head>
-<body>
-	<h1>{{ .Company }} in the news</h1>
-	<button class="collapsible">Click to show / hide news articles (experimental)</button>
-	<div class="content">
-		{{ range .Articles }}
-		<div style="margin-bottom: 20px;">
-			<h2><a href="{{ .URL }}" target="_blank">{{ .Title }}</a></h2>
-			<p>{{ .Description }}</p>
-			<p><b>Published:</b> {{ .PublishedAt.Format "2006-01-02 15:04:05" }}</p>
-			<p><b>Source:</b> {{ .Source.Name }}</p>
-		</div>
-		{{ end }}
-	</div>
-       <div class="iframe-container">
-        <iframe src="go_seo_FooterNotes.html" title="Footer"; style="height: 250px;"></iframe>
-    </div>
-
-	<script>
-		document.addEventListener("DOMContentLoaded", function() {
-			var coll = document.getElementsByClassName("collapsible")[0];
-			coll.addEventListener("click", function() {
-				this.classList.toggle("active");
-				var content = this.nextElementSibling;
-				if (content.style.display === "block") {
-					content.style.display = "none";
-				} else {
-					content.style.display = "block";
-				}
-			});
-		});
-	</script>
-</body>
-</html>
-`
-
-	// Prepare data for template
-	data := struct {
-		Company  string
-		Articles []Article
-	}{
-		Company:  company,
-		Articles: articles,
-	}
-
-	// Create a new template and parse the HTML template string
-	tmpl := template.New("newsTemplate")
-	tmpl, err := tmpl.Parse(htmlTemplate)
-	if err != nil {
-		return err
-	}
-
-	// Create output file
-	fileName := fmt.Sprintf("/go_seo_News.html")
-	file, err := os.Create(insightsCacheFolder + fileName)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			fmt.Println(red+"Error. saveHTML. Failed to close file: %v\n"+reset, err)
-			return
-		}
-	}()
-
-	// Execute the template and write the output to the file
-	err = tmpl.Execute(file, data)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println()
-	fmt.Println(yellow + sessionID + reset + " Newsfeed generated")
-	writeLog(sessionID, organization, project, company, "Newsfeed generated")
-
-	return nil
 }
 
 // Display the welcome banner, get the hostname and environment variables
