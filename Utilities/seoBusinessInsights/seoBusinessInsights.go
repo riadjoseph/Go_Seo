@@ -25,7 +25,7 @@ import (
 )
 
 // Version
-var version = "v0.2"
+var version = "v0.3"
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -35,10 +35,15 @@ var version = "v0.2"
 // Wordclouds and News section now display correctly (fixed 404 errors)
 // Fixed "division by zero" error when EA is configured but not data availanle
 
+// changelog v0.3
+// Minor UI updates
+// Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
+
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
 var envInsightsLogFolder string
 var envInsightsFolder string
+var envInsightsHostingMode string
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -928,7 +933,6 @@ func headerNotes() {
 <body>
     <div class="content">
         <span class="header-font right-justify">Version: ` + fmt.Sprintf("%s", version) + `</span>
-
 	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
@@ -1939,39 +1943,38 @@ func textDetailedKeywordsInsights(brandedMode bool) {
         }
         .table-container {
             overflow: auto;
-            height: 500px; /* Adjust height as needed */
-            border: 2px solid transparent; /* Outer border */
-            border-radius: 16px; /* Rounded corners */
-            margin: 20px; /* Optional: add margin for spacing */
+            height: 500px; 
+            border: 2px solid transparent; 
+            border-radius: 16px; 
+            margin: 20px; 
         }
         table {
             width: 100%;
-            border-collapse: collapse; /* Ensure no inner borders */
+            border-collapse: collapse; 
             color: DimGray;
             font-size: 17px;
             text-align: left;
-            border-radius: 16px; /* Ensure table has rounded corners */
+            border-radius: 16px; 
         }
         th, td {
-            padding: 12px;
+            padding: 20px;
         }
         th {
             background-color: White;
             color: deepskyblue;
             position: sticky; /* Sticky position */
             top: 0; /* Stick to the top */
-            z-index: 1; /* Ensure header stays on top */
-            border-top: 2px solid transparent; /* Top border for the header */
+            z-index: 10; /* Ensure header stays on top */
         }
         td {
-            border-bottom: 1px solid transparent; /* Bottom border for rows */
+            border-bottom: 1px solid transparent; 
         }
         tr:nth-child(odd) {
             background-color: #f9f9f9;
         }
         tr:hover {
             background-color: DeepSkyBlue;
-            color: white; /* Optional: Change text color on hover */
+            color: white; 
         }
         /* Apply rounded corners to header and footer rows */
         thead th:first-child {
@@ -3133,7 +3136,13 @@ func getHostnamePort() {
 		port = cfg.Section("").Key("port").String()
 		port = ":" + port
 	}
-	fullHost = hostname + port
+
+	// Add port to the hostname if running locally.
+	if envInsightsHostingMode == "local" {
+		fullHost = hostname + port
+	} else {
+		fullHost = hostname
+	}
 
 	var serverHostname, serverPort string
 	serverHostname = hostname
@@ -3151,38 +3160,48 @@ func invertStringSlice(s []string) {
 }
 
 // Get environment variables for token and cache folders
-func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, envInsightsFolder string) {
+func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string, envInsightsHostingMode string) {
 
 	// Botify API token from the env. variable getbotifyAPIToken
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
 	if envBotifyAPIToken == "" {
 		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	}
 
 	// Storage folder for the log file
-	envInsightsLogFolder = os.Getenv("envInsightsLogFolder")
-	if envInsightsLogFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envInsightsLogFolder environment variable not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+	envSegmentifyLiteLogFolder = os.Getenv("envSegmentifyLiteLogFolder")
+	if envSegmentifyLiteLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteLogFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	} else {
 		fmt.Println()
-		fmt.Println(green + "Log folder: " + envInsightsLogFolder + reset)
+		fmt.Println(green + "Log folder: " + envSegmentifyLiteLogFolder + reset)
 	}
 
 	// Storage folder for the cached insights
-	envInsightsFolder = os.Getenv("envInsightsFolder")
-	if envInsightsFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envInsightsFolder environment variable not set." + reset)
-		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
+	envSegmentifyLiteFolder = os.Getenv("envSegmentifyLiteFolder")
+	if envSegmentifyLiteFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
 		os.Exit(0)
 	} else {
-		fmt.Println(green + "seoBusinessInsights cache folder: " + envInsightsFolder + reset)
+		fmt.Println(green + "segmentifyLite cache folder: " + envSegmentifyLiteFolder + reset)
 	}
 
-	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder
+	// Hosting mode. This will be either "local" or "docker"
+	envInsightsHostingMode = os.Getenv("envInsightsHostingMode")
+	if envInsightsHostingMode == "" {
+		fmt.Println(red + "Error. getEnvVariables. envInsightsHostingMode environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "segmentifyLite hosting mode: " + envInsightsHostingMode + reset)
+	}
+
+	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder, envInsightsHostingMode
 }
 
 // Display the welcome banner, get the hostname and environment variables
@@ -3216,11 +3235,11 @@ func startup() {
 	formattedTime := now.Format("15:04 02/01/2006")
 	fmt.Println(green + "Server started at " + formattedTime + reset)
 
+	// Get the environment variables for token, log folder & cache folder
+	envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder, envInsightsHostingMode = getEnvVariables()
+
 	// Get the hostname and port
 	getHostnamePort()
-
-	// Get the environment variables for token, log folder & cache folder
-	envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }

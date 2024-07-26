@@ -22,12 +22,16 @@ import (
 )
 
 // Version
-var version = "v0.1"
+var version = "v0.2"
+
+// Changelog v0.2
+// // Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
 var envSegmentifyLiteLogFolder string
 var envSegmentifyLiteFolder string
+var envSegmentifyLiteHostingMode string
 
 // Colours & text formatting
 var purple = "\033[0;35m"
@@ -1391,7 +1395,6 @@ async function copyFileToClipboard() {
     });
 </script>
 
-<!-- Sections with Iframes -->
 <section class="container row no-border">
     <iframe src="go_seo_segmentationRegex.html" title="Segmentation regex"></iframe>
 </section>
@@ -1406,8 +1409,7 @@ async function copyFileToClipboard() {
 	htmlContent += fmt.Sprintf("<div style='text-align: center;'>\n")
 	htmlContent += fmt.Sprintf("<h2 style='color: deepskyblue;'>Segmentation regex generation is complete</h2>\n")
 	htmlContent += fmt.Sprintf("<h3 style='color: dimgray; padding-left: 20px; padding-right: 20px;'>The regex has been copied to the clipboard ready for pasting directly into your Botify project.</h3>\n")
-	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, organisation)
-
+	htmlContent += fmt.Sprintf("<h4 style='color: dimgray;'><a href='%s' target='_blank'>Click here to open the segment editor for %s</a></h4>\n", projectURL, project)
 	htmlContent += fmt.Sprintf("</div>\n")
 
 	// Save the HTML to a file
@@ -1626,7 +1628,13 @@ func getHostnamePort() {
 		port = cfg.Section("").Key("port").String()
 		port = ":" + port
 	}
-	fullHost = hostname + port
+
+	// Add port to the hostname if running locally.
+	if envSegmentifyLiteHostingMode == "local" {
+		fullHost = hostname + port
+	} else {
+		fullHost = hostname
+	}
 
 	var serverHostname, serverPort string
 	serverHostname = hostname
@@ -1669,17 +1677,17 @@ func startUp() {
 	fmt.Println(green + "Server started at " + formattedTime + reset)
 	fmt.Println(green+"Maximum No. of URLs to be processed is", maxURLsToProcess, "k")
 
+	// Get the environment variables for token, log folder & cache folder
+	envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder, envSegmentifyLiteHostingMode = getEnvVariables()
+
 	// Get the hostname and port
 	getHostnamePort()
-
-	// Get the environment variables for token, log folder & cache folder
-	envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder = getEnvVariables()
 
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }
 
 // Get environment variables for token and cache folders
-func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string) {
+func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string, envSegmentifyLiteHostingMode string) {
 
 	// Botify API token from the env. variable getbotifyAPIToken
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
@@ -1710,5 +1718,15 @@ func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder str
 		fmt.Println(green + "segmentifyLite cache folder: " + envSegmentifyLiteFolder + reset)
 	}
 
-	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder
+	// Hosting mode. This will be either "local" or "docker"
+	envSegmentifyLiteHostingMode = os.Getenv("envSegmentifyLiteHostingMode")
+	if envSegmentifyLiteHostingMode == "" {
+		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteHostingMode environment variable not set." + reset)
+		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		os.Exit(0)
+	} else {
+		fmt.Println(green + "segmentifyLite hosting mode: " + envSegmentifyLiteHostingMode + reset)
+	}
+
+	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder, envSegmentifyLiteHostingMode
 }
