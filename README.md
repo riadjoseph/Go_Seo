@@ -2,7 +2,7 @@
 A series of tools used to support SEO actions. Developed in Go.   
 
 ## seoBusinessInsights   
-Undercover the value of organic traffic with this business insights dashboard for Botify.
+Undercover the value of organic traffic with this business insights broadsheet for Botify.
 
 Charts included:
 - Compound growth indicators
@@ -10,16 +10,25 @@ Charts included:
 - Visits per order
 - Order volume
 - Order value
-- Revenue & Visits river
+- Revenue & visits river chart
 - Visit value
 - Branded & non branded keyword cloud
 - Winning branded and non branded keywords
 - Detailed KPI insights 
 
-**Note:** Set the following environment variables before executing seoBusinessInsights  
-export envBotifyAPIToken="your_botify_token"  
-export envCacheFolder="./insights"  
-export envLogFolder="."  
+**Usage:**  
+Required environment variables:  
+
+export envBotifyAPIToken="_your_botify_token_"  
+export envInsightsFolder="./seoInsightsCache"  
+export envInsightsLogFolder="."  
+export envInsightsHostingMode="local" (if hosting on a Docker container, change to _docker_)  
+
+Initialization file. The default configuration is as follows, adjust if hosting in a location other than localhost:   
+
+protocol=http  
+port=8080  
+hostname=localhost   
 
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
@@ -34,70 +43,19 @@ Generates the segmentation regex for the following segments:
 - Shopify (if detected)
 - SFCC (if detected, and the site is not using "Search-Friendly URLs for B2C Commerce")
 
-**Note:** The API token for segmentifyLite is acquired from the environment variable BotifyAPIToken.  
-**Note:** The number of URLs found in level 1 folders, level 2 folders and parameter key segments are included as comments after the generated regex. Use these insights to decide which segments slices to keep and which to remove.   
-**Note:** All level 1 and level 2 segments which are less than 5% of the size of the largest level 1 or level 2 folder found are excluded from the segmentation regex. To amend this threshold change the percentage threshold in the variable **thresholdPercent**.  
+**Usage:**  
 
-## exportURLs  
-Export all URLs from the latest crawl in a specified project (up to a maximum of 1MM) to a file (siteurlsExport.csv)
+Required environment variables:  
 
-## botifyBotLite   
-Generate Botify crawls en-masse.    
+export envBotifyAPIToken="your_botify_token"  
+export envSegmentifyLiteFolder="./segmentifyLiteCache"  
+export envSegmentifyLiteLogFolder="."  
+export envSegmentifyLiteHostingMode="local"  
 
-**Note:** Populate the file crawlme.txt with the start page URL for each of the sites you want to crawl.  
-**Note:** When botifyBotLite has completed a list of the crawled start pages and the generated Botify project URLs can be found in **project_list.txt**.  
+Initialization file. The default configuration is as follows, adjust if hosting in a location other than localhost:   
 
-```
-Usage: ./botifyBotLite (project prefix and no. urls to crawl will be prompted for)    
-Usage: ./botifyBotLite project_prefix no_urls_to_crawl    
-```
+protocol=http  
+port=8080  
+hostname=localhost   
 
-## apiTester   
-Example utilisation of a range of Botify APIs. Included in this version are: 
-- Datasource API
-- Collections API
-- Collections attributes API (First 30 attributes for the first collection only)
-- Project API
-
-```
-Usage: ./apiTester (organisation and project name will be prompted for)    
-Usage: ./apiTester org_name project_name    
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
-
-## bqlTester   
-Demonstartion of using BQL in Go. Included in this version are BQL queries for: 
-- Site crawler stats
-- Revenue
-- Vists   
-```
-Usage: ./bqlTester (organisation and project name will be prompted for)    
-Usage: ./bqlTester org_name project_name    
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
-
-## folderCount
-folderCount is used to identify and count all first level folders.  
-Up to 1MM URLs maximum are used to produce the analysis.  
-```
-Usage: ./folderCount (organisation and project name will be prompted for)    
-Usage: ./folderCount org_name project_name  
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
-
-## paramCount  
-paramCount is used to identify and count all Parameter Keys in the crawl.  
-```
-Usage: ./paramCount (organisation and project name will be prompted for)    
-Usage: ./paramCount org_name project_name  
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
-
-## listAnalysis
-listAnalysis displays the crawl metadata for the most recent crawl in a specified project.   
-```
-Usage: ./listAnalysis (organisation and project name will be prompted for)    
-Usage: ./listAnalysis org_name project_name
-```
-**Note:** Update the code to include your own Botify API key. Change the variable **botify_api_token** to reflect your token  
-
+![1_Ifpd_HtDiK9u6h68SZgNuA](https://github.com/user-attachments/assets/6bc49ad4-312e-4cc6-abdb-9fccbf0e7ca3)
