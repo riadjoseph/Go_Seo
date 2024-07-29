@@ -30,6 +30,9 @@ protocol=http
 port=8080  
 hostname=localhost   
 
+**Note:**  
+The Botify project must include full Engagement Analytics integration (Revenue, Orders/Transactions & Visits).
+
 ## segmentifyLite   
 Generates the segmentation regex for the following segments: 
 
@@ -57,3 +60,4 @@ Initialization file. The default configuration is as follows, adjust if hosting 
 protocol=http  
 port=8081    
 hostname=localhost   
+
