@@ -25,7 +25,11 @@ import (
 var version = "v0.2"
 
 // Changelog v0.2
-// // Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
+// Minor UI updates
+// Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
+// Fixed error in generated Shopify regex
+// Fixed error in generated SFCC regex
+// Correctly deletes temp. files when regex generation is complete
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
@@ -971,7 +975,8 @@ path */demandware*
 @~Other
 path /*
 
-# ----End of sl_sfcc----`
+# ----End of sl_sfcc----
+`
 
 	// SFCC message
 	fmt.Println(purple + "Salesforce Commerce Cloud (Demandware)" + reset)
@@ -987,8 +992,6 @@ func shopifyURLs() {
 
 	// Shopify
 	shopifyURLs := `
-
-
 [segment:sl_shopify]
 @Home
 path /
@@ -1008,7 +1011,8 @@ path */pages/*
 
 @~Other
 path /*
-# ----End of sl_shopify----`
+# ----End of sl_shopify----
+`
 
 	// Shopify message
 	fmt.Println(purple + "Shopify" + reset)
@@ -1184,7 +1188,9 @@ func finishUp(sessionID string) {
 	fmt.Println()
 	fmt.Println(lineSeparator)
 
-	return
+	// Delete the temp. files
+	_ = os.Remove(regexOutputFile)
+	_ = os.Remove(urlExtractFile)
 }
 
 // Write the static Regex to the segments file
@@ -1609,7 +1615,6 @@ func getHostnamePort() {
 	// Get values from the .ini file
 	if !cfg.Section("").HasKey("protocol") {
 		fmt.Println(yellow + "Warning: 'protocol' not found in configuration file. Will default to HTTPS." + reset)
-		// Default when no protocol key is found in the .ini file
 		protocol = "https"
 	} else {
 		protocol = cfg.Section("").Key("protocol").String()
@@ -1677,7 +1682,7 @@ func startUp() {
 	fmt.Println(green + "Server started at " + formattedTime + reset)
 	fmt.Println(green+"Maximum No. of URLs to be processed is", maxURLsToProcess, "k")
 
-	// Get the environment variables for token, log folder & cache folder
+	// Get the environment variables for token, log & cache folder
 	envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder, envSegmentifyLiteHostingMode = getEnvVariables()
 
 	// Get the hostname and port
@@ -1708,7 +1713,7 @@ func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder str
 		fmt.Println(green + "Log folder: " + envSegmentifyLiteLogFolder + reset)
 	}
 
-	// Storage folder for the cached insights
+	// Storage folder
 	envSegmentifyLiteFolder = os.Getenv("envSegmentifyLiteFolder")
 	if envSegmentifyLiteFolder == "" {
 		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteFolder environment variable not set." + reset)

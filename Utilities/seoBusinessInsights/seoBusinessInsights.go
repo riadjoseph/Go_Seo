@@ -27,17 +27,18 @@ import (
 // Version
 var version = "v0.3"
 
+// changelog v0.3
+// Minor UI updates
+// Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
+
 // changelog v0.2
 // Added tooltips to login page (org and project name)
 // Set API time out to 30 seconds
 // Version displayed in broadsheet header
 // Port & protocol not required keys in .ini file when hosted on Botify infra
-// Wordclouds and News section now display correctly (fixed 404 errors)
+// Wordclouds now display correctly (fixed 404 errors)
 // Fixed "division by zero" error when EA is configured but not data availanle
-
-// changelog v0.3
-// Minor UI updates
-// Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
+// Removed experimental news section
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
@@ -239,24 +240,6 @@ type Response struct {
 }
 
 var company string
-
-type Article struct {
-	Source struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	} `json:"source"`
-	Author      string    `json:"author"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	URL         string    `json:"url"`
-	PublishedAt time.Time `json:"publishedAt"`
-}
-
-type NewsResponse struct {
-	Status       string    `json:"status"`
-	TotalResults int       `json:"totalResults"`
-	Articles     []Article `json:"articles"`
-}
 
 func main() {
 
@@ -3160,48 +3143,48 @@ func invertStringSlice(s []string) {
 }
 
 // Get environment variables for token and cache folders
-func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder string, envSegmentifyLiteFolder string, envInsightsHostingMode string) {
+func getEnvVariables() (envBotifyAPIToken string, envInsightsLogFolder string, envInsightsFolder string, envInsightsHostingMode string) {
 
 	// Botify API token from the env. variable getbotifyAPIToken
 	envBotifyAPIToken = os.Getenv("envBotifyAPIToken")
 	if envBotifyAPIToken == "" {
 		fmt.Println(red + "Error. getEnvVariables. envBotifyAPIToken environment variable not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	}
 
 	// Storage folder for the log file
-	envSegmentifyLiteLogFolder = os.Getenv("envSegmentifyLiteLogFolder")
-	if envSegmentifyLiteLogFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteLogFolder environment variable not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+	envInsightsLogFolder = os.Getenv("envInsightsLogFolder")
+	if envInsightsLogFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envInsightsLogFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {
 		fmt.Println()
-		fmt.Println(green + "Log folder: " + envSegmentifyLiteLogFolder + reset)
+		fmt.Println(green + "Log folder: " + envInsightsLogFolder + reset)
 	}
 
 	// Storage folder for the cached insights
-	envSegmentifyLiteFolder = os.Getenv("envSegmentifyLiteFolder")
-	if envSegmentifyLiteFolder == "" {
-		fmt.Println(red + "Error. getEnvVariables. envSegmentifyLiteFolder environment variable not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+	envInsightsFolder = os.Getenv("envInsightsFolder")
+	if envInsightsFolder == "" {
+		fmt.Println(red + "Error. getEnvVariables. envInsightsFolder environment variable not set." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {
-		fmt.Println(green + "segmentifyLite cache folder: " + envSegmentifyLiteFolder + reset)
+		fmt.Println(green + "seoBusinessInsights cache folder: " + envInsightsFolder + reset)
 	}
 
 	// Hosting mode. This will be either "local" or "docker"
 	envInsightsHostingMode = os.Getenv("envInsightsHostingMode")
 	if envInsightsHostingMode == "" {
 		fmt.Println(red + "Error. getEnvVariables. envInsightsHostingMode environment variable not set." + reset)
-		fmt.Println(red + "Cannot start segmentifyLite server." + reset)
+		fmt.Println(red + "Cannot start seoBusinessInsights server." + reset)
 		os.Exit(0)
 	} else {
-		fmt.Println(green + "segmentifyLite hosting mode: " + envInsightsHostingMode + reset)
+		fmt.Println(green + "seoBusinessInsights hosting mode: " + envInsightsHostingMode + reset)
 	}
 
-	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder, envInsightsHostingMode
+	return envBotifyAPIToken, envInsightsLogFolder, envInsightsFolder, envInsightsHostingMode
 }
 
 // Display the welcome banner, get the hostname and environment variables
