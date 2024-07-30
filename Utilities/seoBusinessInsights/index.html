@@ -89,21 +89,21 @@
             padding: 20px;
             border: 1px solid #888;
             width: 80%;
-            max-width: 500px; /* Increased max-width for larger modal */
+            max-width: 500px;
             position: relative;
             z-index: 3;
             border-radius: 15px;
             animation: fadeInScale 0.5s;
-            text-align: center; /* Center the spinner and text */
+            text-align: center;
         }
         .spinner {
             border: 8px solid #f3f3f3;
             border-top: 8px solid darkblue;
             border-radius: 50%;
-            width: 60px; /* Increased spinner size */
-            height: 60px; /* Increased spinner size */
+            width: 60px;
+            height: 60px;
             animation: spin 2s linear infinite;
-            margin: 0 auto; /* Center the spinner */
+            margin: 0 auto;
         }
         @keyframes fadeInScale {
             from {
@@ -160,12 +160,12 @@
 </div>
 <div class="content">
     <form id="dashboardForm" action="/submit" method="post" onsubmit="return validateForm()">
-        <label for="organization">Organization:</label>
+        <label for="organization">Organisation</label>
         <input type="text" id="organization" name="organization"><br>
         <span id="organizationTooltip" class="tooltip">Enter the name of your organisation.<br><br>
         Remember that the Botify project needs to have revenue, transactions (orders) and visits integrated.<br><br>The organisation name can be found in the first part of the project URL, for example:<br><br>
         https://app.botify.com/<span style="color: purple;">my_org_name</span></span>
-        <label for="project">Project:</label>
+        <label for="project">Project</label>
         <input type="text" id="project" name="project"><br>
         <span id="projectTooltip" class="tooltip">Enter the name of your project.<br><br> The project name can be found in the second part of the project URL, for example:<br><br>
         <span>https://app.botify.com/my_org_name/<span style="color: purple;">my_project_name</span></span>

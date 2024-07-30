@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,7 +30,8 @@ var version = "v0.2"
 // Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
 // Fixed error in generated Shopify regex
 // Fixed error in generated SFCC regex
-// Correctly deletes temp. files when regex generation is complete
+// Correctly delete temp file when regex generation is complete
+// Identify PDP pages and generate segment (experimental)
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
@@ -84,6 +86,10 @@ var cacheFolderRoot string
 
 // No of executions
 var sessionIDCounter int
+
+// PDP Regex
+var generatePDPRegex bool
+var isProductURL bool
 
 // Declare the mutex
 var mutex sync.Mutex
@@ -171,6 +177,11 @@ func main() {
 
 		//Level 1 and 2 folders
 		level1and2Folders()
+
+		// PDP pages. Only generate if PDP pages have been detected
+		if isProductURL {
+			insertPDPRegex()
+		}
 
 		//Subdomains
 		subDomains()
@@ -450,7 +461,7 @@ func generateRegexFile() {
 
 func segmentFolders(thresholdValue int, slashCount int) {
 
-	//Open the input file
+	//Open the input file for reading
 	file, err := os.Open(urlExtractFile)
 	if err != nil {
 		os.Exit(1)
@@ -485,6 +496,14 @@ func segmentFolders(thresholdValue int, slashCount int) {
 		//Check if the line contains a quotation mark, if yes, skip to the next line
 		if strings.Contains(line, "\"") {
 			continue
+		}
+
+		// bloo
+		// Is this a product URL?
+		isProductURL = isValidisProductURL(line)
+		if isProductURL {
+			println(line)
+			generatePDPRegex = true
 		}
 
 		//Split the line into substrings using a forward-slash as delimiter
@@ -874,7 +893,8 @@ query *=*
 @Clean
 path /*
 
-# ----End of sl_parameter_usage----`
+# ----End of sl_parameter_usage----
+`
 
 	errParameterUsage := insertStaticRegex(parameterUsageRegex)
 	if errParameterUsage != nil {
@@ -912,7 +932,8 @@ query rx:=(.)+
 @~Other
 path /*
 
-# ----End of sl_no_of_parameters----`
+# ----End of sl_no_of_parameters----
+`
 
 	errParameterNoRegex := insertStaticRegex(parameterNoRegex)
 	if errParameterNoRegex != nil {
@@ -948,7 +969,8 @@ path rx:^/[^/]+
 @~Other
 path /*
 
-# ----End of sl_no_of_folders----`
+# ----End of sl_no_of_folders----
+`
 
 	//No. of folders message
 	errFolderNoRegex := insertStaticRegex(folderNoRegex)
@@ -1080,13 +1102,33 @@ path */api/*
 @~Other
 path /*
 
-# ----End of sl_static_resources----`
+# ----End of sl_static_resources----
+`
 
 	errStaticResources := insertStaticRegex(staticResources)
 	if errStaticResources != nil {
 		panic(errStaticResources)
 	}
 
+}
+
+// PDP Regex
+func insertPDPRegex() {
+
+	generatePDPRegex := `
+[segment:sl_PDP]  
+@pdp
+path rx:[a-zA-Z0-9\-]+-\d+\.html$
+
+@Other
+path /*
+
+# ----End of sl_PDP segment----
+`
+	errStaticResources := insertStaticRegex(generatePDPRegex)
+	if errStaticResources != nil {
+		panic(errStaticResources)
+	}
 }
 
 // Get the folder size threshold for level 1 & 2 folders
@@ -1188,8 +1230,7 @@ func finishUp(sessionID string) {
 	fmt.Println()
 	fmt.Println(lineSeparator)
 
-	// Delete the temp. files
-	_ = os.Remove(regexOutputFile)
+	// Delete the temp. file
 	_ = os.Remove(urlExtractFile)
 }
 
@@ -1734,4 +1775,12 @@ func getEnvVariables() (envBotifyAPIToken string, envSegmentifyLiteLogFolder str
 	}
 
 	return envBotifyAPIToken, envSegmentifyLiteLogFolder, envSegmentifyLiteFolder, envSegmentifyLiteHostingMode
+}
+
+// isValidisProductURL checks if a URL ends with a product name followed by a numeric identifier
+func isValidisProductURL(url string) bool {
+	// Define the regex pattern for matching URLs ending with a product name and numeric identifier
+	pattern := `[a-zA-Z0-9\-]+-\d+\.html$`
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(url)
 }

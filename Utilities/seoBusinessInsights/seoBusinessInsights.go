@@ -148,6 +148,7 @@ var noKeywordsFound int
 
 // No of executions
 var sessionIDCounter int
+var sessionID string
 
 // The number of top keywords to include in the keywords detail table
 var noTopKeywords = 50
@@ -267,7 +268,7 @@ func main() {
 		project = r.Form.Get("project")
 
 		// Generate a session ID used for grouping log entries
-		sessionID, err := generateSessionID(8)
+		sessionID, err = generateSessionID(8)
 		if err != nil {
 			fmt.Println(red+"Error. writeLog. Failed generating a session ID: %s"+reset, err)
 			os.Exit(0)
@@ -356,7 +357,7 @@ func businessInsightsDashboard(sessionID string) {
 	// Organic visit value
 	barVisitValue()
 
-	// No. of Orders bar chart
+	// Order volume bar chart
 	barOrders()
 
 	// Order value bar chart
@@ -909,13 +910,26 @@ func headerNotes() {
         }
 	.right-justify {
             text-align: right;
-            display: block; /* Ensure span takes the full width */
+            display: block; 
+        }
+		.deepskyblue {
+            color: DeepSkyBlue;
+        }
+        .darkgrey {
+            color: #00796b;
         }
     </style>
 </head>
 <body>
     <div class="content">
-        <span class="header-font right-justify">Version: ` + fmt.Sprintf("%s", version) + `</span>
+	<span class="header-font right-justify">
+        <span class="deepskyblue">Version:</span>
+        <span class="darkgrey">` + fmt.Sprintf("%s", version) + `</span>
+    </span> 
+	<span class="header-font right-justify">
+        <span class="deepskyblue">Session:</span>
+        <span class="darkgrey">` + fmt.Sprintf("%s", sessionID) + `</span>
+    </span>
 	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
 		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
@@ -983,7 +997,7 @@ func badgeCMGR() {
 	generateLiquidBadge("Visit Value", cmgrVisitValue32, clickURL, "Visit value (RPV)")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrders.html"
-	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Number of orders")
+	generateLiquidBadge("Orders", cmgrOrderValue32, clickURL, "Order volume")
 
 	clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_CMGROrderValue.html"
 	generateLiquidBadge("Order Value", cmgrOrderValueValue32, clickURL, "Order value (AOV)")
@@ -1295,7 +1309,7 @@ func barVisitValue() {
 	_ = bar.Render(f)
 }
 
-// No. of Orders bar chart
+// Order volume bar chart
 func barOrders() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
@@ -1304,8 +1318,8 @@ func barOrders() {
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Number of orders",
-		Subtitle: "Number of orders placed during an organic visit.",
+		Title:    "Order volume",
+		Subtitle: "Order volume placed during an organic visit.",
 		Link:     clickURL,
 	}),
 		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
@@ -1317,7 +1331,7 @@ func barOrders() {
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:     chartDefaultWidth,
 			Height:    chartDefaultHeight,
-			PageTitle: "Number of orders",
+			PageTitle: "Order volume",
 		}),
 		charts.WithColorsOpts(opts.Colors{kpiColourNoOfOrders}),
 		// disable show the legend
@@ -1880,9 +1894,9 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         <thead>
             <tr>
                 <th class="title" style="color: DeepSkyBlue;">Date</th>
-				<th class="title" style="color: DeepSkyBlue;">No. of Orders</th>
+				<th class="title" style="color: DeepSkyBlue;">Order volume</th>
                 <th class="title" style="color: DeepSkyBlue;">Revenue</th>
-                <th class="title" style="color: DeepSkyBlue;">Order Value</th>
+                <th class="title" style="color: DeepSkyBlue;">Order Value (AOV)</th>
                 <th class="title" style="color: DeepSkyBlue;">No. of Visits</th>
                 <th class="title" style="color: DeepSkyBlue;">Visit Value</th>
                 <th class="title" style="color: DeepSkyBlue;">Visits per Order</th>
@@ -2449,16 +2463,16 @@ func generateDashboardContainer(company string) {
 
 <!-- Navigation Links -->
 <nav>
-    <ul>
+    <ul>	
         <li><a href="#revenue_visits">Revenue & visits</a></li>
         <li><a href="#visits_per_order">Visits per order</a></li>
-        <li><a href="#orders">No. of orders</a></li>
-        <li><a href="#order_value">Order value</a></li>
-        <li><a href="#visit_value">Organic visit value</a></li>
-        <li><a href="#detailed_insights">Monthly summary</a></li>
+        <li><a href="#orders">Order volume</a></li>
+        <li><a href="#order_value">Order value (AOV)</a></li>
+        <li><a href="#visit_value">Revenue per visit (RPV)</a></li>
+        <li><a href="#detailed_insights">Detailed insights</a></li>
         <li><a href="#revenue_forecast">Revenue forecast</a></li>
-        <li><a href="#wordcloud_branded">Branded wordcloud</a></li>
-        <li><a href="#wordcloud_non_branded">Non branded wordcloud</a></li>
+        <li><a href="#wordcloud_branded">Top branded keywords</a></li>
+        <li><a href="#wordcloud_non_branded">Top non branded keywords</a></li>
     </ul>
 </nav>
 
@@ -2507,7 +2521,7 @@ func generateDashboardContainer(company string) {
 	</section>
 	
 	<section id="orders" class="container row">
-		<iframe src="go_seo_OrdersBar.html" title="No. of orders" class="medium-iframe"></iframe>
+		<iframe src="go_seo_OrdersBar.html" title="Order volume" class="medium-iframe"></iframe>
 	</section>
 	
 	<section id="order_value" class="container row">
@@ -2648,7 +2662,7 @@ func calculateCMGR(sessionID string) {
 	}
 	cmgrVisitValue = computeCMGR(seoMetricsVisitValueFloat, "Visit Value")
 
-	// No. of Orders
+	// Order volume
 	var seoOrdersFloat []float64
 	for _, v := range seoOrders {
 		seoOrdersFloat = append(seoOrdersFloat, float64(v))
@@ -2666,7 +2680,7 @@ func calculateCMGR(sessionID string) {
 	fmt.Printf("Revenue: %.2f\n", cmgrRevenue)
 	fmt.Printf("Visits: %.2f\n", cmgrVisits)
 	fmt.Printf("Visit value: %.2f\n", cmgrVisitValue)
-	fmt.Printf("No. of Orders: %.2f\n", cmgrOrderValue)
+	fmt.Printf("Order volume: %.2f\n", cmgrOrderValue)
 	fmt.Printf("Order value: %.2f\n", cmgrOrderValueValue)
 }
 
@@ -2964,7 +2978,6 @@ func writeLog(sessionID, organization, project, analyticsID, statusDescription s
 }
 
 func generateSessionID(length int) (string, error) {
-	// Generate sessionID
 	sessionID := make([]byte, length)
 	if _, err := rand.Read(sessionID); err != nil {
 		return "", err
@@ -3212,7 +3225,7 @@ func startup() {
 
 	fmt.Println()
 	fmt.Println(purple+"Version:"+reset, version)
-	fmt.Println(green + "\nThe seoBusinessInsights server is ON\n" + reset)
+	fmt.Println(green + "\nseoBusinessInsights server is ON\n" + reset)
 
 	now := time.Now()
 	formattedTime := now.Format("15:04 02/01/2006")
