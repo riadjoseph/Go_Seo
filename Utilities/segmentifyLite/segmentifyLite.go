@@ -26,11 +26,12 @@ import (
 var version = "v0.2"
 
 // Changelog v0.2
-// Minor UI updates
+// UI updates & refinements (segmentifyLite)
+// UI updates & refinements (index.html)
 // Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
 // Fixed error in generated Shopify regex
 // Fixed error in generated SFCC regex
-// Correctly delete temp file when regex generation is complete
+// Delete temp file when regex generation is complete
 // Identify PDP pages and generate segment (experimental)
 
 // Token, log folder and cache folder acquired from environment variables

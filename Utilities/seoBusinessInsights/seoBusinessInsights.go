@@ -28,7 +28,8 @@ import (
 var version = "v0.3"
 
 // changelog v0.3
-// Minor UI updates
+// UI updates & refinements (seoBusinessInsights)
+// UI updates & refinements (index.html)
 // Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
 
 // changelog v0.2
