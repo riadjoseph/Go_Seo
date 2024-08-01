@@ -28,6 +28,7 @@ var version = "v0.2"
 // Changelog v0.2
 // UI updates & refinements (segmentifyLite)
 // UI updates & refinements (index.html)
+// Version & session displayed in UI
 // Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
 // Fixed error in generated Shopify regex
 // Fixed error in generated SFCC regex
@@ -85,8 +86,9 @@ var protocol string
 var cacheFolder string
 var cacheFolderRoot string
 
-// No of executions
+// No of executions & generated session ID
 var sessionIDCounter int
+var sessionID []byte
 
 // PDP Regex
 var generatePDPRegex bool
@@ -217,7 +219,7 @@ func main() {
 		writeLog(sessionID, organisation, project, "Regex generated successfully")
 
 		// Generate the HTML used to present the regex
-		generateSegmentationRegex()
+		generateSegmentationRegex(sessionID)
 
 		// Display results and clean up
 		finishUp(sessionID)
@@ -499,7 +501,6 @@ func segmentFolders(thresholdValue int, slashCount int) {
 			continue
 		}
 
-		// bloo
 		// Is this a product URL?
 		isProductURL = isValidisProductURL(line)
 		if isProductURL {
@@ -1051,7 +1052,7 @@ func staticResources() {
 
 	// Static resources
 	staticResources := `
-[segment:s_Static_Resources]  
+[segment:sl_Static_Resources]  
 @true  
 or (  
 path *.bmp
@@ -1333,7 +1334,7 @@ func generateSessionID(length int) (string, error) {
 }
 
 // Generate the HTML pages used to present the segmentation regex
-func generateSegmentationRegex() {
+func generateSegmentationRegex(sessionID string) {
 
 	// Using these two variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width50 := "50%"
@@ -1346,7 +1347,7 @@ func generateSegmentationRegex() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>segmentifyLite</title>
- <style>
+ 	<style>
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -1407,6 +1408,22 @@ func generateSegmentationRegex() {
             background-color: Green;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
+		.header-info {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            color: DeepSkyBlue;
+            font-size: 15px;
+        }
+ 		.header-info {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            text-align: right;
+        }
+        .darkgrey {
+            color: #00796b;
+        }
     </style>
 </head>
 <body>
@@ -1419,7 +1436,10 @@ func generateSegmentationRegex() {
 
 <!-- Back Button to create a new dashboard -->
 <button class="back-button" onclick="goHome()">New segmentation</button>
-
+<div class="header-info">
+    <span class="deepskyblue">Version: </span><span class="darkgrey">`+fmt.Sprintf("%s", version)+`</span><br>
+    <span class="deepskyblue">Session: </span><span class="darkgrey">`+fmt.Sprintf("%s", sessionID)+`</span>
+</div>
 <script>
     function goHome() {
         window.open('%s://%s/', '_blank');

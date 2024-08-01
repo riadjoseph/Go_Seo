@@ -31,6 +31,7 @@ var version = "v0.3"
 // UI updates & refinements (seoBusinessInsights)
 // UI updates & refinements (index.html)
 // Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
+// Bug fix. Error when running the broadsheet on the last day of the month
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -147,7 +148,7 @@ var noKeywordsInCloud = 50
 // No. of keywords returned by the API
 var noKeywordsFound int
 
-// No of executions
+// No of executions & generated session ID
 var sessionIDCounter int
 var sessionID string
 
@@ -293,7 +294,6 @@ func main() {
 		}
 
 		// Manage errors
-
 		// An invalid org/project name has been specified
 		if dataStatus == "errorNoProjectFound" {
 			writeLog(sessionID, organization, project, "-", "No project found")
@@ -856,6 +856,9 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 
 	if responseCount == 0 {
 		fmt.Println(red+"Error. generateRevenueBQL. Engagement analytics with visits, revenue & transactions (orders) has not been configured for the specified project ", organization+"/"+project+reset)
+		fmt.Println(startDate)
+		fmt.Println(endDate)
+
 		getRevenueDataStatus := "errorNoEAFound"
 		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
 	} else {
@@ -906,10 +909,10 @@ func headerNotes() {
             font-size: 15px;
             padding: 5px;
         }
-	.header-font {
+		.header-font {
             font-size: 15px;  
         }
-	.right-justify {
+		.right-justify {
             text-align: right;
             display: block; 
         }
@@ -932,13 +935,13 @@ func headerNotes() {
         <span class="darkgrey">` + fmt.Sprintf("%s", sessionID) + `</span>
     </span>
 	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
-		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
+		<span class="header-font">Access the Botify project <a href="` + organization + `" target="_blank">here</a></span> (` + organization + "/" + project + `)
         <br>
         <br>
         <span class="header-font">Click the chart title to view the chart in a new window.</span>
         <br>
 		<br>
-			<span class="header-font">This broadsheet for <strong style="color: DeepSkyBlue;">` + organization + `</strong> was generated on ` + currentDate + ` at ` + currentTimeFormatted + `</span>
+			<span class="header-font">This broadsheet for <strong style="color: DeepSkyBlue;">` + organization + "/" + project + `</strong> was generated on ` + currentDate + ` at ` + currentTimeFormatted + `</span>
 		<br>
 		` + htmlDataIssue + `
     </div>
@@ -1897,9 +1900,9 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
                 <th class="title" style="color: DeepSkyBlue;">Date</th>
 				<th class="title" style="color: DeepSkyBlue;">Order volume</th>
                 <th class="title" style="color: DeepSkyBlue;">Revenue</th>
-                <th class="title" style="color: DeepSkyBlue;">Order Value (AOV)</th>
+                <th class="title" style="color: DeepSkyBlue;">Order Value</th>
                 <th class="title" style="color: DeepSkyBlue;">No. of Visits</th>
-                <th class="title" style="color: DeepSkyBlue;">Visit Value</th>
+                <th class="title" style="color: DeepSkyBlue;">Revenue per visit</th>
                 <th class="title" style="color: DeepSkyBlue;">Visits per Order</th>
             </tr>
         </thead>
@@ -2203,7 +2206,7 @@ func textForecastNarrative() {
 		<p class="keyword-font">
 			<b>Example scenario:</b>
 			On average an order is placed every
-			<span class="blueText">%d</span> visit from an organic source. For each additional 
+			<span class="blueText">%d</span> visits from an organic source. For each additional 
 			<span class="blueText">%s</span> organic visits, the current forecast is 
 			<span class="blueText">%d</span> orders will be placed. With an average 
 			order value of <span class="blueText">%s%d</span> the projected 
@@ -2233,7 +2236,6 @@ func footerNotes() {
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on.",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
-		"The CMGR values presented are rounded to the nearest whole number, while the visualization subtitle provides the exact calculated value.",
 		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\" target=\"_blank\">" + dashboardPermaLink + "</a>",
 	}
 
@@ -2768,6 +2770,12 @@ func getAnalyticsID() (string, string) {
 
 // Get the date ranges for the revenue and visits
 func calculateDateRanges(analyticsStartDate string) DateRanges {
+
+	// Is it the last day of the month?
+	date := time.Now()
+	isLastDayoftheMonth := isLastDayOfMonth(date)
+	println(isLastDayoftheMonth)
+
 	startTime, err := time.Parse("2006-01-02", analyticsStartDate)
 	if err != nil {
 		fmt.Println("Error parsing start date:", err)
@@ -2780,7 +2788,6 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 	// Calculate the last day of the previous month of the current year
 	previousMonth := time.Date(currentYear, currentMonth-1, 1, 0, 0, 0, 0, time.UTC)
 	lastDayOfPreviousMonth := previousMonth.AddDate(0, 1, -1)
-
 	// Check if analyticsStartDate is more than 12 months older than lastDayOfPreviousMonth
 	isMoreThan12MonthsDataAvailable := startTime.Before(lastDayOfPreviousMonth.AddDate(-1, 0, 0))
 
@@ -2790,22 +2797,29 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 	if isMoreThan12MonthsDataAvailable {
 		noOfMonths = 11
 		currentTime := time.Now()
-
 		// Calculate the date ranges for the last 12 months
 		for i := 0; i < 12; i++ {
 			prevMonth := currentTime.AddDate(0, -1, 0)
 			startDate := time.Date(prevMonth.Year(), prevMonth.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+
 			var endDate time.Time
+
 			if i == 0 {
 				firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
 				endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
+				fmt.Println("firstDayOfCurrentMonth")
+				fmt.Println(firstDayOfCurrentMonth)
 			} else {
 				endDate = startDate.AddDate(0, 1, -1)
 			}
-			dateRanges = append(dateRanges, [2]time.Time{startDate, endDate})
+
+			dateRanges = append(dateRanges, [2]time.Time{startDate, endDate}) //bloo
+			fmt.Println("start end")
+			fmt.Println(startDate)
+			fmt.Println(endDate)
+			fmt.Println("_______________")
 			currentTime = startDate.AddDate(0, 0, 0)
 		}
-
 		// Less than a full year data available
 	} else {
 		currentTime := time.Now()
@@ -2817,11 +2831,15 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 			endDate := time.Date(currentStartDate.Year(), currentStartDate.Month()+1, 0, 0, 0, 0, 0, time.UTC)
 			dateRanges = append(dateRanges, [2]time.Time{currentStartDate, endDate})
 		}
-
 	}
 
 	// Return the date range slice
 	return DateRanges{MonthlyRanges: dateRanges}
+}
+
+func isLastDayOfMonth(date time.Time) bool {
+	nextDay := date.AddDate(0, 0, 1)
+	return nextDay.Day() == 1
 }
 
 // DateRanges struct is used to store the date ranges for use in the BQL when the SEO KPIs are acquired
