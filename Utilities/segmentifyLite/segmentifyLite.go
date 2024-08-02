@@ -29,6 +29,7 @@ var version = "v0.2"
 // UI updates & refinements (segmentifyLite)
 // UI updates & refinements (index.html)
 // Version & session displayed in UI
+// Tooltips displayed on launch screen
 // Added env. variable "envSegmentifyLiteHostingMode". Set to "local" or "docker"
 // Fixed error in generated Shopify regex
 // Fixed error in generated SFCC regex

@@ -128,6 +128,29 @@
             background: transparent;
             z-index: 1;
         }
+        .tooltip {
+            position: absolute;
+            background-color: DeepSkyBlue;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            display: none;
+            white-space: normal;
+            max-width: 400px;
+            text-align: left;
+            transform: translateX(20px);
+        }
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -10px;
+            transform: translateY(-50%);
+            border-width: 10px;
+            border-style: solid;
+            border-color: transparent DeepSkyBlue transparent transparent;
+        }
     </style>
 </head>
 <body>
@@ -137,11 +160,18 @@
 </div>
 <div class="content">
     <form id="dashboardForm" action="/submit" method="post" onsubmit="return validateForm()">
-        <label for="organiation">Organisation</label>
+        <label for="organization">Organisation</label>
         <input type="text" id="organization" name="organization"><br>
+        <span id="organizationTooltip" class="tooltip">Enter the name of your organisation.<br><br>
+        The organisation name can be found in the first part of the project URL, for example:<br><br>
+        https://app.botify.com/<span style="color: purple;">my_org_name</span></span>
         <label for="project">Project</label>
         <input type="text" id="project" name="project"><br>
-        <button type="submit" id="displayButton" onclick="showModal(event)">Generate segmentation regex</button>
+        <span id="projectTooltip" class="tooltip">Enter the name of your project.<br><br> The project name can be found in the second part of the project URL, for example:<br><br>
+        <span>https://app.botify.com/my_org_name/<span style="color: purple;">my_project_name</span></span>
+        </span>
+
+        <button type="submit" id="displayButton" onclick="showModal(event)">Generate regex</button>
     </form>
 </div>
 <div class="footer">
@@ -191,6 +221,34 @@
             document.getElementById("dashboardForm").submit();
         }, 1500);
     }
+
+    // Tooltip functions
+    function showTooltip(element, tooltip) {
+        const rect = element.getBoundingClientRect();
+        tooltip.style.top = rect.top + window.scrollY + 'px';
+        tooltip.style.left = rect.right + window.scrollX + 10 + 'px'; // Position tooltip to the right of the field
+        tooltip.style.display = 'block';
+    }
+
+    function hideTooltip(tooltip) {
+        tooltip.style.display = 'none';
+    }
+
+    document.getElementById("organization").addEventListener("focus", function() {
+        showTooltip(this, document.getElementById("organizationTooltip"));
+    });
+
+    document.getElementById("organization").addEventListener("blur", function() {
+        hideTooltip(document.getElementById("organizationTooltip"));
+    });
+
+    document.getElementById("project").addEventListener("focus", function() {
+        showTooltip(this, document.getElementById("projectTooltip"));
+    });
+
+    document.getElementById("project").addEventListener("blur", function() {
+        hideTooltip(document.getElementById("projectTooltip"));
+    });
 </script>
 </body>
 </html>

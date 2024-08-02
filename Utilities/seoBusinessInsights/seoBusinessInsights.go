@@ -2187,7 +2187,7 @@ func textForecastNarrative() {
         }
         .blueText {
             color: DeepSkyBlue;
-            font-size: 25px;
+            font-size: 20px;
             font-weight: bold;  
         }
         .keyword-font {
@@ -2199,21 +2199,29 @@ func textForecastNarrative() {
         b {
             color: #333;
         }
+	    .forecast-footer-font {
+            font-family: 'Arial', sans-serif;
+        	font-size: 15;  
+        	color: LightSlateGray;  
+            line-height: 1.6;
+    }
     </style>
 </head>
 <body>
-	<div class="content">
-		<p class="keyword-font">
-			<b>Example scenario:</b>
-			On average an order is placed every
-			<span class="blueText">%d</span> visits from an organic source. For each additional 
-			<span class="blueText">%s</span> organic visits, the current forecast is 
-			<span class="blueText">%d</span> orders will be placed. With an average 
-			order value of <span class="blueText">%s%d</span> the projected 
-			incremental revenue from <span class="blueText">%s</span> additional visits will be 
-			<span class="blueText">%s%s</span>
-		</p>
-	</div>
+<div class="content">
+	<p class="keyword-font">
+		<b>Example scenario:</b>
+		On average an order is placed every
+		<span class="blueText">%d</span> visits from an organic source. For each additional 
+		<span class="blueText">%s</span> organic visits, the current forecast is 
+		<span class="blueText">%d</span> orders will be placed. With an average 
+		order value of <span class="blueText">%s%d</span> the projected 
+		incremental revenue from <span class="blueText">%s</span> additional visits will be 
+		<span class="blueText">%s%s</span>.
+		<br><br>
+		<b><span class="forecast-footer-font">Adjust the visit growth using the slider in the chart on the left to forecast potential revenue growth.</span></b>
+	</p>
+</div>
 </body>
 </html>
 `, totalAverageVisitsPerOrder, formattedForecastIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
