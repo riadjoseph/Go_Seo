@@ -1146,7 +1146,7 @@ func barRevenueVisits() {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Revenue & visits",
+			Title:    "Revenue & visits (click for full screen)",
 			Subtitle: "How many organic visits does the site attract and what is the generated revenue from those visits?",
 			Link:     clickURL,
 		}),
@@ -1207,7 +1207,7 @@ func lineVisitsPerOrder() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Visits per order",
+			Title:    "Visits per order (click for full screen)",
 			Subtitle: "High number of visits per order indicates poor quality traffic or conversion inefficiency.",
 			Link:     clickURL,
 		}),
@@ -1271,7 +1271,7 @@ func barVisitValue() {
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Revenue per visit (RPV)",
+		Title:    "Revenue per visit - RPV (click for full screen)",
 		Subtitle: "A high organic visit value is a strong indicator of the effectiveness and profitability of the site's organic traffic.",
 		Link:     clickURL,
 	}),
@@ -1322,7 +1322,7 @@ func barOrders() {
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Order volume",
+		Title:    "Order volume (click for full screen)",
 		Subtitle: "Order volume placed during an organic visit.",
 		Link:     clickURL,
 	}),
@@ -1374,7 +1374,7 @@ func barOrderValue() {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Order value (AOV)",
+		Title:    "Order value - AOV (click for full screen)",
 		Subtitle: "The average value of an order placed during a visit from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
 		Link:     clickURL,
 	}),
@@ -1604,7 +1604,7 @@ func riverRevenueVisits() {
 
 	river.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Revenue & visits",
+			Title:    "Revenue & visits (click for full screen)",
 			Subtitle: "Insights into the fluctuations in organic visitors to a site and the corresponding revenue generation.",
 			Link:     clickURL}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
@@ -1680,7 +1680,7 @@ func gaugeVisitsPerOrder() {
 	gauge := charts.NewGauge()
 
 	insightsCacheFolderTrimmed = strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_Gauge.html"
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitsPerOrderGauge.html"
 
 	setMinMax := charts.WithSeriesOpts(func(s *charts.SingleSeries) {
 		s.Min = minVisitsPerOrder
@@ -1689,7 +1689,7 @@ func gaugeVisitsPerOrder() {
 
 	gauge.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title: "Lowest, highest and average organic visits per order",
+			Title: "Lowest, average & highest organic visits per order",
 			Link:  clickURL}),
 
 		charts.WithInitializationOpts(opts.Initialization{
@@ -1701,7 +1701,7 @@ func gaugeVisitsPerOrder() {
 	gauge.AddSeries("",
 		[]opts.GaugeData{{Value: totalAverageVisitsPerOrder}}, setMinMax)
 
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_Gauge.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsPerOrderGauge.html")
 
 	_ = gauge.Render(f)
 }
@@ -1933,7 +1933,8 @@ func textDetailedKeywordsInsights(brandedMode bool) {
 
 	formatInteger := message.NewPrinter(language.English)
 
-	htmlContent := `<!DOCTYPE html>
+	htmlContent := `
+<!DOCTYPE html>
 <html>
 <head>
 	<style>
@@ -2042,11 +2043,11 @@ func textDetailedKeywordsInsights(brandedMode bool) {
 	// Save the HTML to a file
 	// Branded keywords details
 	if brandedMode {
-		saveHTML(htmlContent, "/go_seo_BrandedInsights.html")
+		saveHTML(htmlContent, "/go_seo_KeywordBrandedInsights.html")
 	}
 	// Branded keywords details
 	if !brandedMode {
-		saveHTML(htmlContent, "/go_seo_NonBrandedInsights.html")
+		saveHTML(htmlContent, "/go_seo_KeywordNonBrandedInsights.html")
 	}
 }
 
@@ -2088,7 +2089,7 @@ func lineRevenueForecast() {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
-			Title:    "Revenue forecast",
+			Title:    "Revenue forecast (click for full screen)",
 			Subtitle: "Use the slider to forecast potential revenue growth with increased visits",
 			Link:     clickURL,
 		}),
@@ -2248,9 +2249,10 @@ func footerNotes() {
 	}
 
 	// Generate HTML content
-	htmlContent := `<html>
+	htmlContent := `
+<!DOCTYPE html>
+<html lang="en">
 <head>
-</head>
 	<style>
 		body {
 		font-family: Arial, sans-serif;
@@ -2258,8 +2260,8 @@ func footerNotes() {
 		color: LightSlateGray; 
 		}
 	</style>
+</head>
 <body>
-    <br>
     <ul>
 `
 	for _, note := range footerNotesStrings {
@@ -2268,7 +2270,7 @@ func footerNotes() {
 
 	htmlContent += "</ul>\n</body>\n</html>"
 
-	htmlContent += "<br>"
+	//htmlContent += "<br>"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_FooterNotes.html")
@@ -2406,12 +2408,6 @@ func generateDashboardContainer(company string) {
             background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
-        .section-padding-top {
-            padding-top: 35px;
-        }
-        .section-padding-bottom {
-            padding-bottom: 35px;
-        }
         /* Scroll Indicator Styles */
         #progressContainer {
             position: fixed;
@@ -2519,7 +2515,7 @@ func generateDashboardContainer(company string) {
 	</section>
 
 	<section class="container row">
-		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits" class="medium-iframe"></iframe>
+		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits river" class="medium-iframe"></iframe>
 	</section>
 
 	<section id="visits_per_order" class="container row">
@@ -2550,7 +2546,7 @@ func generateDashboardContainer(company string) {
 	
 	<section class="container row">
 		<iframe src="go_seo_CMGRVisitValue.html" title="CMGR Visit Value" class="short-iframe"></iframe>
-		<iframe src="go_seo_Gauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
+		<iframe src="go_seo_VisitsPerOrderGauge.html" title="Visits per order gauge" class="short-iframe"></iframe>
 	</section>
 	
 	<section id="detailed_insights" class="container row no-border">
@@ -2564,19 +2560,19 @@ func generateDashboardContainer(company string) {
 
 	<section id="wordcloud_branded" class="container row no-border">
  	   <iframe src="go_seo_WordcloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
- 	   <iframe src="go_seo_BrandedInsights.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+ 	   <iframe src="go_seo_KeywordBrandedInsights.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 	</section>
 
-	<section class="container row no-border section-padding-top section-padding-bottom">
+	<section class="container row no-border">
  	   <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword"s class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 	</section>
 
 	<section id="wordcloud_non_branded" class="container row no-border">
   	  <iframe src="go_seo_WordcloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-  	  <iframe src="go_seo_NonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+  	  <iframe src="go_seo_KeywordNonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
 	</section>
 
-	<section class="container row no-border section-padding-top section-padding-bottom">
+	<section class="container row no-border">
  	   <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non-branded keywords" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
 	</section>
 

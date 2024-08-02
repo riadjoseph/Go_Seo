@@ -317,7 +317,7 @@ func processURLs(sessionID string) string {
 		payload := strings.NewReader("{\"fields\":[\"url\"]}")
 
 		req, _ := http.NewRequest("POST", url, payload)
-
+		//bloo
 		req.Header.Add("accept", "application/json")
 		req.Header.Add("content-type", "application/json")
 		req.Header.Add("Authorization", "token "+envBotifyAPIToken)
