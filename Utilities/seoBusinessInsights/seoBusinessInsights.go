@@ -32,6 +32,7 @@ var version = "v0.3"
 // UI updates & refinements (index.html)
 // Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
 // Bug fix. Error when running the broadsheet on the last day of the month
+// New KPIs. Non-Branded Impressions, Clicks, Avg. position & Avg. CTR
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -92,6 +93,12 @@ var seoOrderValue []int
 var seoVisitValue []float64
 var seoVisitsPerOrder []int
 
+// Slices used to store the non-branded insights
+var seoScImpressions []int
+var seoScClicks []int
+var seoScCTR []float64
+var seoScAvgPosition []float64
+
 // Slices used to store branded Keywords KPIs
 var kwKeywords []string
 var kwCountClicks []int
@@ -111,11 +118,22 @@ var cmgrVisitValue float64
 var cmgrOrderValue float64
 var cmgrOrderValueValue float64
 
-// Variables used to store the total values
+// Variables used to store the total values (revenue and non-branded insights)
 var totalVisits int
 var totalRevenue int
 var totalOrders int
 var totalAverageOrderValue int
+
+// Non-branded KPIs
+var scImpressionsTotal int
+var scClicksTotal int
+var scCTRTotal float64
+var scAvgPositionTotal float64
+
+var scImpressions int
+var scClicks int
+var scCTR float64
+var scAvgPosition float64
 
 // Bools used to flag if some data is missing
 var revenueDataIssue bool
@@ -240,6 +258,14 @@ type Result struct {
 }
 type Response struct {
 	Results []Result `json:"results"`
+}
+
+// SearchConsole is used to acquire the non-brand insights
+type SearchConsole struct {
+	Results []struct {
+		Dimensions []interface{} `json:"dimensions"`
+		Metrics    []float64     `json:"metrics"`
+	} `json:"results"`
 }
 
 var company string
@@ -478,13 +504,18 @@ func getBusinessInsights(sessionID string) string {
 	invertStringSlice(startMonthNames)
 
 	// Get the revenue data
-	getRevenueDataStatus := getRevenueData(analyticsID, startMonthDates, endMonthDates, sessionID)
+	getRevenueAndSearchConsoleDataStatus := getRevenueAndSearchConsoleData(analyticsID, startMonthDates, endMonthDates, sessionID)
 
 	// Error checking
 	// Exit if Engagement Analytics has not been configured
-	if getRevenueDataStatus == "errorNoEAFound" {
+	if getRevenueAndSearchConsoleDataStatus == "errorNoEAFound" {
 		writeLog(sessionID, organization, project, analyticsID, "EngagementAnalytics not configured")
-		return getRevenueDataStatus
+		return getRevenueAndSearchConsoleDataStatus
+	}
+	// Exit if Analytics has not been configured
+	if getRevenueAndSearchConsoleDataStatus == "errorNoGAFound" {
+		writeLog(sessionID, organization, project, analyticsID, "Analytics not configured")
+		return getRevenueAndSearchConsoleDataStatus
 	}
 
 	writeLog(sessionID, organization, project, analyticsID, "Revenue data acquired")
@@ -506,7 +537,7 @@ func getBusinessInsights(sessionID string) string {
 
 	writeLog(sessionID, organization, project, analyticsID, "Keyword data acquired")
 
-	seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, seoVisitsPerOrder, startMonthDates, endMonthDates, startMonthNames = cleanInsights(seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, seoVisitsPerOrder, startMonthDates, endMonthDates, startMonthNames)
+	seoScImpressions, seoScClicks, seoScAvgPosition, seoScCTR, seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, seoVisitsPerOrder, startMonthDates, endMonthDates, startMonthNames = cleanInsights(seoScImpressions, seoScClicks, seoScAvgPosition, seoScCTR, seoRevenue, seoVisits, seoOrders, seoOrderValue, seoVisitValue, seoVisitsPerOrder, startMonthDates, endMonthDates, startMonthNames)
 
 	// Calculate the CMGR values
 	calculateCMGR(sessionID)
@@ -541,6 +572,10 @@ func resetMetrics() {
 	kwCountClicksNonBranded = nil
 	kwCTRNonBranded = nil
 	kwAvgPositionNonBranded = nil
+	seoScImpressions = nil
+	seoScClicks = nil
+	seoScAvgPosition = nil
+	seoScCTR = nil
 
 	// Reset integers and floats
 	totalVisits = 0
@@ -551,10 +586,14 @@ func resetMetrics() {
 	cmgrVisitValue = 0.00
 	cmgrOrderValue = 0.00
 	cmgrOrderValueValue = 0.00
+	scImpressionsTotal = 0
+	scClicksTotal = 0
+	scAvgPositionTotal = 0.00
+	scCTRTotal = 0.00
 }
 
 // Get the revenue, orders and visits data
-func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates []string, sessionID string) string {
+func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string, endMonthDates []string, sessionID string) string {
 
 	var metricsOrders = 0
 	var metricsRevenue = 0
@@ -569,12 +608,20 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 	// Get monthly insights
 	for i := range startMonthDates {
 
-		getRevenueDataStatus := ""
-		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueDataStatus = generateRevenueBQL(analyticsID, startMonthDates[i], endMonthDates[i])
+		getRevenueAndSearchConsoleDataStatus := ""
+		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus = generateRevenueBQL(analyticsID, startMonthDates[i], endMonthDates[i])
+
+		getSearchDataStatus := ""
+		scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus = generateSearchConsoleBQL(startMonthDates[i], endMonthDates[i])
 
 		// Error checking
-		if getRevenueDataStatus == "errorNoEAFound" {
-			return getRevenueDataStatus
+		// No engagement analytics found
+		if getRevenueAndSearchConsoleDataStatus == "errorNoEAFound" {
+			return getRevenueAndSearchConsoleDataStatus
+		}
+		// No GA/Analytics found
+		if getSearchDataStatus == "errorGAFound" {
+			return getSearchDataStatus
 		}
 
 		// Check revenue, visits or orders values are missing
@@ -595,6 +642,12 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		seoOrderValue = append(seoOrderValue, avgOrderValue)
 		seoVisits = append(seoVisits, metricsVisits)
 
+		// Non-branded metrics
+		seoScImpressions = append(seoScImpressions, scImpressions)
+		seoScClicks = append(seoScClicks, scClicks)
+		seoScCTR = append(seoScCTR, scCTR)
+		seoScAvgPosition = append(seoScAvgPosition, scAvgPosition)
+
 		// Round avgVisitValue to 2 decimal places
 		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
@@ -613,20 +666,28 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		totalRevenue += metricsRevenue
 		totalVisits += metricsVisits
 		totalOrders += metricsOrders
+		// Calculate the total for the non-branded insights
+		scImpressionsTotal += scImpressions
+		scClicksTotal += scClicks
 
 		formatInteger := message.NewPrinter(language.English)
 
 		// Display the KPIs
+		fmt.Println()
 		fmt.Printf(yellow+sessionID+white+" Date Start: %s End: %s\n"+reset, startMonthDates[i], endMonthDates[i])
 		formattedOrders := formatInteger.Sprintf("%d", metricsOrders)
 		formattedRevenue := formatInteger.Sprintf("%d", metricsRevenue)
 		formattedVisits := formatInteger.Sprintf("%d", metricsVisits)
-		fmt.Println("No. Orders:", formattedOrders)
+		fmt.Println("No. orders:", formattedOrders)
 		fmt.Println("Total revenue:", formattedRevenue)
 		fmt.Println("Average order value:", avgOrderValue)
 		fmt.Println("No. of visits:", formattedVisits)
 		fmt.Println("Average visit value:", avgVisitValue)
 		fmt.Println("Average visits per order:", visitsPerOrderDisplay)
+		fmt.Println("Non-brand impressions:", scImpressions)
+		fmt.Println("Non-brand clicks:", scClicks)
+		fmt.Println("Non-brand CTR:", scCTR)
+		fmt.Println("Non-brand average position:", scAvgPosition)
 	}
 
 	// Calculate the average visits per order
@@ -673,10 +734,26 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 		totalOrderValue += mthAverageOrderValue
 	}
 	// Calculate the average of averages. Ensure there is no division by zero
+
+	// Order value
 	totalAverageOrderValue = 0
 	if len(seoOrderValue) > 0 {
 		totalAverageOrderValue = totalOrderValue / len(seoOrderValue)
 	}
+
+	// Non-branded CTR
+	var sum float64
+	for _, value := range seoScCTR {
+		sum += value
+	}
+	scCTRTotal = sum / float64(len(seoScCTR))
+
+	// Non-branded avg. position
+	sum = 0
+	for _, value := range seoScAvgPosition {
+		sum += value
+	}
+	scAvgPositionTotal = sum / float64(len(seoScAvgPosition))
 
 	fmt.Println("\n" + yellow + sessionID + reset + " Totals" + reset)
 	fmt.Println("Total visits:", totalVisits)
@@ -685,7 +762,10 @@ func getRevenueData(analyticsID string, startMonthDates []string, endMonthDates 
 	fmt.Println("Total average order value:", totalAverageOrderValue)
 	fmt.Println("Total average visits per order:", totalAverageVisitsPerOrder)
 	fmt.Println("Total average visit value:", totalAverageVisitValue)
-
+	fmt.Println("Total non-brand impressions:", scImpressionsTotal)
+	fmt.Println("Total non-brand clicks:", scClicksTotal)
+	fmt.Println("Total (average) non-brand CTR:", scCTRTotal)
+	fmt.Println("Total (average) non-brand average position:", scAvgPositionTotal)
 	return "success"
 }
 
@@ -859,8 +939,8 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 		fmt.Println(startDate)
 		fmt.Println(endDate)
 
-		getRevenueDataStatus := "errorNoEAFound"
-		return 0, 0, 0, 0, 0.0, getRevenueDataStatus
+		getRevenueAndSearchConsoleDataStatus := "errorNoEAFound"
+		return 0, 0, 0, 0, 0.0, getRevenueAndSearchConsoleDataStatus
 	} else {
 		metricsOrders = int(response.Results[0].Metrics[0])
 		metricsRevenue = int(response.Results[0].Metrics[1])
@@ -876,8 +956,64 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 			avgVisitValue = float64(metricsRevenue) / float64(metricsVisits)
 		}
 	}
-	getRevenueDataStatus := "success"
-	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueDataStatus
+	getRevenueAndSearchConsoleDataStatus := "success"
+	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus
+}
+
+func generateSearchConsoleBQL(startDate string, endDate string) (int, int, float64, float64, string) {
+
+	// Get non brand insights
+	bqlSearchConsole := fmt.Sprintf(`
+	{
+    "collections": [
+                    "search_console_by_property"
+    ],
+    "periods": [
+        [
+                    "%s",
+                    "%s"
+        ]
+    ],
+    "query": {
+        "dimensions": [],
+        "metrics": [
+                    "search_console_by_property.period_0.not_branded.count_impressions",
+                    "search_console_by_property.period_0.not_branded.count_clicks",
+                    "search_console_by_property.period_0.not_branded.ctr",
+                    "search_console_by_property.period_0.not_branded.avg_position"        
+        ]
+ 	   }
+	}`, startDate, endDate)
+
+	// get the revenue and transaction
+	responseData := executeBQL(0, bqlSearchConsole)
+
+	// Unmarshal the JSON data into the struct
+	var response SearchConsole
+	err := json.Unmarshal(responseData, &response)
+	if err != nil {
+		fmt.Printf(red+"Error. generateSearchConsoleBQL. Cannot unmarshal the JSON: %v"+reset, err)
+	}
+
+	// Check if any data has been returned from the API. Count the number of elements in the response.Results slice
+	responseCount := len(response.Results)
+
+	if responseCount == 0 {
+		fmt.Println(red+"Error. generateSearchConsoleBQL. Analytics integration has not been configured for the specified project ", organization+"/"+project+reset)
+		fmt.Println(startDate)
+		fmt.Println(endDate)
+
+		getSearchDataStatus := "errorNoGAFound"
+		return 0, 0, 0, 0, getSearchDataStatus
+	} else {
+		scImpressions = int(response.Results[0].Metrics[0])
+		scClicks = int(response.Results[0].Metrics[1])
+		scCTR = response.Results[0].Metrics[2]
+		scAvgPosition = response.Results[0].Metrics[3]
+	}
+	getSearchDataStatus := "success"
+
+	return scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus
 }
 
 // Header for the broadsheet
@@ -935,7 +1071,7 @@ func headerNotes() {
         <span class="darkgrey">` + fmt.Sprintf("%s", sessionID) + `</span>
     </span>
 	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
-		<span class="header-font">Access the Botify project <a href="` + organization + `" target="_blank">here</a></span> (` + organization + "/" + project + `)
+		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
         <br>
         <br>
         <span class="header-font">Click the chart title to view the chart in a new window.</span>
@@ -1020,6 +1156,11 @@ func tableVisitsOrdersRevenue() {
 	totalAverageVisitsPerOrderFormatted := formatInteger.Sprintf("%d", totalAverageVisitsPerOrder)
 	totalAverageVisitValueFormatted := fmt.Sprintf("%.2f", totalAverageVisitValue)
 
+	scImpressionsTotalFormatted := formatInteger.Sprintf("%d", scImpressionsTotal)
+	scClicksTotalFormatted := formatInteger.Sprintf("%d", scClicksTotal)
+	scAvgPositionTotalFormatted := fmt.Sprintf("%.2f", scAvgPositionTotal)
+	scCTRTotalFormatted := fmt.Sprintf("%.2f", scCTRTotal)
+
 	htmlContent := `
 <!DOCTYPE html>
 <html>
@@ -1033,30 +1174,37 @@ func tableVisitsOrdersRevenue() {
             align-items: center;
             margin: 0;
             height: 100vh;
+            background-color: #f4f4f4; 
         }
         .container {
             display: flex;
+            flex-direction: column; 
             justify-content: center;
             align-items: center;
             width: 100%;
             height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .header {
+            font-size: 30px;
+            font-weight: bold;
+            color: Grey;
+            margin-bottom: 20px;
+            text-align: center;
         }
         .wrapper {
-            display: flex;
-            justify-content: space-between;
-            width: 80%;
+            width: 100%;
             max-width: 1200px;
             padding: 20px;
             border-radius: 8px;
-        }
-        .column {
-            flex: 1;
-            text-align: center;
-            margin: 0 20px;
+            background-color: #fff; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
         }
         table {
             width: 100%;
             border-collapse: collapse;
+            text-align: center;
         }
         th, td {
             font-size: 35px;
@@ -1074,63 +1222,52 @@ func tableVisitsOrdersRevenue() {
 </head>
 <body>
     <div class="container">
-        <div class="header" style="font-size: 30px; font-weight: bold; color: Grey; margin-bottom: 20px; text-align: center;">Key Performance Metrics</div>
         <div class="wrapper">
-            <div class="column">
-                <table>
-            	<div class="row">
-                    <tr>
-					<th style="color: deepskyblue;">VISITS</th>
-                    </tr>
-                    <tr>
-                        <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
-                    </tr>
-                    <tr>
-					<th style="color: deepskyblue;">VISIT VALUE (RPV)</th>
-                    </tr>
-                    <tr>
-						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageVisitValueFormatted) + `</td>
-                    </tr>
-                </table>
-            </div>
-            <div class="column">
-                <table>
-                    <tr>
-					<th style="color: deepskyblue;">ORDERS</th>
-                    </tr>
-                    <tr>
-                        <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
-                    </tr>
-                    <tr>
-					<th style="color: deepskyblue;">ORDER VALUE (AOV)</th>
-                    </tr>
-                    <tr>
-						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
-                    </tr>
-                </table>
-            </div>
-            <div class="column">
-                <table>
-                    <tr>
-					<th style="color: deepskyblue;">REVENUE</th>
-                    </tr>
-                    <tr>
-						<td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
-                    </tr>
-                    <tr>
-					<th style="color: deepskyblue;">VISITS PER ORDER</th>
-                    </tr>
-                    <tr>
-                        <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
-                    </tr>
-                </table>
-            </div>
+            <table>
+                <tr>
+					<th style="color: teal;">KEY BUSINESS METRICS</th>
+                    <th style="color: deepskyblue;">REVENUE</th>
+                    <th style="color: deepskyblue;">VISITS</th>
+                    <th style="color: deepskyblue;">RPV</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalAverageVisitValueFormatted) + `</td>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <th style="color: deepskyblue;">ORDERS</th>
+                    <th style="color: deepskyblue;">AOV</th>
+                    <th style="color: deepskyblue;">VISITS PER ORDER</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
+                </tr>
+                <tr>                            
+					<th style="color: teal;">NON BRAND PERFORMANCE</th>
+                    <th style="color: deepskyblue;">IMPRESSIONS</th>
+                    <th style="color: deepskyblue;">CLICKS</th>
+                    <th style="color: deepskyblue;">AVG. POSITION</th>
+                    <th style="color: deepskyblue;">AVG. CTR</th>
+                </tr>
+				<tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s", scImpressionsTotalFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", scClicksTotalFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", scAvgPositionTotalFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", scCTRTotalFormatted) + `</td>
+                </tr>
+            </table>
         </div>
     </div>
 </body>
 </html>
 `
-
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_TotalsVisitsOrdersRevenue.html")
 }
@@ -1722,6 +1859,11 @@ func textTableDataDetail() {
 		visitValue := formatInteger.Sprintf("%.2f", seoVisitValue[i])
 		visitsPerOrderValue := formatInteger.Sprintf("%d", seoVisitsPerOrder[i])
 
+		scImpressions := formatInteger.Sprintf("%d", seoScImpressions[i]) //bloo
+		scClicks := formatInteger.Sprintf("%d", seoScClicks[i])
+		scAvgPosition := fmt.Sprintf("%.2f", seoScAvgPosition[i])
+		scCTR := fmt.Sprintf("%.2f", seoScCTR[i])
+
 		row := []string{
 			formattedDate,
 			orders,
@@ -1730,6 +1872,10 @@ func textTableDataDetail() {
 			visits,
 			currencySymbol + visitValue,
 			visitsPerOrderValue,
+			scImpressions,
+			scClicks,
+			scAvgPosition,
+			scCTR,
 		}
 		detailedKPITableData = append(detailedKPITableData, row)
 	}
@@ -1891,27 +2037,37 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         color: dimgray;
         margin-bottom: 20px;
     }
+    h3 {
+        color: gray;
+        margin-bottom: 13px;
+    }
 </style>
 </head>
 <body style="min-height: 10vh;">
     <table>
         <thead>
             <tr>
-                <th class="title" style="color: DeepSkyBlue;">Date</th>
+                <th class="title" style="color: DeepSkyBlue;">Month</th>
 				<th class="title" style="color: DeepSkyBlue;">Order volume</th>
                 <th class="title" style="color: DeepSkyBlue;">Revenue</th>
-                <th class="title" style="color: DeepSkyBlue;">Order Value</th>
-                <th class="title" style="color: DeepSkyBlue;">No. of Visits</th>
+                <th class="title" style="color: DeepSkyBlue;">Order value</th>
+                <th class="title" style="color: DeepSkyBlue;">No. of visits</th>
                 <th class="title" style="color: DeepSkyBlue;">Revenue per visit</th>
-                <th class="title" style="color: DeepSkyBlue;">Visits per Order</th>
+                <th class="title" style="color: DeepSkyBlue;">Visits per order</th>
+                <th class="title" style="color: DeepSkyBlue;">Impressions</th>
+                <th class="title" style="color: DeepSkyBlue;">Clicks</th>
+                <th class="title" style="color: DeepSkyBlue;">Avg. position</th>
+                <th class="title" style="color: DeepSkyBlue;">Avg. CTR</th>
             </tr>
         </thead>
         <tbody>`
 
 	// Title
 	htmlContent += fmt.Sprintf("<h2>\n\nSEO Business insights for the previous %d months</h2>", noOfMonths)
+	// Non brand message
+	htmlContent += fmt.Sprintf("<h3>\n\nNote: Impressions, Clicks, Avg. position & Avg. CTR are all for Non-Branded traffic</h3>")
 
-	// Insert tke KPI details
+	// Insert the KPIs
 	for _, row := range data {
 		htmlContent += "<tr>"
 		for _, cell := range row {
@@ -2446,7 +2602,7 @@ func generateDashboardContainer(company string) {
         }
 		nav a {
             text-decoration: none;
-            color: #00796b;
+            color: teal;
             font-weight: bold;
             font-size: 16px;
             transition: color 0.3s;
@@ -2507,7 +2663,7 @@ func generateDashboardContainer(company string) {
 	</section>
 	
 	<section class="container row no-border">
-		<iframe src="go_seo_TotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 340px;"></iframe>
+		<iframe src="go_seo_TotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 600px;"></iframe>
 	</section>
 	
 	<section id="revenue_visits" class="container row">
@@ -2817,7 +2973,7 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 				endDate = startDate.AddDate(0, 1, -1)
 			}
 
-			dateRanges = append(dateRanges, [2]time.Time{startDate, endDate}) //bloo
+			dateRanges = append(dateRanges, [2]time.Time{startDate, endDate})
 			fmt.Println("start end")
 			fmt.Println(startDate)
 			fmt.Println(endDate)
@@ -3264,7 +3420,12 @@ func startup() {
 }
 
 // CleanInsights is used to remove all slices where there are zero values in the revenue and / or visits data
-func cleanInsights(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderValue []int, seoVisitValue []float64, visitsPerOrder []int, startMonthDates, endMonthDates, startMonthNames []string) ([]int, []int, []int, []int, []float64, []int, []string, []string, []string) {
+func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition []float64, seoScCTR []float64, seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderValue []int, seoVisitValue []float64, visitsPerOrder []int, startMonthDates, endMonthDates, startMonthNames []string) ([]int, []int, []float64, []float64, []int, []int, []int, []int, []float64, []int, []string, []string, []string) {
+	var filteredSEOScImpressions []int
+	var filteredSEOScClicks []int
+	var filteredSEOScAvgPosition []float64
+	var filteredSEOScCTR []float64
+
 	var filteredSEORevenue []int
 	var filteredSEOVisits []int
 	var filteredSEOOrders []int
@@ -3277,6 +3438,11 @@ func cleanInsights(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderV
 
 	for i, value := range seoRevenue {
 		if value != 0 {
+			filteredSEOScImpressions = append(filteredSEOScImpressions, seoScImpressions[i])
+			filteredSEOScClicks = append(filteredSEOScClicks, seoScClicks[i])
+			filteredSEOScAvgPosition = append(filteredSEOScAvgPosition, seoScAvgPosition[i])
+			filteredSEOScCTR = append(filteredSEOScCTR, seoScCTR[i])
+
 			filteredSEORevenue = append(filteredSEORevenue, value)
 			filteredSEOVisits = append(filteredSEOVisits, seoVisits[i])
 			filteredSEOOrders = append(filteredSEOOrders, seoOrders[i])
@@ -3292,5 +3458,5 @@ func cleanInsights(seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderV
 	// Update the number of months based on the reduced slice size
 	noOfMonths = len(filteredStartMonthDates)
 
-	return filteredSEORevenue, filteredSEOVisits, filteredSEOOrders, filteredSEOOrderValue, filteredSEOVisitValue, filteredVisitsPerOrder, filteredStartMonthDates, filteredEndMonthDates, filteredStartMonthNames
+	return filteredSEOScImpressions, filteredSEOScClicks, filteredSEOScAvgPosition, filteredSEOScCTR, filteredSEORevenue, filteredSEOVisits, filteredSEOOrders, filteredSEOOrderValue, filteredSEOVisitValue, filteredVisitsPerOrder, filteredStartMonthDates, filteredEndMonthDates, filteredStartMonthNames
 }
