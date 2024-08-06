@@ -78,7 +78,7 @@ var startMonthNames []string
 // Slice used to store projected revenue values
 var forecastRevenue []int
 
-// Used for the branded/non branded keyword title in the wordcloud
+// Variable used for the branded/non-branded keyword title in the wordcloud
 var wordcloudTitle string
 
 // Slices used to store the startMonthDate and endMonthDate
@@ -125,15 +125,16 @@ var totalOrders int
 var totalAverageOrderValue int
 
 // Non-branded KPIs
-var scImpressionsTotal int
-var scClicksTotal int
-var scCTRTotal float64
-var scAvgPositionTotal float64
-
 var scImpressions int
 var scClicks int
 var scCTR float64
 var scAvgPosition float64
+
+// Non-branded KPIs - Total Values
+var scImpressionsTotal int
+var scClicksTotal int
+var scCTRTotal float64
+var scAvgPositionTotal float64
 
 // Bools used to flag if some data is missing
 var revenueDataIssue bool
@@ -166,12 +167,9 @@ var noKeywordsInCloud = 50
 // No. of keywords returned by the API
 var noKeywordsFound int
 
-// No of executions & generated session ID
+// No of broadsheet executions & generated session ID
 var sessionIDCounter int
 var sessionID string
-
-// The number of top keywords to include in the keywords detail table
-var noTopKeywords = 50
 
 // Used to set the default size for all chart types
 var chartDefaultWidth = "85vw"
@@ -187,7 +185,7 @@ var gaugeDefaultWidth = "95vw"
 var gaugeDefaultHeight = "90vh"
 
 // Define the increment and the maximum value
-var forecastIncrement = 500000
+var forecastIncrement = 100000
 var forecastMaxVisits = 10000000
 
 // Slices used to store the visit increment values
@@ -211,19 +209,13 @@ var fullHost string
 var dashboardPermaLink string
 var insightsCacheFolderTrimmed string
 
-type botifyResponse struct {
+type botifyResponseData struct {
 	Count   int `json:"count"`
 	Results []struct {
 		Owner struct {
-			Login          string      `json:"login"`
-			Email          string      `json:"email"`
-			IsOrganisation bool        `json:"is_organisation"`
-			URL            string      `json:"url"`
-			DateJoined     string      `json:"date_joined"`
-			Status         interface{} `json:"status"`
-			FirstName      string      `json:"first_name"`
-			LastName       string      `json:"last_name"`
-			CompanyName    interface{} `json:"company_name"`
+			FirstName   string      `json:"first_name"`
+			LastName    string      `json:"last_name"`
+			CompanyName interface{} `json:"company_name"`
 		} `json:"owner"`
 		Features struct {
 			SemanticMetadata struct {
@@ -237,16 +229,16 @@ type botifyResponse struct {
 	} `json:"results"`
 }
 
-// KeywordsData struct used to store Keywords dimensions and metrics
-type KeywordsData struct {
+// keywordsData struct used to store Keywords dimensions and metrics
+type keywordsData struct {
 	Results []struct {
 		Dimensions []interface{} `json:"dimensions"`
 		Metrics    []*float64    `json:"metrics,omitempty"`
 	} `json:"results"`
 }
 
-// AnalyticsID is used to identify which analytics tool is in use
-type AnalyticsID struct {
+// analyticsID is used to identify which analytics tool is in use
+type analyticsIDData struct {
 	ID                 string `json:"id"`
 	AnalyticsDateStart string `json:"date_start"`
 }
@@ -260,8 +252,8 @@ type Response struct {
 	Results []Result `json:"results"`
 }
 
-// SearchConsole is used to acquire the non-brand insights
-type SearchConsole struct {
+// searchConsole is used to acquire the non-brand insights
+type searchConsoleData struct {
 	Results []struct {
 		Dimensions []interface{} `json:"dimensions"`
 		Metrics    []float64     `json:"metrics"`
@@ -627,10 +619,8 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		// Check revenue, visits or orders values are missing
 		if metricsRevenue == 0 {
 			revenueDataIssue = true
-			println("revenue issue")
 		}
 		if metricsVisits == 0 {
-			println("visits issue")
 			visitsDataIssue = true
 		}
 		if metricsOrders == 0 {
@@ -827,11 +817,12 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 	}`, startDate, endDate, brandedFlag)
 
 	// Get the keyword data
-	responseData := executeBQL(noKeywordsInCloud, bqlCloudKeywords)
+	responseGetKeywords := executeBQL(noKeywordsInCloud, bqlCloudKeywords)
 
 	// Unmarshal JSON data into KeywordsData struct
-	var response KeywordsData
-	err := json.Unmarshal(responseData, &response)
+	var response keywordsData
+
+	err := json.Unmarshal(responseGetKeywords, &response)
 	if err != nil {
 		fmt.Printf(red+"Error. generateKeywordsCloudBQL. Cannot unmarshal the JSON: %v"+reset, err)
 	}
@@ -915,12 +906,12 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
  	   }
 	}`, conversionCollection, analyticsID, startDate, endDate, conversionCollection, conversionTransactionField, conversionCollection, analyticsID, conversionCollection, analyticsID)
 
-	// get the revenue and transaction
-	responseData := executeBQL(0, bqlRevTrans)
+	// Get the revenue and transaction data
+	revenueData := executeBQL(0, bqlRevTrans)
 
 	// Unmarshal the JSON data into the struct
 	var response Response
-	err := json.Unmarshal(responseData, &response)
+	err := json.Unmarshal(revenueData, &response)
 	if err != nil {
 		fmt.Printf(red+"Error. generateRevenueBQL. Cannot unmarshal the JSON: %v"+reset, err)
 	}
@@ -986,11 +977,11 @@ func generateSearchConsoleBQL(startDate string, endDate string) (int, int, float
 	}`, startDate, endDate)
 
 	// get the revenue and transaction
-	responseData := executeBQL(0, bqlSearchConsole)
+	responseRevenueData := executeBQL(0, bqlSearchConsole)
 
 	// Unmarshal the JSON data into the struct
-	var response SearchConsole
-	err := json.Unmarshal(responseData, &response)
+	var response searchConsoleData
+	err := json.Unmarshal(responseRevenueData, &response)
 	if err != nil {
 		fmt.Printf(red+"Error. generateSearchConsoleBQL. Cannot unmarshal the JSON: %v"+reset, err)
 	}
@@ -2160,7 +2151,7 @@ func textDetailedKeywordsInsights(brandedMode bool) {
 
 	// Branded keywords details
 	if brandedMode {
-		for i := 0; i < noTopKeywords; i++ {
+		for i := 0; i < noKeywordsInCloud; i++ {
 			kwCountClicksFormatted := formatInteger.Sprintf("%d", kwCountClicks[i])
 			htmlContent += fmt.Sprintf("<tr>\n"+
 				"    <td>%s</td>\n"+
@@ -2177,7 +2168,7 @@ func textDetailedKeywordsInsights(brandedMode bool) {
 
 	// Non branded keywords details
 	if !brandedMode {
-		for i := 0; i < noTopKeywords; i++ {
+		for i := 0; i < noKeywordsInCloud; i++ {
 			kwCountClicksFormattedNonBranded := formatInteger.Sprintf("%d", kwCountClicksNonBranded[i])
 			htmlContent += fmt.Sprintf("<tr>\n"+
 				"    <td>%s</td>\n"+
@@ -2251,8 +2242,8 @@ func lineRevenueForecast() {
 		}),
 		charts.WithDataZoomOpts(opts.DataZoom{
 			Type:  "slider",
-			Start: 5,
-			End:   20,
+			Start: 1,  // Starts at 100k
+			End:   10, // Ends at 1MM
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
 			Width:     chartDefaultWidth,
@@ -2905,14 +2896,14 @@ func getAnalyticsID() (string, string) {
 	}()
 
 	// Read the response body
-	responseData, errorCheck := io.ReadAll(resp.Body)
+	responseAnalyticsID, errorCheck := io.ReadAll(resp.Body)
 	if errorCheck != nil {
 		fmt.Println(red+"Error. getAnalyticsID. Cannot read response body:"+reset, errorCheck)
 	}
 
 	// Unmarshal the JSON data into the struct
-	var analyticsIDs []AnalyticsID
-	if err := json.Unmarshal(responseData, &analyticsIDs); err != nil {
+	var analyticsIDs []analyticsIDData
+	if err := json.Unmarshal(responseAnalyticsID, &analyticsIDs); err != nil {
 		fmt.Println(red+"Error. getAnalyticsID. The organisation and/or project name are probably incorrect. Cannot unmarshall the JSON:"+reset, err)
 		return "errorNoProjectFound", ""
 	}
@@ -3200,14 +3191,14 @@ func getCurrencyCompany() string {
 		}
 	}()
 
-	responseData, err := io.ReadAll(resp.Body)
+	responseGetCurrency, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		fmt.Println(red+"\nError. getCurrencyCompany. Cannot read response body:"+reset, err)
 	}
 
-	var responseObject botifyResponse
-	err = json.Unmarshal(responseData, &responseObject)
+	var responseObject botifyResponseData
+	err = json.Unmarshal(responseGetCurrency, &responseObject)
 
 	if err != nil {
 		fmt.Println(red+"\nError. getCurrencyCompany. Cannot unmarshall JSON:"+reset, err)
