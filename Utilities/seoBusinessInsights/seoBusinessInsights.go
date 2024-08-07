@@ -495,7 +495,7 @@ func getBusinessInsights(sessionID string) string {
 	invertStringSlice(endMonthDates)
 	invertStringSlice(startMonthNames)
 
-	// Get the revenue data
+	// Get the search console & revenue data
 	getRevenueAndSearchConsoleDataStatus := getRevenueAndSearchConsoleData(analyticsID, startMonthDates, endMonthDates, sessionID)
 
 	// Error checking
@@ -905,6 +905,8 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
     	    }
  	   }
 	}`, conversionCollection, analyticsID, startDate, endDate, conversionCollection, conversionTransactionField, conversionCollection, analyticsID, conversionCollection, analyticsID)
+
+	fmt.Println(bqlRevTrans)
 
 	// Get the revenue and transaction data
 	revenueData := executeBQL(0, bqlRevTrans)
