@@ -71,15 +71,14 @@ var kpiColourRevenueForecast = "Orange"
 var kpiColourOrganicVisitValue = "CornflowerBlue"
 var kpiColourNoOfOrders = "IndianRed"
 var kpiColourOrderValue = "MediumSlateBlue"
+var kpiColourNonOrganic = "MediumSlateBlue"
+var kpiColourOrganic = "Indigo"
 
 // Slice used to store the month names. These are used in the chart X axis
 var startMonthNames []string
 
 // Slice used to store projected revenue values
 var forecastRevenue []int
-
-// Variable used for the branded/non-branded keyword title in the wordcloud
-var wordcloudTitle string
 
 // Slices used to store the startMonthDate and endMonthDate
 var startMonthDates = make([]string, 0)
@@ -119,10 +118,38 @@ var cmgrOrderValue float64
 var cmgrOrderValueValue float64
 
 // Variables used to store the total values (revenue and non-branded insights)
-var totalVisits int
-var totalRevenue int
-var totalOrders int
-var totalAverageOrderValue int
+var metricsVisitsOrganic int
+var metricsRevenueOrganic int
+var metricsOrdersOrganic int
+var totalAverageOrderValueOrganic int
+
+// Slices used to store non-organic channel Revenue & visits values
+var metricsRevenueNonOrganic int
+var metricsOrdersNonOrganic int
+var metricsVisitsNonOrganic int
+
+// Variables used to compare organic and non-organic performance.
+var metricsRevenueNonOrganicPC float64
+var metricsOrdersNonOrganicPC float64
+var metricsVisitsNonOrganicPC float64
+
+// Variables used to compare organic and non-organic performance.
+var metricsRevenueOrganicPC float64
+var metricsOrdersOrganicPC float64
+var metricsVisitsOrganicPC float64
+
+// Slices used to store the organic percentage contrubution data used in the bar chart
+var organicPerformanceCategory []string
+var organicPerformanceValues []int
+
+// Slices used to store the non-organic percentage contrubution data used in the bar chart
+var nonOrganicPerformanceCategory []string
+var nonOrganicPerformanceValues []int
+
+// Variables used to store the total values for non-organic
+var totalAverageVisitValueNonOrganic float64 //bloo
+var totalAverageOrderValueNonOrganic float64
+var totalAverageVisitsPerOrderNonOrganic float64
 
 // Non-branded KPIs
 var scImpressions int
@@ -154,6 +181,10 @@ var maxVisitsPerOrder int
 
 // No. of months processed
 var noOfMonths int
+
+// Start and end date of the period
+var firstStartDatePeriod string
+var lastEndDatePeriod string
 
 // Average visits per order
 var totalAverageVisitsPerOrder int
@@ -361,6 +392,9 @@ func businessInsightsDashboard(sessionID string) {
 	// Visits, orders & revenue totals
 	tableVisitsOrdersRevenue()
 
+	// Non-branded totals
+	tableNonBrandedPerformance()
+
 	// Badges for CMGR KPIs
 	badgeCMGR()
 
@@ -382,8 +416,11 @@ func businessInsightsDashboard(sessionID string) {
 	// Order value bar chart
 	barOrderValue()
 
-	// Revenue and visits river chart
+	// Revenue and visits river chart - Organic
 	riverRevenueVisits()
+
+	// Revenue and visits river chart - All channels
+	//riverRevenueVisitsAllChannels()
 
 	// Wordclouds
 	// Branded
@@ -410,11 +447,20 @@ func businessInsightsDashboard(sessionID string) {
 	// Forecast narrative
 	textForecastNarrative()
 
+	// Non-organic comparison
+	barOrganic()
+
+	// Non-organic comparison
+	barNonOrganic()
+
+	// Details for non-organic performance
+	tableDetailsNonOrganic()
+
 	// Footer notes
 	footerNotes()
 
 	// Generate the container to present the previously generated components
-	generateDashboardContainer(company)
+	generateDashboardContainerHTML(company)
 
 	fmt.Println()
 	fmt.Println(lineSeparator)
@@ -477,8 +523,16 @@ func getBusinessInsights(sessionID string) string {
 	// Get the date ranges
 	dateRanges := calculateDateRanges(analyticsDateStart)
 
+	var firstStartDate, lastEndDate time.Time
+
+	// Initialize the first start date and last end date
+	firstStartDate = dateRanges.MonthlyRanges[0][0]
+	lastEndDate = dateRanges.MonthlyRanges[0][1]
+
 	// Populate the slice with string versions of the dates for use in the BQL
+	// This is where we convert the date to YYYMMDD format
 	for _, dateRange := range dateRanges.MonthlyRanges {
+
 		startMonthDate := dateRange[0].Format("20060102")
 		endMonthDate := dateRange[1].Format("20060102")
 		startMonthDates = append(startMonthDates, startMonthDate)
@@ -488,7 +542,20 @@ func getBusinessInsights(sessionID string) string {
 		startDate, _ := time.Parse("20060102", startMonthDate)
 		startMthName := startDate.Format("January 2006")
 		startMonthNames = append(startMonthNames, startMthName)
+
+		// Get the first and end date. Used when calculating non-organic revenue for the whole period
+		if dateRange[0].Before(firstStartDate) {
+			firstStartDate = dateRange[0]
+		}
+		if dateRange[1].After(lastEndDate) {
+			lastEndDate = dateRange[1]
+		}
+
 	}
+
+	// Convert the first and last dates to YYYYMMDD format. Used in the BQL when calculating non-organic revenue for the whole period
+	firstStartDatePeriod = firstStartDate.Format("20060102")
+	lastEndDatePeriod = lastEndDate.Format("20060102")
 
 	// Invert the date slices in order to display the oldest date first in the charts
 	invertStringSlice(startMonthDates)
@@ -553,7 +620,7 @@ func resetMetrics() {
 	seoVisits = nil
 	seoOrders = nil
 	seoOrderValue = nil
-	totalAverageOrderValue = 0
+	totalAverageOrderValueOrganic = 0
 	seoVisitValue = nil
 	seoVisitsPerOrder = nil
 	kwKeywords = nil
@@ -568,11 +635,15 @@ func resetMetrics() {
 	seoScClicks = nil
 	seoScAvgPosition = nil
 	seoScCTR = nil
+	organicPerformanceCategory = nil
+	organicPerformanceValues = nil
+	nonOrganicPerformanceCategory = nil
+	nonOrganicPerformanceValues = nil
 
 	// Reset integers and floats
-	totalVisits = 0
-	totalRevenue = 0
-	totalOrders = 0
+	metricsVisitsOrganic = 0
+	metricsRevenueOrganic = 0
+	metricsOrdersOrganic = 0
 	cmgrRevenue = 0.00
 	cmgrVisits = 0.00
 	cmgrVisitValue = 0.00
@@ -587,6 +658,7 @@ func resetMetrics() {
 // Get the revenue, orders and visits data
 func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string, endMonthDates []string, sessionID string) string {
 
+	// For organic traffic only
 	var metricsOrders = 0
 	var metricsRevenue = 0
 	var metricsVisits = 0
@@ -601,7 +673,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	for i := range startMonthDates {
 
 		getRevenueAndSearchConsoleDataStatus := ""
-		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus = generateRevenueBQL(analyticsID, startMonthDates[i], endMonthDates[i])
+		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus = generateRevenueBQLOrganic(analyticsID, startMonthDates[i], endMonthDates[i])
 
 		getSearchDataStatus := ""
 		scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus = generateSearchConsoleBQL(startMonthDates[i], endMonthDates[i])
@@ -643,7 +715,6 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
 
 		// Calculate the visits per order (for the month)
-		// Check division by zero
 		visitsPerOrderDisplay := 0
 		if metricsOrders != 0 {
 			seoVisitsPerOrder = append(seoVisitsPerOrder, metricsVisits/metricsOrders)
@@ -653,9 +724,9 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		}
 
 		// Calculate the grand total for revenue visits & orders
-		totalRevenue += metricsRevenue
-		totalVisits += metricsVisits
-		totalOrders += metricsOrders
+		metricsRevenueOrganic += metricsRevenue
+		metricsVisitsOrganic += metricsVisits
+		metricsOrdersOrganic += metricsOrders
 		// Calculate the total for the non-branded insights
 		scImpressionsTotal += scImpressions
 		scClicksTotal += scClicks
@@ -679,6 +750,9 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		fmt.Println("Non-brand CTR:", scCTR)
 		fmt.Println("Non-brand average position:", scAvgPosition)
 	}
+
+	// Get the revenue for the non-organic traffic for the period
+	metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic = generateRevenueBQLNonOrganic(analyticsID, firstStartDatePeriod, lastEndDatePeriod)
 
 	// Calculate the average visits per order
 	totalVisitsPerOrder := 0
@@ -723,12 +797,12 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	for _, mthAverageOrderValue = range seoOrderValue {
 		totalOrderValue += mthAverageOrderValue
 	}
-	// Calculate the average of averages. Ensure there is no division by zero
 
+	// Calculate the average of averages. Ensure there is no division by zero
 	// Order value
-	totalAverageOrderValue = 0
+	totalAverageOrderValueOrganic = 0
 	if len(seoOrderValue) > 0 {
-		totalAverageOrderValue = totalOrderValue / len(seoOrderValue)
+		totalAverageOrderValueOrganic = totalOrderValue / len(seoOrderValue)
 	}
 
 	// Non-branded CTR
@@ -745,17 +819,40 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	}
 	scAvgPositionTotal = sum / float64(len(seoScAvgPosition))
 
+	// Calculate the contrubution percentages. The percentages represent the organic contribution
+	// Revenue
+	total := metricsRevenueOrganic + metricsRevenueNonOrganic
+	metricsRevenueOrganicPC = (float64(metricsRevenueOrganic) / float64(total)) * 100
+
+	// Orders
+	total = metricsOrdersOrganic + metricsOrdersNonOrganic
+	metricsOrdersOrganicPC = (float64(metricsOrdersOrganic) / float64(total)) * 100
+
+	// Visits
+	total = metricsVisitsOrganic + metricsVisitsNonOrganic
+	metricsVisitsOrganicPC = (float64(metricsVisitsOrganic) / float64(total)) * 100
+
+	// Populate the category (X-Axis) slice used for the organic bar chart //bloo
+	organicPerformanceCategory = append(organicPerformanceCategory, "Revenue")
+	organicPerformanceCategory = append(organicPerformanceCategory, "Orders")
+	organicPerformanceCategory = append(organicPerformanceCategory, "Visits")
+	// Populate the values (Y-axis) slice used for the organic bar chart
+	organicPerformanceValues = append(organicPerformanceValues, int(metricsRevenueOrganicPC))
+	organicPerformanceValues = append(organicPerformanceValues, int(metricsOrdersOrganicPC))
+	organicPerformanceValues = append(organicPerformanceValues, int(metricsVisitsOrganicPC))
+
 	fmt.Println("\n" + yellow + sessionID + reset + " Totals" + reset)
-	fmt.Println("Total visits:", totalVisits)
-	fmt.Println("Total revenue:", totalRevenue)
-	fmt.Println("Total orders:", totalOrders)
-	fmt.Println("Total average order value:", totalAverageOrderValue)
+	fmt.Println("Total visits:", metricsVisitsOrganic)
+	fmt.Println("Total revenue:", metricsRevenueOrganic)
+	fmt.Println("Total orders:", metricsOrdersOrganic)
+	fmt.Println("Total average order value:", totalAverageOrderValueOrganic)
 	fmt.Println("Total average visits per order:", totalAverageVisitsPerOrder)
 	fmt.Println("Total average visit value:", totalAverageVisitValue)
 	fmt.Println("Total non-brand impressions:", scImpressionsTotal)
 	fmt.Println("Total non-brand clicks:", scClicksTotal)
 	fmt.Println("Total (average) non-brand CTR:", scCTRTotal)
 	fmt.Println("Total (average) non-brand average position:", scAvgPositionTotal)
+
 	return "success"
 }
 
@@ -783,38 +880,44 @@ func getKeywordsCloudData(startMonthDates string, endMonthDates string) string {
 func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag string) int {
 
 	// Get the keyword data. Define the BQL
-	bqlCloudKeywords := fmt.Sprintf(`{
-		"collections": [
-						"search_console_by_property"
-		],
-		"periods": [
-			[
-						%s,
-						%s
-			]
-		],
-		"query": {
-			"dimensions": [
-				"keyword"
-			],
-			"metrics": [
-					"search_console_by_property.period_0.count_clicks",
-					"search_console_by_property.period_0.avg_position",
-					"search_console_by_property.period_0.ctr"
-			],
-			"sort": [{"index": 0, "type": "metrics", "order": "desc"}],
-	
-			"filters": {
-				"and": [
-					{
-						"field": "keyword_meta.branded",
-						"predicate": "eq",
-						"value": %s
-					}
-				]
-			}
-		}
-	}`, startDate, endDate, brandedFlag)
+	bqlCloudKeywords := fmt.Sprintf(`
+{
+    "collections": [
+        "search_console_by_property"
+    ],
+    "periods": [
+        [
+            %s,
+            %s
+        ]
+    ],
+    "query": {
+        "dimensions": [
+            "keyword"
+        ],
+        "metrics": [
+            "search_console_by_property.period_0.count_clicks",
+            "search_console_by_property.period_0.avg_position",
+            "search_console_by_property.period_0.ctr"
+        ],
+        "sort": [
+            {
+                "index": 0,
+                "type": "metrics",
+                "order": "desc"
+            }
+        ],
+        "filters": {
+            "and": [
+                {
+                    "field": "keyword_meta.branded",
+                    "predicate": "eq",
+                    "value": %s
+                }
+            ]
+        }
+    }
+}`, startDate, endDate, brandedFlag)
 
 	// Get the keyword data
 	responseGetKeywords := executeBQL(noKeywordsInCloud, bqlCloudKeywords)
@@ -856,13 +959,11 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 }
 
 // Execute the BQL for the specified date range
-func generateRevenueBQL(analyticsID string, startDate string, endDate string) (int, int, int, int, float64, string) {
+func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate string) (int, int, int, int, float64, string) {
 
-	conversionCollection := ""
-	conversionTransactionField := ""
 	// GA4
-	conversionCollection = "conversion.dip"
-	conversionTransactionField = "transactions"
+	conversionCollection := "conversion.dip"
+	conversionTransactionField := "transactions"
 	// Support for Adobe
 	if analyticsID == "visits.adobe" {
 		conversionCollection = "conversion"
@@ -871,23 +972,23 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 
 	// Get the revenue, no. Orders and visits
 	bqlRevTrans := fmt.Sprintf(`
-	{
+{
     "collections": [
-                    "%s",
-                    "%s"
+        "%s",
+        "%s"
     ],
     "periods": [
         [
-                    "%s",
-                    "%s"
+            "%s",
+            "%s"
         ]
     ],
     "query": {
         "dimensions": [],
         "metrics": [
-                    "%s.period_0.%s",
-                    "%s.period_0.revenue",    
-                    "%s.period_0.nb"
+            "%s.period_0.%s",
+            "%s.period_0.revenue",
+            "%s.period_0.nb"
         ],
         "filters": {
             "and": [
@@ -900,13 +1001,21 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
                     "field": "%s.period_0.medium",
                     "predicate": "eq",
                     "value": "organic"
-           	     }
-      	      ]
-    	    }
- 	   }
-	}`, conversionCollection, analyticsID, startDate, endDate, conversionCollection, conversionTransactionField, conversionCollection, analyticsID, conversionCollection, analyticsID)
-
-	fmt.Println(bqlRevTrans)
+                }
+            ]
+        }
+    }
+}`,
+		conversionCollection,
+		analyticsID,
+		startDate,
+		endDate,
+		conversionCollection,
+		conversionTransactionField,
+		conversionCollection,
+		analyticsID,
+		conversionCollection,
+		analyticsID)
 
 	// Get the revenue and transaction data
 	revenueData := executeBQL(0, bqlRevTrans)
@@ -915,7 +1024,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	var response Response
 	err := json.Unmarshal(revenueData, &response)
 	if err != nil {
-		fmt.Printf(red+"Error. generateRevenueBQL. Cannot unmarshal the JSON: %v"+reset, err)
+		fmt.Printf(red+"Error. generateRevenueBQLOrganic. Cannot unmarshal the JSON: %v"+reset, err)
 	}
 
 	var metricsOrders = 0
@@ -928,10 +1037,7 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	responseCount := len(response.Results)
 
 	if responseCount == 0 {
-		fmt.Println(red+"Error. generateRevenueBQL. Engagement analytics with visits, revenue & transactions (orders) has not been configured for the specified project ", organization+"/"+project+reset)
-		fmt.Println(startDate)
-		fmt.Println(endDate)
-
+		fmt.Println(red+"Error. generateRevenueBQLOrganic. Engagement analytics with visits, revenue & transactions (orders) has not been configured for the specified project ", organization+"/"+project+reset)
 		getRevenueAndSearchConsoleDataStatus := "errorNoEAFound"
 		return 0, 0, 0, 0, 0.0, getRevenueAndSearchConsoleDataStatus
 	} else {
@@ -953,30 +1059,135 @@ func generateRevenueBQL(analyticsID string, startDate string, endDate string) (i
 	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus
 }
 
+// Execute the BQL for the specified date range
+func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod string, lastEndDatePeriod string) (int, int, int) {
+
+	// GA4
+	conversionCollection := "conversion.dip"
+	// Support for Adobe
+	if analyticsID == "visits.adobe" {
+		conversionCollection = "conversion"
+	}
+
+	// Get the revenue, no. Orders and visits
+	bqlRevTransAllChannels := fmt.Sprintf(`
+{
+    "collections": [
+        "%s",
+        "%s"
+    ],
+    "periods": [
+        [
+            "%s",
+            "%s"
+        ]
+    ],
+    "query": {
+        "dimensions": [
+            "conversion.period_0.medium"
+        ],
+        "metrics": [
+            "%s.period_0.revenue",
+            "%s.period_0.orders",
+            "%s.period_0.nb"
+        ],
+        "filters": {
+            "not": 
+                {
+                    "field": "%s.period_0.medium",
+                    "predicate": "eq",
+                    "value": "organic"
+                }
+        }
+    }
+}`,
+		conversionCollection,
+		analyticsID,
+		firstStartDatePeriod,
+		lastEndDatePeriod,
+		conversionCollection,
+		conversionCollection,
+		analyticsID,
+		conversionCollection)
+
+	// Get the revenue and visits data for all channels
+	revenueData := executeBQL(0, bqlRevTransAllChannels)
+
+	// Unmarshal the JSON data into the struct
+	var response Response
+	err := json.Unmarshal(revenueData, &response)
+	if err != nil {
+		fmt.Printf(red+"Error. generateRevenueBQLOrganic. Cannot unmarshal the JSON: %v"+reset, err)
+	}
+
+	// Get the number of elements in the slice (aka the number of mediums)
+	mediumCount := len(response.Results)
+
+	for i := 0; i < mediumCount; i++ {
+		metricsRevenueNonOrganic += int(response.Results[i].Metrics[0])
+		metricsOrdersNonOrganic += int(response.Results[i].Metrics[1])
+		metricsVisitsNonOrganic += int(response.Results[i].Metrics[2])
+	}
+
+	// Calculate the percentages. The percentages represent the non-organic contribution
+	// Revenue
+	total := metricsRevenueOrganic + metricsRevenueNonOrganic
+	metricsRevenueNonOrganicPC = (float64(metricsRevenueNonOrganic) / float64(total)) * 100
+
+	// Orders
+	total = metricsOrdersOrganic + metricsOrdersNonOrganic
+	metricsOrdersNonOrganicPC = (float64(metricsOrdersNonOrganic) / float64(total)) * 100
+
+	// Visits
+	total = metricsVisitsOrganic + metricsVisitsNonOrganic
+	metricsVisitsNonOrganicPC = (float64(metricsVisitsNonOrganic) / float64(total)) * 100
+
+	// Populate the category (X-Axis) slice used for the non-organic bar chart
+	nonOrganicPerformanceCategory = append(nonOrganicPerformanceCategory, "Revenue")
+	nonOrganicPerformanceCategory = append(nonOrganicPerformanceCategory, "Orders")
+	nonOrganicPerformanceCategory = append(nonOrganicPerformanceCategory, "Visits")
+	// Populate the values (Y-axis) slice used for the non-organic bar chart
+	nonOrganicPerformanceValues = append(nonOrganicPerformanceValues, int(metricsRevenueNonOrganicPC))
+	nonOrganicPerformanceValues = append(nonOrganicPerformanceValues, int(metricsOrdersNonOrganicPC))
+	nonOrganicPerformanceValues = append(nonOrganicPerformanceValues, int(metricsVisitsNonOrganicPC))
+
+	// RPV
+	totalAverageVisitValueNonOrganic = float64(metricsRevenueNonOrganic) / float64(metricsVisitsNonOrganic)
+	// AOV
+	totalAverageOrderValueNonOrganic = float64(metricsRevenueNonOrganic) / float64(metricsOrdersNonOrganic)
+	// Visits per order
+	totalAverageVisitsPerOrderNonOrganic = float64(metricsVisitsNonOrganic) / float64(metricsOrdersNonOrganic)
+
+	// Visits per order
+	return metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic
+}
+
 func generateSearchConsoleBQL(startDate string, endDate string) (int, int, float64, float64, string) {
 
 	// Get non brand insights
 	bqlSearchConsole := fmt.Sprintf(`
-	{
+{
     "collections": [
-                    "search_console_by_property"
+        "search_console_by_property"
     ],
     "periods": [
         [
-                    "%s",
-                    "%s"
+            "%s",
+            "%s"
         ]
     ],
     "query": {
         "dimensions": [],
         "metrics": [
-                    "search_console_by_property.period_0.not_branded.count_impressions",
-                    "search_console_by_property.period_0.not_branded.count_clicks",
-                    "search_console_by_property.period_0.not_branded.ctr",
-                    "search_console_by_property.period_0.not_branded.avg_position"        
+            "search_console_by_property.period_0.not_branded.count_impressions",
+            "search_console_by_property.period_0.not_branded.count_clicks",
+            "search_console_by_property.period_0.not_branded.ctr",
+            "search_console_by_property.period_0.not_branded.avg_position"
         ]
- 	   }
-	}`, startDate, endDate)
+    }
+}`,
+		startDate,
+		endDate)
 
 	// get the revenue and transaction
 	responseRevenueData := executeBQL(0, bqlSearchConsole)
@@ -1035,11 +1246,10 @@ func headerNotes() {
         }
         .content {
             color: gray;
-            font-size: 15px;
-            padding: 5px;
+            font-size: 18px;
         }
 		.header-font {
-            font-size: 15px;  
+            font-size: 18px;  
         }
 		.right-justify {
             text-align: right;
@@ -1078,7 +1288,7 @@ func headerNotes() {
 </html>
 `
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_HeaderNotes.html")
+	saveHTML(htmlContent, "/go_seo_Header.html")
 }
 
 // If data issue have been detected generate the HTML to include in the header
@@ -1141,13 +1351,114 @@ func tableVisitsOrdersRevenue() {
 
 	formatInteger := message.NewPrinter(language.English)
 
-	totalVisitsFormatted := formatInteger.Sprintf("%d", totalVisits)
-	totalOrdersFormatted := formatInteger.Sprintf("%d", totalOrders)
-	totalRevenueFormatted := formatInteger.Sprintf("%d", totalRevenue)
+	totalVisitsFormatted := formatInteger.Sprintf("%d", metricsVisitsOrganic)
+	totalOrdersFormatted := formatInteger.Sprintf("%d", metricsOrdersOrganic)
+	totalRevenueFormatted := formatInteger.Sprintf("%d", metricsRevenueOrganic)
 
-	totalAverageOrderValueFormatted := formatInteger.Sprintf("%d", totalAverageOrderValue)
+	totalAverageOrderValueFormatted := formatInteger.Sprintf("%d", totalAverageOrderValueOrganic)
 	totalAverageVisitsPerOrderFormatted := formatInteger.Sprintf("%d", totalAverageVisitsPerOrder)
 	totalAverageVisitValueFormatted := fmt.Sprintf("%.2f", totalAverageVisitValue)
+
+	htmlContent := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            background-color: #f4f4f4; 
+        }
+        .container {
+            display: flex;
+            flex-direction: column; 
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .header {
+            font-size: 30px;
+            font-weight: bold;
+            color: Grey;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .wrapper {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            font-size: 35px;
+            padding: 10px;
+        }
+        th {
+            color: #555;
+            font-weight: 600;
+        }
+        td {
+            color: #00796b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="wrapper">
+            <table>
+                <tr>
+					<th style="color: teal; padding-right: 120px;">Organic</th>
+                    <th style="color: deepskyblue;">Revenue</th>
+                    <th style="color: deepskyblue;">Visits</th>
+                    <th style="color: deepskyblue;">RPV</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalAverageVisitValueFormatted) + `</td>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <th style="color: deepskyblue;">Orders</th>
+                    <th style="color: deepskyblue;">AOV</th>
+                    <th style="color: deepskyblue;">Visits Per Order</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+`
+	// Save the HTML to a file
+	saveHTML(htmlContent, "/go_seo_TotalsOrganic.html")
+}
+
+// Non-branded performance
+func tableNonBrandedPerformance() {
+
+	formatInteger := message.NewPrinter(language.English)
 
 	scImpressionsTotalFormatted := formatInteger.Sprintf("%d", scImpressionsTotal)
 	scClicksTotalFormatted := formatInteger.Sprintf("%d", scClicksTotal)
@@ -1206,7 +1517,6 @@ func tableVisitsOrdersRevenue() {
         th {
             color: #555;
             font-weight: 600;
-            text-transform: uppercase;
         }
         td {
             color: #00796b;
@@ -1217,36 +1527,12 @@ func tableVisitsOrdersRevenue() {
     <div class="container">
         <div class="wrapper">
             <table>
-                <tr>
-					<th style="color: teal;">KEY BUSINESS METRICS</th>
-                    <th style="color: deepskyblue;">REVENUE</th>
-                    <th style="color: deepskyblue;">VISITS</th>
-                    <th style="color: deepskyblue;">RPV</th>
-                </tr>
-                <tr>
-                    <td>` + fmt.Sprintf("%s", "") + `</td>
-                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
-                    <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
-                    <td>` + fmt.Sprintf("%s", totalAverageVisitValueFormatted) + `</td>
-                </tr>
-                <tr>
-                    <td>` + fmt.Sprintf("%s", "") + `</td>
-                    <th style="color: deepskyblue;">ORDERS</th>
-                    <th style="color: deepskyblue;">AOV</th>
-                    <th style="color: deepskyblue;">VISITS PER ORDER</th>
-                </tr>
-                <tr>
-                    <td>` + fmt.Sprintf("%s", "") + `</td>
-                    <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
-                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
-                    <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
-                </tr>
                 <tr>                            
-					<th style="color: teal;">NON BRAND PERFORMANCE</th>
-                    <th style="color: deepskyblue;">IMPRESSIONS</th>
-                    <th style="color: deepskyblue;">CLICKS</th>
-                    <th style="color: deepskyblue;">AVG. POSITION</th>
-                    <th style="color: deepskyblue;">AVG. CTR</th>
+					<th style="color: teal;">Non Brand Keyword Performance</th>
+                    <th style="color: deepskyblue;">Impressions</th>
+                    <th style="color: deepskyblue;">Clicks</th>
+                    <th style="color: deepskyblue;">Avg. Position</th>
+                    <th style="color: deepskyblue;">Avg. CTR</th>
                 </tr>
 				<tr>
                     <td>` + fmt.Sprintf("%s", "") + `</td>
@@ -1262,11 +1548,10 @@ func tableVisitsOrdersRevenue() {
 </html>
 `
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_TotalsVisitsOrdersRevenue.html")
+	saveHTML(htmlContent, "/go_seo_TotalsNonBrandedPerformance.html")
 }
 
 // Bar chart. Revenue and Visits
-
 func barRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
@@ -1397,7 +1682,7 @@ func barVisitValue() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitValueBar.html"
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_VisitsValueBar.html"
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -1438,7 +1723,7 @@ func barVisitValue() {
 			),
 		)
 
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitValueBar.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsValueBar.html")
 
 	_ = bar.Render(f)
 }
@@ -1622,18 +1907,15 @@ func genLiquidItems(data []float32) []opts.LiquidData {
 func wordcloudBrandedNonBranded(brandedMode bool) {
 
 	var clickURL string
-	var subtitle string
 	var pageTitle string
 
 	if brandedMode {
-		wordcloudTitle = fmt.Sprintf("Top %d branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
 		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordcloudBranded.html"
 		pageTitle = "Branded wordcloud"
 	}
 	if !brandedMode {
-		wordcloudTitle = fmt.Sprintf("Top %d non branded keywords generating clicks", noKeywordsInCloud)
 		// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 		insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
 		clickURL = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_WordcloudNonBranded.html"
@@ -1650,9 +1932,7 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 		}),
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 		charts.WithTitleOpts(opts.Title{
-			Title:    wordcloudTitle,
-			Link:     clickURL,
-			Subtitle: subtitle,
+			Link: clickURL,
 		}))
 
 	// Generate the branded wordcloud
@@ -1661,8 +1941,8 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
-						SizeRange: []float32{10, 90},
-						Shape:     "roundRect",
+						SizeRange: []float32{10, 150},
+						Shape:     "circle",
 					}),
 			)
 	}
@@ -1673,8 +1953,8 @@ func wordcloudBrandedNonBranded(brandedMode bool) {
 			SetSeriesOptions(
 				charts.WithWorldCloudChartOpts(
 					opts.WordCloudChart{
-						SizeRange: []float32{10, 90},
-						Shape:     "basic",
+						SizeRange: []float32{10, 150},
+						Shape:     "circle",
 					}),
 			)
 	}
@@ -1723,7 +2003,7 @@ func generateWCDataNonBranded(kwKeywordsNonBranded []string, kwCountClicksNonBra
 	return items
 }
 
-// River chart
+// River chart for revenue and visits
 func riverRevenueVisits() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
@@ -1753,11 +2033,7 @@ func riverRevenueVisits() {
 			Height:    chartDefaultHeight,
 			PageTitle: "Revenue & visits",
 		}),
-		//charts.WithDataZoomOpts(opts.DataZoom{
-		//	Type:  "slider",
-		//	Start: 1,
-		//	End:   100,
-		//}),
+
 		charts.WithColorsOpts(opts.Colors{kpiColourVisits, kpiColourRevenue}),
 		// disable show the legend
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
@@ -1852,7 +2128,7 @@ func textTableDataDetail() {
 		visitValue := formatInteger.Sprintf("%.2f", seoVisitValue[i])
 		visitsPerOrderValue := formatInteger.Sprintf("%d", seoVisitsPerOrder[i])
 
-		scImpressions := formatInteger.Sprintf("%d", seoScImpressions[i]) //bloo
+		scImpressions := formatInteger.Sprintf("%d", seoScImpressions[i])
 		scClicks := formatInteger.Sprintf("%d", seoScClicks[i])
 		scAvgPosition := fmt.Sprintf("%.2f", seoScAvgPosition[i])
 		scCTR := fmt.Sprintf("%.2f", seoScCTR[i])
@@ -1877,7 +2153,7 @@ func textTableDataDetail() {
 	htmlContent := generateHTMLDetailedKPIInsightsTable(detailedKPITableData)
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_DataInsightDetailKPIs.html")
+	saveHTML(htmlContent, "/go_seo_OrganicBusinessInsights.html")
 }
 
 // Winning keywords, branded & non-branded
@@ -1892,10 +2168,12 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
 	var htmlSecondPlaceKW = ""
 	var htmlCTR float64
 	var htmlAvgPosition float64
+	var brandedHeader = ""
 
 	formatInteger := message.NewPrinter(language.English)
 
 	if brandedMode {
+		brandedHeader = "Branded Keywords"
 		htmlKeyword = kwKeywords[0]
 		htmlClicks = formatInteger.Sprintf("%d", kwCountClicks[0])
 		htmlClickGap = int(((float64(kwCountClicks[0]) - float64(kwCountClicks[1])) / float64(kwCountClicks[1])) * 100)
@@ -1910,6 +2188,7 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
 	}
 
 	if !brandedMode {
+		brandedHeader = "Non-Branded Keywords"
 		htmlKeyword = kwKeywordsNonBranded[0]
 		htmlClicks = formatInteger.Sprintf("%d", kwCountClicksNonBranded[0])
 		htmlClickGap = int(((float64(kwCountClicksNonBranded[0]) - float64(kwCountClicksNonBranded[1])) / float64(kwCountClicksNonBranded[1])) * 100)
@@ -1944,11 +2223,9 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
             align-items: center;
             height: 100vh;
         }
-        .content {
-  			border: 3px solid lightSkyBlue;  
-            border-radius: 25px; 
+        .content { 
             padding: 15px;
-            text-align: center;  
+            text-align: left;  
         }
         .blueText {
             color: DeepSkyBlue;
@@ -1961,6 +2238,13 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
             color: LightSlateGray;
             line-height: 1.6; 
         }
+        .header-font {
+            font-family: 'Arial', sans-serif;
+            font-size: 25px;
+            color: Teal;
+            font-weight: bold;
+            line-height: 1.6; 
+        }
         b {
             color: #333;
         }
@@ -1968,6 +2252,9 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
 </head>
 <body>
     <div class="content">
+        <span class="header-font">
+        %s
+ </span>
     <span class="keyword-font">
         The winning keyword during <b>%s</b> was <span class="blueText">%s</span>. 
         This keyword generated <b>%s</b> clicks which is <b>%d%%</b> more clicks than the second placed keyword  <b>%s</b>. The click-through rate for the winning keyword was <b>%.2f%%</b> 
@@ -1976,7 +2263,7 @@ func textWinningKeywords(brandedMode bool, sessionID string) {
 	</div>
 </body>
 </html>
-`, htmlLastMonthName, htmlKeyword, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
+`, brandedHeader, htmlLastMonthName, htmlKeyword, htmlClicks, htmlClickGap, htmlSecondPlaceKW, htmlCTR, htmlAvgPosition)
 
 	if brandedMode {
 		htmlFileName = "/go_seo_WinningKeywordBranded.html"
@@ -2056,9 +2343,9 @@ func generateHTMLDetailedKPIInsightsTable(data [][]string) string {
         <tbody>`
 
 	// Title
-	htmlContent += fmt.Sprintf("<h2>\n\nSEO Business insights for the previous %d months</h2>", noOfMonths)
+	htmlContent += fmt.Sprintf("<h2>\n\nOrganic Business insights for the previous %d months</h2>", noOfMonths)
 	// Non brand message
-	htmlContent += fmt.Sprintf("<h3>\n\nNote: Impressions, Clicks, Avg. position & Avg. CTR are all for Non-Branded traffic</h3>")
+	htmlContent += fmt.Sprintf("<h3>\n\nNote: Impressions, Clicks, Avg. position & Avg. CTR are all Non-Branded traffic</h3>")
 
 	// Insert the KPIs
 	for _, row := range data {
@@ -2108,13 +2395,13 @@ func textDetailedKeywordsInsights(brandedMode bool) {
             border-radius: 16px; 
         }
         th, td {
-            padding: 20px;
+            padding: 8px;
         }
         th {
             background-color: White;
             color: deepskyblue;
-            position: sticky; /* Sticky position */
-            top: 0; /* Stick to the top */
+            position: sticky; 
+            top: 0; 
             z-index: 10; /* Ensure header stays on top */
         }
         td {
@@ -2221,7 +2508,7 @@ func forecastDataCompute() {
 	forecastRevenue = make([]int, numElements)
 	for i := 0; i < numElements; i++ {
 		if totalAverageVisitsPerOrder != 0 {
-			forecastRevenue[i] = forecastVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValue
+			forecastRevenue[i] = forecastVisitIncrements[i] / totalAverageVisitsPerOrder * totalAverageOrderValueOrganic
 		} else {
 			forecastRevenue[i] = 0
 		}
@@ -2233,7 +2520,7 @@ func lineRevenueForecast() {
 
 	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
 	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_Forecast.html"
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_RevenueForecast.html"
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
@@ -2279,7 +2566,7 @@ func lineRevenueForecast() {
 			}),
 	)
 
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_Forecast.html")
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_RevenueForecast.html")
 
 	_ = line.Render(f)
 }
@@ -2305,7 +2592,7 @@ func textForecastNarrative() {
 		noOfOrderVisits = 0
 	}
 
-	var projectedRevenue = noOfOrderVisits * totalAverageOrderValue
+	var projectedRevenue = noOfOrderVisits * totalAverageOrderValueOrganic
 
 	// Format the integers with commas
 	formatInteger := message.NewPrinter(language.English)
@@ -2374,15 +2661,203 @@ func textForecastNarrative() {
 </div>
 </body>
 </html>
-`, totalAverageVisitsPerOrder, formattedForecastIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValue,
+`, totalAverageVisitsPerOrder, formattedForecastIncrement, noOfOrderVisits, currencySymbol, totalAverageOrderValueOrganic,
 		formattedForecastIncrement, currencySymbol, formattedProjectedRevenue,
 	)
 
 	// Define the HTML filename
-	htmlFileName = "/go_seo_ForecastNarrative.html"
+	htmlFileName = "/go_seo_RevenueForecastNarrative.html"
 
 	// Save the HTML to a file
 	saveHTML(htmlContent, htmlFileName)
+}
+
+// Non-organic comparison
+func barNonOrganic() {
+
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_NonOrganicComparison.html"
+
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    "Non-Organic contribution % (click for full screen)",
+		Subtitle: "What is the contrubution of non-organic revenue, orders and visits compared to organic?",
+		Link:     clickURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Non-organic contribution",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourNonOrganic}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	barDataOrders := generateBarItems(nonOrganicPerformanceValues)
+
+	bar.SetXAxis(nonOrganicPerformanceCategory).
+		AddSeries("Non-organic contribution (%)", barDataOrders).
+		SetSeriesOptions(
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{},
+			),
+		)
+
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_NonOrganicComparison.html")
+
+	_ = bar.Render(f)
+}
+
+// Organic comparison
+func barOrganic() {
+
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrganicComparison.html"
+
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    "Organic contribution % (click for full screen)",
+		Subtitle: "What is the contrubution of organic revenue, orders and visits compared to non-organic?",
+		Link:     clickURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Non-organic contribution",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourOrganic}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	barDataOrders := generateBarItems(organicPerformanceValues)
+
+	bar.SetXAxis(organicPerformanceCategory).
+		AddSeries("Non-organic contribution (%)", barDataOrders).
+		SetSeriesOptions(
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{},
+			),
+		)
+
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrganicComparison.html")
+
+	_ = bar.Render(f)
+}
+
+// Total Visits, Orders & Revenue
+func tableDetailsNonOrganic() {
+
+	formatInteger := message.NewPrinter(language.English)
+
+	totalVisitsFormatted := formatInteger.Sprintf("%d", metricsVisitsNonOrganic)
+	totalOrdersFormatted := formatInteger.Sprintf("%d", metricsOrdersNonOrganic)
+	totalRevenueFormatted := formatInteger.Sprintf("%d", metricsRevenueNonOrganic)
+
+	//bloo
+	totalAverageOrderValueFormatted := formatInteger.Sprintf("%.2f", totalAverageOrderValueNonOrganic)
+	totalAverageVisitsPerOrderFormatted := formatInteger.Sprintf("%.2f", totalAverageVisitsPerOrderNonOrganic)
+	totalAverageVisitValueFormatted := fmt.Sprintf("%.2f", totalAverageVisitValueNonOrganic)
+
+	htmlContent := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            background-color: #f4f4f4; 
+        }
+        .container {
+            display: flex;
+            flex-direction: column; 
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .header {
+            font-size: 30px;
+            font-weight: bold;
+            color: Grey;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .wrapper {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            font-size: 35px;
+            padding: 10px;
+        }
+        th {
+            color: #555;
+            font-weight: 600;
+        }
+        td {
+            color: #00796b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="wrapper">
+            <table>
+                <tr>
+					<th style="color: teal;">Non-Organic</th>
+                    <th style="color: deepskyblue;">Revenue</th>
+                    <th style="color: deepskyblue;">Visits</th>
+                    <th style="color: deepskyblue;">RPV</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalRevenueFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalVisitsFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalAverageVisitValueFormatted) + `</td>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <th style="color: deepskyblue;">Orders</th>
+                    <th style="color: deepskyblue;">AOV</th>
+                    <th style="color: deepskyblue;">Visits Per Order</th>
+                </tr>
+                <tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s", totalOrdersFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s%s", currencySymbol, totalAverageOrderValueFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", totalAverageVisitsPerOrderFormatted) + `</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+`
+	// Save the HTML to a file
+	saveHTML(htmlContent, "/go_seo_TotalsNonOrganic.html")
 }
 
 // Footer
@@ -2422,7 +2897,7 @@ func footerNotes() {
 	//htmlContent += "<br>"
 
 	// Save the HTML to a file
-	saveHTML(htmlContent, "/go_seo_FooterNotes.html")
+	saveHTML(htmlContent, "/go_seo_Footer.html")
 }
 
 // formatDate converts date from YYYYMMDD to Month-Year format
@@ -2463,7 +2938,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 // Define the HTML for the container. Used to consolidate the generated charts into a single page.
 // Container start
-func generateDashboardContainer(company string) {
+func generateDashboardContainerHTML(company string) {
 
 	// Using these variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
@@ -2513,8 +2988,14 @@ func generateDashboardContainer(company string) {
             align-items: center;
             gap: 20px;
             margin: 5px auto;
-
             width: %s;
+        }
+       .containerColumn {
+            display: flex;
+            flex-direction: column; /* Ensure vertical stacking */
+            gap: 20px; /* Space between iframes */
+            margin: 5px auto;
+            width: %s; /* Allow full width */
         }
         .row {
             flex-wrap: nowrap;
@@ -2537,7 +3018,7 @@ func generateDashboardContainer(company string) {
             height: 600px;
         }
         .short-iframe {
-            height: 450px;
+            height: 380px;
         }
         .back-button {
             padding: 12px 24px;
@@ -2557,7 +3038,6 @@ func generateDashboardContainer(company string) {
             background-color: DeepSkyBlue;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
-        /* Scroll Indicator Styles */
         #progressContainer {
             position: fixed;
             width: %s;
@@ -2603,6 +3083,12 @@ func generateDashboardContainer(company string) {
         nav a:hover {
             color: #00aaff;
         }
+      .horizontal-container {
+            display: flex;
+            gap: 20px;
+            margin: 5px auto;
+            width: %s;
+        }
     </style>
 </head>
 <body>
@@ -2620,6 +3106,10 @@ func generateDashboardContainer(company string) {
 <!-- Navigation Links -->
 <nav>
     <ul>	
+        <li><a href="#organic_business_metrics">Organic business metrics</a></li>
+        <li><a href="#organic_contribution">Organic contribution</a></li>
+        <li><a href="#non_organic_business_metrics">Non-Organic business metrics</a></li>
+        <li><a href="#non_organic_contribution">Non-Organic contribution</a></li>
         <li><a href="#revenue_visits">Revenue & visits</a></li>
         <li><a href="#visits_per_order">Visits per order</a></li>
         <li><a href="#orders">Order volume</a></li>
@@ -2648,27 +3138,61 @@ func generateDashboardContainer(company string) {
         const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
         document.getElementById('progressBar').style.width = scrolled + "%s";
     }
+
+        function resizeIframeHeader() {
+            const iframe = document.getElementById('dynamicIframe');
+            iframe.onload = function() {
+                // Access the iframe's document and adjust its height
+                iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
+            };
+        }
+
+      function resizeIframeInsights() {
+    		const iframe = document.getElementById('dynamicIframeInsights');
+    		iframe.onload = function() {
+        	const contentHeight = iframe.contentWindow.document.body.scrollHeight;
+        	// Add 50 pixels to the scroll height to give the frame a buffer
+        	const newHeight = contentHeight + 50; // Adding 50 pixels to the scroll height
+        	iframe.style.height = newHeight + 'px';
+    		};
+}
 </script>
 
 <div class="content">
 	<section class="container row no-border">
-		<iframe src="go_seo_HeaderNotes.html" title="Header" style="height: 180px;"></iframe>
+		<iframe id="dynamicIframe" src="go_seo_Header.html" title="Header"></iframe>
 	</section>
-	
-	<section class="container row no-border">
-		<iframe src="go_seo_TotalsVisitsOrdersRevenue.html" title="Your SEO KPI totals" style="height: 600px;"></iframe>
+
+	<script>
+        resizeIframeHeader();
+	</script>
+
+	<section id="organic_business_metrics" class="container row no-border">
+    	<iframe src="go_seo_TotalsOrganic.html" title="Organic business metrics" class="short-iframe"></iframe>
 	</section>
-	
+
+	<section id="organic_contribution" class="container row">
+    	<iframe src="go_seo_OrganicComparison.html" title="Organic comparison" class="medium-iframe"></iframe>
+	</section>
+
+	<section id="non_organic_business_metrics" class="container row no-border">
+    	<iframe src="go_seo_TotalsNonOrganic.html" title="Non-organic business metrics" class="short-iframe"></iframe>
+	</section>
+
+	<section id="non_organic_contribution" class="container row">
+    	<iframe src="go_seo_NonOrganicComparison.html" title="Non-organic comparison" class="medium-iframe"></iframe>
+	</section>
+
 	<section id="revenue_visits" class="container row">
-		<iframe src="go_seo_RevenueVisitsBar.html" title="Revenue & visits" class="tall-iframe"></iframe>
+		<iframe src="go_seo_RevenueVisitsBar.html" title="Revenue & visits" class="medium-iframe"></iframe>
 	</section>
 
 	<section class="container row">
-		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits river" class="medium-iframe"></iframe>
+		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits river - Organic" class="medium-iframe"></iframe>
 	</section>
 
 	<section id="visits_per_order" class="container row">
-		<iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="tall-iframe"></iframe>
+		<iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="medium-iframe"></iframe>
 	</section>
 
 	<section class="container row">
@@ -2690,7 +3214,7 @@ func generateDashboardContainer(company string) {
 	</section>
 
 	<section id="visit_value" class="container row">
-		<iframe src="go_seo_VisitValueBar.html" title="Organic visit value" class="tall-iframe"></iframe>
+		<iframe src="go_seo_VisitsValueBar.html" title="Organic visit value" class="medium-iframe"></iframe>
 	</section>
 	
 	<section class="container row">
@@ -2699,34 +3223,41 @@ func generateDashboardContainer(company string) {
 	</section>
 	
 	<section id="detailed_insights" class="container row no-border">
-		<iframe src="go_seo_DataInsightDetailKPIs.html" title="KPIs" class="tall-iframe" style="height: 690px;"></iframe>
+		<iframe id="dynamicIframeInsights" src="go_seo_OrganicBusinessInsights.html" title="Organic business insights"></iframe>
 	</section>
+
+	<script>
+        resizeIframeInsights();
+	</script>
 
 	<section id="revenue_forecast" class="container row">
-		<iframe src="go_seo_Forecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
-		<iframe src="go_seo_ForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
-	</section>
-
-	<section id="wordcloud_branded" class="container row no-border">
- 	   <iframe src="go_seo_WordcloudBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
- 	   <iframe src="go_seo_KeywordBrandedInsights.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
+		<iframe src="go_seo_RevenueForecast.html" title="Revenue forecast" class="tall-iframe"></iframe>
+		<iframe src="go_seo_RevenueForecastNarrative.html" title="Visits per order" class="tall-iframe"></iframe>
 	</section>
 
 	<section class="container row no-border">
- 	   <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword"s class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
+    	<iframe src="go_seo_TotalsNonBrandedPerformance.html" title="Organic business metrics" class="short-iframe"></iframe>
 	</section>
 
-	<section id="wordcloud_non_branded" class="container row no-border">
-  	  <iframe src="go_seo_WordcloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
-  	  <iframe src="go_seo_KeywordNonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; font-size: 10px;"></iframe>
-	</section>
+    <section id="wordcloud_non_branded" class="horizontal-container no-border">
+        <div class="containerColumn no-border">
+            <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non-branded keyword" class="short-iframe" style="height: 150px; font-size: 10px;"></iframe>
+            <iframe src="go_seo_WordcloudNonBranded.html" title="Non Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+        </div>
+        <iframe src="go_seo_KeywordNonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; width: %s; font-size: 10px;"></iframe>
+    </section>
 
-	<section class="container row no-border">
- 	   <iframe src="go_seo_WinningKeywordNonBranded.html" title="Winning non-branded keywords" class="tall-iframe" style="height: 150px; font-size: 10px;"></iframe>
-	</section>
+
+    <section id="wordcloud_branded" class="horizontal-container no-border">
+        <div class="containerColumn no-border">
+            <iframe src="go_seo_WinningKeywordBranded.html" title="Winning branded keyword" class="short-iframe" style="height: 150px; font-size: 10px;"></iframe>
+            <iframe src="go_seo_WordcloudNonBranded.html" title="Branded Keyword wordcloud" class="tall-iframe" style="height: 650px; font-size: 10px;"></iframe>
+        </div>
+        <iframe src="go_seo_KeywordBrandedInsights.html" title="Branded Keyword Insights" class="tall-iframe" style="height: 700px; width: %s; font-size: 10px;"></iframe>
+    </section>
 
 	<section id="footer" class="container row no-border">
-    	<iframe src="go_seo_FooterNotes.html" title="Footer" class="tall-iframe"></iframe>
+    	<iframe src="go_seo_Footer.html" title="Footer" class="short-iframe"></iframe>
 	</section>
 </div>
 
@@ -2735,7 +3266,7 @@ func generateDashboardContainer(company string) {
 
 </body>
 </html>
-`, width90, width90, width100, width100, width100, width0, company, protocol, fullHost, percent)
+`, width90, width90, width100, width100, width100, width100, width0, width100, company, protocol, fullHost, percent, width100, width100)
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights.html")
 }
@@ -2960,8 +3491,6 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 			if i == 0 {
 				firstDayOfCurrentMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
 				endDate = firstDayOfCurrentMonth.AddDate(0, 0, -1)
-				fmt.Println("firstDayOfCurrentMonth")
-				fmt.Println(firstDayOfCurrentMonth)
 			} else {
 				endDate = startDate.AddDate(0, 1, -1)
 			}
