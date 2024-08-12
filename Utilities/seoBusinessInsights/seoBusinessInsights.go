@@ -3070,14 +3070,14 @@ func generateDashboardContainerHTML(company string) {
             border-bottom: 2px solid #ddd;
         }
         nav li {
-            padding: 0 20px;
+            padding: 0 10px;
             text-align: center;
         }
-		nav a {
+        nav a {
             text-decoration: none;
             color: teal;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 14px;
             transition: color 0.3s;
         }
         nav a:hover {
