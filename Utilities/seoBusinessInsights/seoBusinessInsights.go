@@ -98,6 +98,12 @@ var seoScClicks []int
 var seoScCTR []float64
 var seoScAvgPosition []float64
 
+// Slices used to store the branded insights
+var seoScImpressionsBranded []int
+var seoScClicksBranded []int
+var seoScCTRBranded []float64
+var seoScAvgPositionBranded []float64
+
 // Slices used to store branded Keywords KPIs
 var kwKeywords []string
 var kwCountClicks []int
@@ -157,11 +163,23 @@ var scClicks int
 var scCTR float64
 var scAvgPosition float64
 
+// Branded KPIs
+var scImpressionsBranded int
+var scClicksBranded int
+var scCTRBranded float64
+var scAvgPositionBranded float64
+
 // Non-branded KPIs - Total Values
 var scImpressionsTotal int
 var scClicksTotal int
 var scCTRTotal float64
 var scAvgPositionTotal float64
+
+// Branded KPIs - Total Values
+var scImpressionsTotalBranded int
+var scClicksTotalBranded int
+var scCTRTotalBranded float64
+var scAvgPositionTotalBranded float64
 
 // Bools used to flag if some data is missing
 var revenueDataIssue bool
@@ -394,6 +412,9 @@ func businessInsightsDashboard(sessionID string) {
 
 	// Non-branded totals
 	tableNonBrandedPerformance()
+
+	// Branded totals
+	tableBrandedPerformance()
 
 	// Badges for CMGR KPIs
 	badgeCMGR()
@@ -635,6 +656,10 @@ func resetMetrics() {
 	seoScClicks = nil
 	seoScAvgPosition = nil
 	seoScCTR = nil
+	seoScImpressionsBranded = nil
+	seoScClicksBranded = nil
+	seoScAvgPositionBranded = nil
+	seoScCTRBranded = nil
 	organicPerformanceCategory = nil
 	organicPerformanceValues = nil
 	nonOrganicPerformanceCategory = nil
@@ -653,6 +678,10 @@ func resetMetrics() {
 	scClicksTotal = 0
 	scAvgPositionTotal = 0.00
 	scCTRTotal = 0.00
+	scImpressionsTotalBranded = 0
+	scClicksTotalBranded = 0
+	scAvgPositionTotalBranded = 0.00
+	scCTRTotalBranded = 0.00
 }
 
 // Get the revenue, orders and visits data
@@ -676,7 +705,10 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus = generateRevenueBQLOrganic(analyticsID, startMonthDates[i], endMonthDates[i])
 
 		getSearchDataStatus := ""
-		scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus = generateSearchConsoleBQL(startMonthDates[i], endMonthDates[i])
+		scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus = generateSearchConsoleBQLNonBranded(startMonthDates[i], endMonthDates[i])
+
+		// Branded
+		scImpressionsBranded, scClicksBranded, scCTRBranded, scAvgPositionBranded, getSearchDataStatus = generateSearchConsoleBQLBranded(startMonthDates[i], endMonthDates[i])
 
 		// Error checking
 		// No engagement analytics found
@@ -710,6 +742,12 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		seoScCTR = append(seoScCTR, scCTR)
 		seoScAvgPosition = append(seoScAvgPosition, scAvgPosition)
 
+		// Branded metrics
+		seoScImpressionsBranded = append(seoScImpressionsBranded, scImpressionsBranded)
+		seoScClicksBranded = append(seoScClicksBranded, scClicksBranded)
+		seoScCTRBranded = append(seoScCTRBranded, scCTRBranded)
+		seoScAvgPositionBranded = append(seoScAvgPositionBranded, scAvgPositionBranded)
+
 		// Round avgVisitValue to 2 decimal places
 		avgVisitValueRounded := math.Round(avgVisitValue*100) / 100
 		seoVisitValue = append(seoVisitValue, avgVisitValueRounded)
@@ -727,9 +765,14 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		metricsRevenueOrganic += metricsRevenue
 		metricsVisitsOrganic += metricsVisits
 		metricsOrdersOrganic += metricsOrders
+
 		// Calculate the total for the non-branded insights
 		scImpressionsTotal += scImpressions
 		scClicksTotal += scClicks
+
+		// Calculate the total for the branded insights
+		scImpressionsTotalBranded += scImpressionsBranded
+		scClicksTotalBranded += scClicksBranded
 
 		formatInteger := message.NewPrinter(language.English)
 
@@ -812,12 +855,26 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	}
 	scCTRTotal = sum / float64(len(seoScCTR))
 
+	// Branded CTR
+	var sumBranded float64
+	for _, value := range seoScCTRBranded {
+		sumBranded += value
+	}
+	scCTRTotalBranded = sumBranded / float64(len(seoScCTRBranded))
+
 	// Non-branded avg. position
 	sum = 0
 	for _, value := range seoScAvgPosition {
 		sum += value
 	}
 	scAvgPositionTotal = sum / float64(len(seoScAvgPosition))
+
+	// Branded avg. position
+	sum = 0
+	for _, value := range seoScAvgPositionBranded {
+		sum += value
+	}
+	scAvgPositionTotalBranded = sum / float64(len(seoScAvgPositionBranded))
 
 	// Calculate the contrubution percentages. The percentages represent the organic contribution
 	// Revenue
@@ -852,6 +909,11 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	fmt.Println("Total non-brand clicks:", scClicksTotal)
 	fmt.Println("Total (average) non-brand CTR:", scCTRTotal)
 	fmt.Println("Total (average) non-brand average position:", scAvgPositionTotal)
+
+	fmt.Println("Total branded impressions:", scImpressionsTotalBranded)
+	fmt.Println("Total branded clicks:", scClicksTotalBranded)
+	fmt.Println("Total (average) branded CTR:", scCTRTotalBranded)
+	fmt.Println("Total (average) branded average position:", scAvgPositionTotalBranded)
 
 	return "success"
 }
@@ -1162,7 +1224,7 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 	return metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic
 }
 
-func generateSearchConsoleBQL(startDate string, endDate string) (int, int, float64, float64, string) {
+func generateSearchConsoleBQLNonBranded(startDate string, endDate string) (int, int, float64, float64, string) {
 
 	// Get non brand insights
 	bqlSearchConsole := fmt.Sprintf(`
@@ -1218,6 +1280,64 @@ func generateSearchConsoleBQL(startDate string, endDate string) (int, int, float
 	getSearchDataStatus := "success"
 
 	return scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus
+}
+
+func generateSearchConsoleBQLBranded(startDate string, endDate string) (int, int, float64, float64, string) {
+
+	// Get non brand insights
+	bqlSearchConsole := fmt.Sprintf(`
+{
+    "collections": [
+        "search_console_by_property"
+    ],
+    "periods": [
+        [
+            "%s",
+            "%s"
+        ]
+    ],
+    "query": {
+        "dimensions": [],
+        "metrics": [
+            "search_console_by_property.period_0.branded.count_impressions",
+            "search_console_by_property.period_0.branded.count_clicks",
+            "search_console_by_property.period_0.branded.ctr",
+            "search_console_by_property.period_0.branded.avg_position"
+        ]
+    }
+}`,
+		startDate,
+		endDate)
+
+	// get the revenue and transaction
+	responseBrandedData := executeBQL(0, bqlSearchConsole)
+
+	// Unmarshal the JSON data into the struct
+	var response searchConsoleData
+	err := json.Unmarshal(responseBrandedData, &response)
+	if err != nil {
+		fmt.Printf(red+"Error. generateSearchConsoleBQLBranded. Cannot unmarshal the JSON: %v"+reset, err)
+	}
+
+	// Check if any data has been returned from the API. Count the number of elements in the response.Results slice
+	responseCount := len(response.Results)
+
+	if responseCount == 0 {
+		fmt.Println(red+"Error. generateSearchConsoleBQLBranded. Analytics integration has not been configured for the specified project ", organization+"/"+project+reset)
+		fmt.Println(startDate)
+		fmt.Println(endDate)
+
+		getSearchDataStatus := "errorNoGAFound"
+		return 0, 0, 0, 0, getSearchDataStatus
+	} else {
+		scImpressionsBranded = int(response.Results[0].Metrics[0])
+		scClicksBranded = int(response.Results[0].Metrics[1])
+		scCTRBranded = response.Results[0].Metrics[2]
+		scAvgPositionBranded = response.Results[0].Metrics[3]
+	}
+	getSearchDataStatus := "success"
+
+	return scImpressionsBranded, scClicksBranded, scCTRBranded, scAvgPositionBranded, getSearchDataStatus
 }
 
 // Header for the broadsheet
@@ -1549,6 +1669,102 @@ func tableNonBrandedPerformance() {
 `
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_TotalsNonBrandedPerformance.html")
+}
+
+// Branded performance
+func tableBrandedPerformance() {
+
+	formatInteger := message.NewPrinter(language.English)
+
+	scImpressionsTotalFormatted := formatInteger.Sprintf("%d", scImpressionsTotalBranded)
+	scClicksTotalFormatted := formatInteger.Sprintf("%d", scClicksTotalBranded)
+	scAvgPositionTotalFormatted := fmt.Sprintf("%.2f", scAvgPositionTotalBranded)
+	scCTRTotalFormatted := fmt.Sprintf("%.2f%%", scCTRTotalBranded)
+
+	htmlContent := `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            background-color: #f4f4f4; 
+        }
+        .container {
+            display: flex;
+            flex-direction: column; 
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .header {
+            font-size: 30px;
+            font-weight: bold;
+            color: Grey;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .wrapper {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            font-size: 35px;
+            padding: 10px;
+        }
+        th {
+            color: #555;
+            font-weight: 600;
+        }
+        td {
+            color: #00796b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="wrapper">
+            <table>
+                <tr>                            
+					<th style="color: teal;">Branded Keyword Performance</th>
+                    <th style="color: deepskyblue;">Impressions</th>
+                    <th style="color: deepskyblue;">Clicks</th>
+                    <th style="color: deepskyblue;">Avg. Position</th>
+                    <th style="color: deepskyblue;">Avg. CTR</th>
+                </tr>
+				<tr>
+                    <td>` + fmt.Sprintf("%s", "") + `</td>
+                    <td>` + fmt.Sprintf("%s", scImpressionsTotalFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", scClicksTotalFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", scAvgPositionTotalFormatted) + `</td>
+                    <td>` + fmt.Sprintf("%s", scCTRTotalFormatted) + `</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+`
+	// Save the HTML to a file
+	saveHTML(htmlContent, "/go_seo_TotalsBrandedPerformance.html")
 }
 
 // Bar chart. Revenue and Visits
@@ -3247,6 +3463,9 @@ func generateDashboardContainerHTML(company string) {
         <iframe src="go_seo_KeywordNonBrandedInsights.html" title="Non Branded Keyword Insights" class="tall-iframe" style="height: 700px; width: %s; font-size: 10px;"></iframe>
     </section>
 
+	<section class="container row no-border">
+    	<iframe src="go_seo_TotalsBrandedPerformance.html" title="Branded performance" class="short-iframe"></iframe>
+	</section>
 
     <section id="wordcloud_branded" class="horizontal-container no-border">
         <div class="containerColumn no-border">
