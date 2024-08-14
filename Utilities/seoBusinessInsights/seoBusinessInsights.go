@@ -33,6 +33,7 @@ var version = "v0.3"
 // Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
 // Bug fix. Error when running the broadsheet on the last day of the month
 // New KPIs. Non-Branded Impressions, Clicks, Avg. position & Avg. CTR
+// New charts. Organic and non-organic contribution
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -153,7 +154,7 @@ var nonOrganicPerformanceCategory []string
 var nonOrganicPerformanceValues []int
 
 // Variables used to store the total values for non-organic
-var totalAverageVisitValueNonOrganic float64 //bloo
+var totalAverageVisitValueNonOrganic float64
 var totalAverageOrderValueNonOrganic float64
 var totalAverageVisitsPerOrderNonOrganic float64
 
@@ -682,6 +683,9 @@ func resetMetrics() {
 	scClicksTotalBranded = 0
 	scAvgPositionTotalBranded = 0.00
 	scCTRTotalBranded = 0.00
+	metricsRevenueNonOrganic = 0
+	metricsOrdersNonOrganic = 0
+	metricsVisitsNonOrganic = 0
 }
 
 // Get the revenue, orders and visits data
@@ -794,9 +798,6 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		fmt.Println("Non-brand average position:", scAvgPosition)
 	}
 
-	// Get the revenue for the non-organic traffic for the period
-	metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic = generateRevenueBQLNonOrganic(analyticsID, firstStartDatePeriod, lastEndDatePeriod)
-
 	// Calculate the average visits per order
 	totalVisitsPerOrder := 0
 	// Sum the total visits per order over the period
@@ -876,6 +877,9 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	}
 	scAvgPositionTotalBranded = sum / float64(len(seoScAvgPositionBranded))
 
+	// Get the non-organic contribution
+	metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic = generateRevenueBQLNonOrganic(analyticsID, firstStartDatePeriod, lastEndDatePeriod)
+
 	// Calculate the contrubution percentages. The percentages represent the organic contribution
 	// Revenue
 	total := metricsRevenueOrganic + metricsRevenueNonOrganic
@@ -889,7 +893,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	total = metricsVisitsOrganic + metricsVisitsNonOrganic
 	metricsVisitsOrganicPC = (float64(metricsVisitsOrganic) / float64(total)) * 100
 
-	// Populate the category (X-Axis) slice used for the organic bar chart //bloo
+	// Populate the category (X-Axis) slice used for the organic bar chart
 	organicPerformanceCategory = append(organicPerformanceCategory, "Revenue")
 	organicPerformanceCategory = append(organicPerformanceCategory, "Orders")
 	organicPerformanceCategory = append(organicPerformanceCategory, "Visits")
@@ -909,7 +913,6 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	fmt.Println("Total non-brand clicks:", scClicksTotal)
 	fmt.Println("Total (average) non-brand CTR:", scCTRTotal)
 	fmt.Println("Total (average) non-brand average position:", scAvgPositionTotal)
-
 	fmt.Println("Total branded impressions:", scImpressionsTotalBranded)
 	fmt.Println("Total branded clicks:", scClicksTotalBranded)
 	fmt.Println("Total (average) branded CTR:", scCTRTotalBranded)
@@ -1123,7 +1126,6 @@ func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate str
 
 // Execute the BQL for the specified date range
 func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod string, lastEndDatePeriod string) (int, int, int) {
-
 	// GA4
 	conversionCollection := "conversion.dip"
 	// Support for Adobe
@@ -1132,7 +1134,7 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 	}
 
 	// Get the revenue, no. Orders and visits
-	bqlRevTransAllChannels := fmt.Sprintf(`
+	bqlRevTransNonOrganic := fmt.Sprintf(`
 {
     "collections": [
         "%s",
@@ -1146,11 +1148,10 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
     ],
     "query": {
         "dimensions": [
-            "conversion.period_0.medium"
         ],
         "metrics": [
             "%s.period_0.revenue",
-            "%s.period_0.orders",
+            "%s.period_0.transactions",
             "%s.period_0.nb"
         ],
         "filters": {
@@ -1173,23 +1174,22 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 		conversionCollection)
 
 	// Get the revenue and visits data for all channels
-	revenueData := executeBQL(0, bqlRevTransAllChannels)
+	revenueData := executeBQL(0, bqlRevTransNonOrganic)
 
 	// Unmarshal the JSON data into the struct
 	var response Response
 	err := json.Unmarshal(revenueData, &response)
 	if err != nil {
-		fmt.Printf(red+"Error. generateRevenueBQLOrganic. Cannot unmarshal the JSON: %v"+reset, err)
+		fmt.Printf(red+"Error. generateRevenueBQLNonOrganic. Cannot unmarshal the JSON: %v"+reset, err)
 	}
 
-	// Get the number of elements in the slice (aka the number of mediums)
-	mediumCount := len(response.Results)
-
-	for i := 0; i < mediumCount; i++ {
-		metricsRevenueNonOrganic += int(response.Results[i].Metrics[0])
-		metricsOrdersNonOrganic += int(response.Results[i].Metrics[1])
-		metricsVisitsNonOrganic += int(response.Results[i].Metrics[2])
-	}
+	// Get the metrics from the JSON
+	// Revenue
+	metricsRevenueNonOrganic = int(response.Results[0].Metrics[0])
+	// Orders
+	metricsOrdersNonOrganic = int(response.Results[0].Metrics[1])
+	// Visits
+	metricsVisitsNonOrganic = int(response.Results[0].Metrics[2])
 
 	// Calculate the percentages. The percentages represent the non-organic contribution
 	// Revenue
@@ -1347,8 +1347,18 @@ func headerNotes() {
 	currentDate := currentTime.Format("02 January 2006")
 	currentTimeFormatted := currentTime.Format("15:04")
 
+	// Dates for start and end period in DDMMYY format.
+	parsedDate, _ := time.Parse("20060102", firstStartDatePeriod)
+	// Format the parsed date into DDMMYY format
+	DMYStart := parsedDate.Format("02/01/06")
+
+	// Dates for start and end period in DDMMYY format.
+	parsedDate, _ = time.Parse("20060102", lastEndDatePeriod)
+	// Format the parsed date into DDMMYY format
+	DMYEnd := parsedDate.Format("02/01/06")
+
 	htmlDataIssue := ""
-	// If any issues have been found in the data (i.e. mlissing data) generate the HTML for inclusion in the header
+	// If any issues have been found in the data (i.e. missing data) generate the HTML for inclusion in the header
 	if revenueDataIssue || visitsDataIssue || ordersDataIssue {
 		htmlDataIssue = generateDataIssueHTML(revenueDataIssue, visitsDataIssue, ordersDataIssue)
 	}
@@ -1393,8 +1403,10 @@ func headerNotes() {
         <span class="deepskyblue">Session:</span>
         <span class="darkgrey">` + fmt.Sprintf("%s", sessionID) + `</span>
     </span>
-	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months.</span>
-		<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span> (` + organization + `)
+	<span class="header-font">The following insights are based on the previous ` + fmt.Sprintf("%d", noOfMonths) + ` months, from ` + fmt.Sprintf("%s", DMYStart) + ` to ` + fmt.Sprintf("%s", DMYEnd) + `. </span>
+  	<br>
+  	<br>
+	<span class="header-font">Access the Botify project <a href="` + projectURL + `" target="_blank">here</a></span>.` + `
         <br>
         <br>
         <span class="header-font">Click the chart title to view the chart in a new window.</span>
@@ -2975,7 +2987,6 @@ func tableDetailsNonOrganic() {
 	totalOrdersFormatted := formatInteger.Sprintf("%d", metricsOrdersNonOrganic)
 	totalRevenueFormatted := formatInteger.Sprintf("%d", metricsRevenueNonOrganic)
 
-	//bloo
 	totalAverageOrderValueFormatted := formatInteger.Sprintf("%.2f", totalAverageOrderValueNonOrganic)
 	totalAverageVisitsPerOrderFormatted := formatInteger.Sprintf("%.2f", totalAverageVisitsPerOrderNonOrganic)
 	totalAverageVisitValueFormatted := fmt.Sprintf("%.2f", totalAverageVisitValueNonOrganic)
@@ -3606,7 +3617,7 @@ func computeCMGR(values []float64, calculatedKPIName string) float64 {
 	cmgr := math.Pow(finalValue/initialValue, 1/numberOfPeriods) - 1
 
 	println()
-	println(green + "CMGR Inputs" + reset)
+	println(yellow + sessionID + green + " CMGR Inputs" + reset)
 	println(yellow + calculatedKPIName + reset)
 	fmt.Printf("initialValue: %f\n", initialValue)
 	fmt.Printf("finalValue: %f\n", finalValue)
@@ -3673,11 +3684,6 @@ func getAnalyticsID() (string, string) {
 
 // Get the date ranges for the revenue and visits
 func calculateDateRanges(analyticsStartDate string) DateRanges {
-
-	// Is it the last day of the month?
-	date := time.Now()
-	isLastDayoftheMonth := isLastDayOfMonth(date)
-	println(isLastDayoftheMonth)
 
 	startTime, err := time.Parse("2006-01-02", analyticsStartDate)
 	if err != nil {
