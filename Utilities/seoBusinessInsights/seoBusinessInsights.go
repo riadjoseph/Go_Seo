@@ -18,6 +18,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,7 +34,8 @@ var version = "v0.3"
 // Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
 // Bug fix. Error when running the broadsheet on the last day of the month
 // New KPIs. Non-Branded Impressions, Clicks, Avg. position & Avg. CTR
-// New charts. Organic and non-organic contribution
+// New chart. Organic and non-organic contribution
+// New chart. Top non-organic revenue mediums
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -74,6 +76,7 @@ var kpiColourNoOfOrders = "IndianRed"
 var kpiColourOrderValue = "MediumSlateBlue"
 var kpiColourNonOrganic = "MediumSlateBlue"
 var kpiColourOrganic = "Indigo"
+var kpiColourNonOrganicRevenueMediums = "Teal"
 
 // Slice used to store the month names. These are used in the chart X axis
 var startMonthNames []string
@@ -117,6 +120,27 @@ var kwCountClicksNonBranded []int
 var kwCTRNonBranded []float64
 var kwAvgPositionNonBranded []float64
 
+// Slices used to store non-organic channel Revenue & visits values
+var metricsRevenueNonOrganic int
+var metricsOrdersNonOrganic int
+var metricsVisitsNonOrganic int
+
+// Slices used to store the organic percentage contrubution data used in the bar chart
+var organicPerformanceCategory []string
+var organicPerformanceValues []int
+
+// Slices used to store the non-organic revenue
+var nonOrganicRevenueMedium []string
+var nonOrganicRevenueAmount []int
+
+// Slices used to store the non-organic percentage contrubution data used in the bar chart
+var nonOrganicPerformanceCategory []string
+var nonOrganicPerformanceValues []int
+
+// Slices used to store the visit increment values
+var forecastVisitIncrements []int
+var forecastVisitIncrementsString []string
+
 // Variables used to store the CMGR values
 var cmgrRevenue float64
 var cmgrVisits float64
@@ -130,11 +154,6 @@ var metricsRevenueOrganic int
 var metricsOrdersOrganic int
 var totalAverageOrderValueOrganic int
 
-// Slices used to store non-organic channel Revenue & visits values
-var metricsRevenueNonOrganic int
-var metricsOrdersNonOrganic int
-var metricsVisitsNonOrganic int
-
 // Variables used to compare organic and non-organic performance.
 var metricsRevenueNonOrganicPC float64
 var metricsOrdersNonOrganicPC float64
@@ -144,14 +163,6 @@ var metricsVisitsNonOrganicPC float64
 var metricsRevenueOrganicPC float64
 var metricsOrdersOrganicPC float64
 var metricsVisitsOrganicPC float64
-
-// Slices used to store the organic percentage contrubution data used in the bar chart
-var organicPerformanceCategory []string
-var organicPerformanceValues []int
-
-// Slices used to store the non-organic percentage contrubution data used in the bar chart
-var nonOrganicPerformanceCategory []string
-var nonOrganicPerformanceValues []int
 
 // Variables used to store the total values for non-organic
 var totalAverageVisitValueNonOrganic float64
@@ -221,7 +232,7 @@ var noKeywordsFound int
 var sessionIDCounter int
 var sessionID string
 
-// Used to set the default size for all chart types
+// Variables used to set the default size for all chart types in HTML
 var chartDefaultWidth = "85vw"
 var chartDefaultHeight = "90vh"
 
@@ -237,10 +248,6 @@ var gaugeDefaultHeight = "90vh"
 // Define the increment and the maximum value
 var forecastIncrement = 100000
 var forecastMaxVisits = 10000000
-
-// Slices used to store the visit increment values
-var forecastVisitIncrements []int
-var forecastVisitIncrementsString []string
 
 // Project currency
 var currencyCode string
@@ -308,6 +315,12 @@ type searchConsoleData struct {
 		Dimensions []interface{} `json:"dimensions"`
 		Metrics    []float64     `json:"metrics"`
 	} `json:"results"`
+}
+
+// Pair represents a pair of medium and amount. Used to identify the top non-organic revenue mediums
+type Pair struct {
+	Medium string
+	Amount int
 }
 
 var company string
@@ -474,6 +487,9 @@ func businessInsightsDashboard(sessionID string) {
 
 	// Non-organic comparison
 	barNonOrganic()
+
+	// Non-organic revenue mediums
+	barNonOrganicRevenueMediums()
 
 	// Details for non-organic performance
 	tableDetailsNonOrganic()
@@ -665,6 +681,8 @@ func resetMetrics() {
 	organicPerformanceValues = nil
 	nonOrganicPerformanceCategory = nil
 	nonOrganicPerformanceValues = nil
+	nonOrganicRevenueAmount = nil
+	nonOrganicRevenueMedium = nil
 
 	// Reset integers and floats
 	metricsVisitsOrganic = 0
@@ -879,6 +897,9 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 
 	// Get the non-organic contribution
 	metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic = generateRevenueBQLNonOrganic(analyticsID, firstStartDatePeriod, lastEndDatePeriod)
+
+	// Get the non-organic revenue by medium
+	generateNonOrganicRevenueMediums(firstStartDatePeriod, lastEndDatePeriod)
 
 	// Calculate the contrubution percentages. The percentages represent the organic contribution
 	// Revenue
@@ -1222,6 +1243,112 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 
 	// Visits per order
 	return metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic
+}
+
+// Execute the BQL for the specified date range
+func generateNonOrganicRevenueMediums(startDate string, endDate string) {
+
+	// GA4
+	conversionCollection := "conversion.dip"
+	//conversionTransactionField := "transactions"
+
+	// Get the revenue, no. Orders and visits
+	bqlNonOrganicRevMediums := fmt.Sprintf(`
+{
+    "collections": [
+        "%s"
+    ],
+    "periods": [
+        [
+            "%s",
+            "%s"
+        ]
+    ],
+    "query": {
+        "dimensions": [
+                "%s.period_0.medium"
+
+        ],
+        "metrics": [
+            "%s.period_0.revenue"
+        ],
+        "filters": {
+            "not": 
+                {
+                    "field": "%s.period_0.medium",
+                    "predicate": "eq",
+                    "value": "organic"
+                }
+        }
+    }
+}`,
+		conversionCollection,
+		firstStartDatePeriod,
+		lastEndDatePeriod,
+		conversionCollection,
+		conversionCollection,
+		conversionCollection)
+
+	// Get the non-organic revenue
+	revenueData := executeBQL(0, bqlNonOrganicRevMediums)
+
+	fmt.Println(bqlNonOrganicRevMediums)
+	// Unmarshal the JSON data into the struct
+	var response Response
+	err := json.Unmarshal(revenueData, &response)
+	if err != nil {
+		fmt.Printf(red+"Error. generateNonOrganicRevenueMediums. Cannot unmarshal the JSON: %v"+reset, err)
+	}
+
+	// Get the number of elements in the slice (aka the number of mediums)
+	mediumCount := len(response.Results)
+
+	// Load the medium and the revenue amount into their respective slices
+	// Ignore any zero value revenue
+	for i := 0; i < mediumCount; i++ {
+		if int(response.Results[i].Metrics[0]) > 0 {
+			// Convert the medium from interface{} to string
+			mediumNameString := response.Results[i].Dimensions[0].(string)
+			nonOrganicRevenueMedium = append(nonOrganicRevenueMedium, mediumNameString)
+			nonOrganicRevenueAmount = append(nonOrganicRevenueAmount, int(response.Results[i].Metrics[0]))
+		}
+	}
+
+	// Get the top 5 non-organic revneue mediums and amounts from the generated slices
+	pairs := make([]Pair, len(nonOrganicRevenueMedium))
+	for i := 0; i < len(nonOrganicRevenueMedium); i++ {
+		pairs[i] = Pair{
+			Medium: nonOrganicRevenueMedium[i],
+			Amount: nonOrganicRevenueAmount[i],
+		}
+	}
+
+	// Sort pairs by Amount in descending order
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].Amount > pairs[j].Amount
+	})
+
+	// Extract the top 5 largest values and their corresponding mediums
+	topN := 5
+	if len(pairs) < topN {
+		topN = len(pairs)
+	}
+
+	topAmounts := make([]int, topN)
+	topMediums := make([]string, topN)
+
+	for i := 0; i < topN; i++ {
+		topAmounts[i] = pairs[i].Amount
+		topMediums[i] = pairs[i].Medium
+	}
+
+	// Load top amounts back into nonOrganicRevenueAmount slice
+	nonOrganicRevenueAmount = make([]int, topN)
+	copy(nonOrganicRevenueAmount, topAmounts)
+
+	// Load top mediums back into nonOrganicRevenueMedium
+	nonOrganicRevenueMedium = make([]string, topN)
+	copy(nonOrganicRevenueMedium, topMediums)
 }
 
 func generateSearchConsoleBQLNonBranded(startDate string, endDate string) (int, int, float64, float64, string) {
@@ -1985,10 +2112,10 @@ func barOrders() {
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	barDataOrders := generateBarItems(seoOrders)
+	barData := generateBarItems(seoOrders)
 
 	bar.SetXAxis(startMonthNames).
-		AddSeries("Orders", barDataOrders).
+		AddSeries("Orders", barData).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Lowest No. orders", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Highest No. orders", Type: "max"},
@@ -2924,10 +3051,10 @@ func barNonOrganic() {
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	barDataOrders := generateBarItems(nonOrganicPerformanceValues)
+	barData := generateBarItems(nonOrganicPerformanceValues)
 
 	bar.SetXAxis(nonOrganicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barDataOrders).
+		AddSeries("Non-organic contribution (%)", barData).
 		SetSeriesOptions(
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{},
@@ -2935,6 +3062,45 @@ func barNonOrganic() {
 		)
 
 	f, _ := os.Create(insightsCacheFolder + "/go_seo_NonOrganicComparison.html")
+
+	_ = bar.Render(f)
+}
+
+// Non-organic revenue mediums
+func barNonOrganicRevenueMediums() {
+	//bloo
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_NonOrganicRevenueMediums.html"
+
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    "Top non-Organic revenue sources (click for full screen)",
+		Subtitle: "What are the top non-organic sources of revenue?",
+		Link:     clickURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Top non-organic revenue sources",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourNonOrganicRevenueMediums}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	barData := generateBarItems(nonOrganicRevenueAmount)
+
+	bar.SetXAxis(nonOrganicRevenueMedium). //bloo
+						AddSeries("Non-organic revenue", barData).
+						SetSeriesOptions(
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{},
+			),
+		)
+
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_NonOrganicRevenueMediums.html")
 
 	_ = bar.Render(f)
 }
@@ -2963,10 +3129,10 @@ func barOrganic() {
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	barDataOrders := generateBarItems(organicPerformanceValues)
+	barData := generateBarItems(organicPerformanceValues)
 
 	bar.SetXAxis(organicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barDataOrders).
+		AddSeries("Non-organic contribution (%)", barData).
 		SetSeriesOptions(
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{},
@@ -3408,6 +3574,10 @@ func generateDashboardContainerHTML(company string) {
 
 	<section id="non_organic_contribution" class="container row">
     	<iframe src="go_seo_NonOrganicComparison.html" title="Non-organic comparison" class="medium-iframe"></iframe>
+	</section>
+
+	<section id="non_organic_contribution" class="container row">
+    	<iframe src="go_seo_NonOrganicRevenueMediums.html" title="Non-organic comparison" class="medium-iframe"></iframe>
 	</section>
 
 	<section id="revenue_visits" class="container row">
