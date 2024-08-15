@@ -2064,7 +2064,16 @@ func barVisitValue() {
 	barDataVisitValue := generateBarItemsFloat(seoVisitValue)
 
 	bar.SetXAxis(startMonthNames).
-		AddSeries("Organic visit value", barDataVisitValue).
+		AddSeries("Organic visit value", barDataVisitValue,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  20,
+					Formatter: currencySymbol + "{c}",
+				},
+			),
+		).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Lowest visit value", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Highest visit value", Type: "max"},
@@ -2115,7 +2124,15 @@ func barOrders() {
 	barData := generateBarItems(seoOrders)
 
 	bar.SetXAxis(startMonthNames).
-		AddSeries("Orders", barData).
+		AddSeries("Orders", barData,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:     opts.Bool(true),
+					Position: "inside",
+					FontSize: 20,
+				},
+			),
+		).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Lowest No. orders", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Highest No. orders", Type: "max"},
@@ -2167,7 +2184,16 @@ func barOrderValue() {
 	barDataOrderValue := generateBarItems(seoOrderValue)
 
 	bar.SetXAxis(startMonthNames).
-		AddSeries("Order value", barDataOrderValue).
+		AddSeries("Order value", barDataOrderValue,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  20,
+					Formatter: currencySymbol + "{c}",
+				},
+			),
+		).
 		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
 			opts.MarkLineNameTypeItem{Name: "Lowest order value", Type: "min"},
 			opts.MarkLineNameTypeItem{Name: "Highest order value", Type: "max"},
@@ -3054,7 +3080,16 @@ func barNonOrganic() {
 	barData := generateBarItems(nonOrganicPerformanceValues)
 
 	bar.SetXAxis(nonOrganicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barData).
+		AddSeries("Non-organic contribution (%)", barData,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  30,
+					Formatter: "{c}%",
+				},
+			),
+		).
 		SetSeriesOptions(
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{},
@@ -3092,9 +3127,18 @@ func barNonOrganicRevenueMediums() {
 
 	barData := generateBarItems(nonOrganicRevenueAmount)
 
-	bar.SetXAxis(nonOrganicRevenueMedium). //bloo
-						AddSeries("Non-organic revenue", barData).
-						SetSeriesOptions(
+	bar.SetXAxis(nonOrganicRevenueMedium).
+		AddSeries("Non-organic revenue", barData,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  20,
+					Formatter: currencySymbol + "{c}",
+				},
+			),
+		).
+		SetSeriesOptions(
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{},
 			),
@@ -3132,7 +3176,16 @@ func barOrganic() {
 	barData := generateBarItems(organicPerformanceValues)
 
 	bar.SetXAxis(organicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barData).
+		AddSeries("Non-organic contribution (%)", barData,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  30,
+					Formatter: "{c}%",
+				},
+			),
+		).
 		SetSeriesOptions(
 			charts.WithMarkLineStyleOpts(
 				opts.MarkLineStyle{},
@@ -4342,7 +4395,6 @@ func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition [
 	var filteredSEOScClicks []int
 	var filteredSEOScAvgPosition []float64
 	var filteredSEOScCTR []float64
-
 	var filteredSEORevenue []int
 	var filteredSEOVisits []int
 	var filteredSEOOrders []int
@@ -4359,7 +4411,6 @@ func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition [
 			filteredSEOScClicks = append(filteredSEOScClicks, seoScClicks[i])
 			filteredSEOScAvgPosition = append(filteredSEOScAvgPosition, seoScAvgPosition[i])
 			filteredSEOScCTR = append(filteredSEOScCTR, seoScCTR[i])
-
 			filteredSEORevenue = append(filteredSEORevenue, value)
 			filteredSEOVisits = append(filteredSEOVisits, seoVisits[i])
 			filteredSEOOrders = append(filteredSEOOrders, seoOrders[i])
@@ -4376,4 +4427,65 @@ func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition [
 	noOfMonths = len(filteredStartMonthDates)
 
 	return filteredSEOScImpressions, filteredSEOScClicks, filteredSEOScAvgPosition, filteredSEOScCTR, filteredSEORevenue, filteredSEOVisits, filteredSEOOrders, filteredSEOOrderValue, filteredSEOVisitValue, filteredVisitsPerOrder, filteredStartMonthDates, filteredEndMonthDates, filteredStartMonthNames
+}
+
+// Generic function used to generate a bar chart
+func generateBarChart(
+	barHTMLName string,
+	barTitle string,
+	barSubTitle string,
+	barPageTitle string,
+	barColour string,
+	barValuesSlice []int,
+	barCategorySlice []string,
+	barSeriesName string,
+	barFontSize int,
+	barFormatter string,
+	barUseMarkLines bool,
+	barMarkLineNameTypeItem bool,
+	barMarkLineNameTypeItemName []string,
+	barMarkLineNameTypeItemType []string,
+) {
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrganicComparison.html"
+
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    "Organic contribution % (click for full screen)",
+		Subtitle: "What is the contribution of organic revenue, orders and visits compared to non-organic?",
+		Link:     clickURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Non-organic contribution",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourOrganic}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	barData := generateBarItems(organicPerformanceValues)
+
+	bar.SetXAxis(organicPerformanceCategory).
+		AddSeries("Non-organic contribution (%)", barData,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  30,
+					Formatter: "{c}%",
+				},
+			),
+		).
+		SetSeriesOptions(
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{},
+			),
+		)
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrganicComparison.html")
+
+	_ = bar.Render(f)
 }
