@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-// Version
+// Version. Displayed in the UI
 var version = "v0.3"
 
 // changelog v0.3
@@ -36,6 +36,7 @@ var version = "v0.3"
 // New KPIs. Non-Branded Impressions, Clicks, Avg. position & Avg. CTR
 // New chart. Organic and non-organic contribution
 // New chart. Top non-organic revenue mediums
+// Supports Adobe analytics
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -46,37 +47,38 @@ var version = "v0.3"
 // Fixed "division by zero" error when EA is configured but not data availanle
 // Removed experimental news section
 
-// Token, log folder and cache folder acquired from environment variables
+// Declare the mutex
+var mutex sync.Mutex
+
+// Variables used to store the Token, log folder & cache folder acquired from environment variables
 var envBotifyAPIToken string
 var envInsightsLogFolder string
 var envInsightsFolder string
 var envInsightsHostingMode string
 
-// Declare the mutex
-var mutex sync.Mutex
+// Constants used to define consistant colours or KPIs
+const purple = "\033[0;35m"
+const green = "\033[0;32m"
+const red = "\033[0;31m"
+const yellow = "\033[0;33m"
+const white = "\033[37m"
+const bold = "\033[1m"
+const reset = "\033[0m"
+const clearScreen = "\033[H\033[2J"
 
-// Colours, symbols etc
-var purple = "\033[0;35m"
-var green = "\033[0;32m"
-var red = "\033[0;31m"
-var yellow = "\033[0;33m"
-var white = "\033[37m"
-var bold = "\033[1m"
-var reset = "\033[0m"
-var clearScreen = "\033[H\033[2J"
 var lineSeparator = "█" + strings.Repeat("█", 130)
 
-// KPI Specific colours
-var kpiColourRevenue = "Coral"
-var kpiColourVisits = "Green"
-var kpiColourVisitsPerOrder = "DarkGoldenRod"
-var kpiColourRevenueForecast = "Orange"
-var kpiColourOrganicVisitValue = "CornflowerBlue"
-var kpiColourNoOfOrders = "IndianRed"
-var kpiColourOrderValue = "MediumSlateBlue"
-var kpiColourNonOrganic = "MediumSlateBlue"
-var kpiColourOrganic = "Indigo"
-var kpiColourNonOrganicRevenueMediums = "Teal"
+// Constants used to store KPI Specific colours
+const kpiColourRevenue = "Coral"
+const kpiColourVisits = "Green"
+const kpiColourVisitsPerOrder = "DarkGoldenRod"
+const kpiColourRevenueForecast = "Orange"
+const kpiColourOrganicVisitValue = "CornflowerBlue"
+const kpiColourNoOfOrders = "IndianRed"
+const kpiColourOrderValue = "MediumSlateBlue"
+const kpiColourNonOrganic = "MediumSlateBlue"
+const kpiColourOrganic = "Indigo"
+const kpiColourNonOrganicRevenueMediums = "Teal"
 
 // Slice used to store the month names. These are used in the chart X axis
 var startMonthNames []string
@@ -114,7 +116,7 @@ var kwCountClicks []int
 var kwMetricsCTR []float64
 var kwMetricsAvgPosition []float64
 
-// Slices used to store non-branded Keywords KPIsd
+// Slices used to store non-branded Keywords KPIs
 var kwKeywordsNonBranded []string
 var kwCountClicksNonBranded []int
 var kwCTRNonBranded []float64
@@ -169,39 +171,39 @@ var totalAverageVisitValueNonOrganic float64
 var totalAverageOrderValueNonOrganic float64
 var totalAverageVisitsPerOrderNonOrganic float64
 
-// Non-branded KPIs
+// Varibales used to store non-branded KPIs
 var scImpressions int
 var scClicks int
 var scCTR float64
 var scAvgPosition float64
 
-// Branded KPIs
+// Variables used to store branded KPIs
 var scImpressionsBranded int
 var scClicksBranded int
 var scCTRBranded float64
 var scAvgPositionBranded float64
 
-// Non-branded KPIs - Total Values
+// Variables used to store non-branded KPIs - Total Values
 var scImpressionsTotal int
 var scClicksTotal int
 var scCTRTotal float64
 var scAvgPositionTotal float64
 
-// Branded KPIs - Total Values
+// Variabled used to store branded KPIs - Total Values
 var scImpressionsTotalBranded int
 var scClicksTotalBranded int
 var scCTRTotalBranded float64
 var scAvgPositionTotalBranded float64
 
-// Bools used to flag if some data is missing
+// Bools used to flag if data is missing
 var revenueDataIssue bool
 var visitsDataIssue bool
 var ordersDataIssue bool
 
-// Project URL. Used to provide a link to the Botify project
+// Variabled used to store the project URL. Used to provide a link to the Botify project
 var projectURL string
 
-// Strings used to store the project credentials for API access
+// Variables used to store the project credentials for API access
 var organization string
 var project string
 
@@ -209,63 +211,69 @@ var project string
 var minVisitsPerOrder int
 var maxVisitsPerOrder int
 
-// No. of months processed
+// Variable used to store the no. of months processed
 var noOfMonths int
 
-// Start and end date of the period
+// Variables used to store the start and end date of the period
 var firstStartDatePeriod string
 var lastEndDatePeriod string
 
-// Average visits per order
+// Variable used to store the average visits per order
 var totalAverageVisitsPerOrder int
 
-// Average visit value
+// Variable used to store the average visit value
 var totalAverageVisitValue float64
 
-// The number of keywords to include in the wordcloud
-var noKeywordsInCloud = 50
+// Constant used to store the number of keywords to include in the wordcloud
+const noKeywordsInCloud = 50
 
-// No. of keywords returned by the API
+// Variable used to store the no. of keywords returned by the API
 var noKeywordsFound int
 
-// No of broadsheet executions & generated session ID
+// Variable used to store the no. of broadsheet executions & generated session ID
 var sessionIDCounter int
 var sessionID string
 
-// Variables used to set the default size for all chart types in HTML
-var chartDefaultWidth = "85vw"
-var chartDefaultHeight = "90vh"
+// Constants used to set the default size for all chart types in HTML
+const chartDefaultWidth = "85vw"
+const chartDefaultHeight = "90vh"
 
-var wordcloudDefaultWidth = "95vw"
-var wordcloudDefaultHeight = "90vh"
+const wordcloudDefaultWidth = "95vw"
+const wordcloudDefaultHeight = "90vh"
 
-var badgeDefaultWidth = "95vw"
-var badgeDefaultHeight = "90vh"
+const badgeDefaultWidth = "95vw"
+const badgeDefaultHeight = "90vh"
 
-var gaugeDefaultWidth = "95vw"
-var gaugeDefaultHeight = "90vh"
+const gaugeDefaultWidth = "95vw"
+const gaugeDefaultHeight = "90vh"
 
-// Define the increment and the maximum value
-var forecastIncrement = 100000
-var forecastMaxVisits = 10000000
+// Constants used to define the increment and the maximum value
+const forecastIncrement = 100000
+const forecastMaxVisits = 10000000
 
-// Project currency
+// Variables used to store project currency
 var currencyCode string
 var currencySymbol string
 
-// Name of the seoBusinessInsights folder used to store the generated HTML
+// Variable used to store the name of the seoBusinessInsights folder used to store the generated HTML
 var insightsCacheFolder string
 
-// Host name and port the web server runs on
+// Variable used to store the host name and port the web server runs on
 var protocol string
 var hostname string
 var port string
 var fullHost string
 
-// Dashboard permalink
+// Variable used to store the dashboard permalink
 var dashboardPermaLink string
 var insightsCacheFolderTrimmed string
 
+// Variable used to store the customer company name
+var company string
+
+// STRUCTS
+
+// botifyResponseData struct used to acquire the currency
 type botifyResponseData struct {
 	Count   int `json:"count"`
 	Results []struct {
@@ -294,13 +302,13 @@ type keywordsData struct {
 	} `json:"results"`
 }
 
-// analyticsID is used to identify which analytics tool is in use
+// analyticsID struct used to identify which analytics tool is in use
 type analyticsIDData struct {
 	ID                 string `json:"id"`
 	AnalyticsDateStart string `json:"date_start"`
 }
 
-// The Result struct is used to store the revenue, orders and visits
+// Result struct is used to store the revenue, orders and visits
 type Result struct {
 	Dimensions []interface{} `json:"dimensions"`
 	Metrics    []float64     `json:"metrics"`
@@ -309,7 +317,7 @@ type Response struct {
 	Results []Result `json:"results"`
 }
 
-// searchConsole is used to acquire the non-brand insights
+// searchConsole struct used to acquire the non-brand insights
 type searchConsoleData struct {
 	Results []struct {
 		Dimensions []interface{} `json:"dimensions"`
@@ -323,13 +331,12 @@ type Pair struct {
 	Amount int
 }
 
-var company string
-
 func main() {
 
 	// Display the welcome banner
 	startup()
 
+	// Web server
 	// Serve static files from the current folder
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/", fs)
@@ -362,7 +369,7 @@ func main() {
 
 		// Evaluate the results of getBusinessInsights before generating the broadsheet
 
-		// All good! Generate the broadsheet
+		// All good. Generate the broadsheet
 		if dataStatus == "success" {
 			// Define the projectURL
 			projectURL = "https://app.botify.com/" + organization + "/" + project
@@ -424,26 +431,29 @@ func businessInsightsDashboard(sessionID string) {
 	// Visits, orders & revenue totals
 	tableVisitsOrdersRevenue()
 
-	// Non-branded totals
-	tableNonBrandedPerformance()
+	// Non-organic comparison
+	barOrganic()
 
-	// Branded totals
-	tableBrandedPerformance()
+	// Non-organic comparison
+	barNonOrganic()
 
-	// Badges for CMGR KPIs
-	badgeCMGR()
+	// Details for non-organic performance
+	tableDetailsNonOrganic()
 
-	// Visits per order gauge chart
-	gaugeVisitsPerOrder()
+	// Non-organic revenue mediums
+	barNonOrganicRevenueMediums()
 
 	// Revenue & visits bar chart
 	barRevenueVisits()
 
+	// Revenue and visits river chart - Organic
+	riverRevenueVisits()
+
 	// Visits per order line chart
 	lineVisitsPerOrder()
 
-	// Organic visit value
-	barVisitValue()
+	// Badges for CMGR KPIs
+	badgeCMGR()
 
 	// Order volume bar chart
 	barOrders()
@@ -451,27 +461,11 @@ func businessInsightsDashboard(sessionID string) {
 	// Order value bar chart
 	barOrderValue()
 
-	// Revenue and visits river chart - Organic
-	riverRevenueVisits()
+	// Organic visit value
+	barVisitValue()
 
-	// Revenue and visits river chart - All channels
-	//riverRevenueVisitsAllChannels()
-
-	// Wordclouds
-	// Branded
-	wordcloudBrandedNonBranded(true)
-	// Non branded
-	wordcloudBrandedNonBranded(false)
-
-	// Winning branded keyword narrative
-	textWinningKeywords(true, sessionID)
-	// Winning non branded keyword
-	textWinningKeywords(false, sessionID)
-
-	// Detailed keyword insights table - Branded
-	textDetailedKeywordsInsights(true)
-	// Detailed keyword insights table - Non-branded
-	textDetailedKeywordsInsights(false)
+	// Visits per order gauge chart
+	gaugeVisitsPerOrder()
 
 	// KPI details table
 	textTableDataDetail()
@@ -482,17 +476,29 @@ func businessInsightsDashboard(sessionID string) {
 	// Forecast narrative
 	textForecastNarrative()
 
-	// Non-organic comparison
-	barOrganic()
+	// Non-branded totals
+	tableNonBrandedPerformance()
 
-	// Non-organic comparison
-	barNonOrganic()
+	// Branded totals
+	tableBrandedPerformance()
 
-	// Non-organic revenue mediums
-	barNonOrganicRevenueMediums()
+	// Branded wordcloud
+	wordcloudBrandedNonBranded(true)
 
-	// Details for non-organic performance
-	tableDetailsNonOrganic()
+	// Non-branded wordcloud
+	wordcloudBrandedNonBranded(false)
+
+	// Winning branded keyword narrative
+	textWinningKeywords(true, sessionID)
+
+	// Winning non branded keyword
+	textWinningKeywords(false, sessionID)
+
+	// Detailed keyword insights table - Branded
+	textDetailedKeywordsInsights(true)
+
+	// Detailed keyword insights table - Non-branded
+	textDetailedKeywordsInsights(false)
 
 	// Footer notes
 	footerNotes()
@@ -517,6 +523,7 @@ func businessInsightsDashboard(sessionID string) {
 	return
 }
 
+// Function used to acquire all the business insights for the broadsheet
 func getBusinessInsights(sessionID string) string {
 
 	fmt.Println()
@@ -648,6 +655,7 @@ func getBusinessInsights(sessionID string) string {
 	return "success"
 }
 
+// Function used to reset the variables. These are reset each time seoBusinessInsights is executed
 func resetMetrics() {
 
 	// Reset slices
@@ -706,7 +714,7 @@ func resetMetrics() {
 	metricsVisitsNonOrganic = 0
 }
 
-// Get the revenue, orders and visits data
+// Function used to get the revenue, orders and visits data
 func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string, endMonthDates []string, sessionID string) string {
 
 	// For organic traffic only
@@ -899,7 +907,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	metricsRevenueNonOrganic, metricsOrdersNonOrganic, metricsVisitsNonOrganic = generateRevenueBQLNonOrganic(analyticsID, firstStartDatePeriod, lastEndDatePeriod)
 
 	// Get the non-organic revenue by medium
-	generateNonOrganicRevenueMediums(firstStartDatePeriod, lastEndDatePeriod)
+	generateNonOrganicRevenueMediums(analyticsID)
 
 	// Calculate the contrubution percentages. The percentages represent the organic contribution
 	// Revenue
@@ -942,7 +950,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	return "success"
 }
 
-// Get the keywords data
+// Function used to get the keywords data
 func getKeywordsCloudData(startMonthDates string, endMonthDates string) string {
 
 	var getKeywordsDataStatus = ""
@@ -962,7 +970,7 @@ func getKeywordsCloudData(startMonthDates string, endMonthDates string) string {
 	return getKeywordsDataStatus
 }
 
-// Execute the BQL to acquire the keywords data
+// Function used to execute the BQL to acquire the keywords data
 func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag string) int {
 
 	// Get the keyword data. Define the BQL
@@ -1145,13 +1153,15 @@ func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate str
 	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus
 }
 
-// Execute the BQL for the specified date range
+// Calculate the total non-organic revenue
 func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod string, lastEndDatePeriod string) (int, int, int) {
 	// GA4
 	conversionCollection := "conversion.dip"
+	conversionOrders := "transactions"
 	// Support for Adobe
 	if analyticsID == "visits.adobe" {
-		conversionCollection = "conversion"
+		conversionCollection = "conversion" //bloo
+		conversionOrders = "orders"
 	}
 
 	// Get the revenue, no. Orders and visits
@@ -1172,7 +1182,7 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
         ],
         "metrics": [
             "%s.period_0.revenue",
-            "%s.period_0.transactions",
+            "%s.period_0.%s",  
             "%s.period_0.nb"
         ],
         "filters": {
@@ -1191,6 +1201,7 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 		lastEndDatePeriod,
 		conversionCollection,
 		conversionCollection,
+		conversionOrders,
 		analyticsID,
 		conversionCollection)
 
@@ -1246,11 +1257,14 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 }
 
 // Execute the BQL for the specified date range
-func generateNonOrganicRevenueMediums(startDate string, endDate string) {
+func generateNonOrganicRevenueMediums(analyticsID string) {
 
 	// GA4
 	conversionCollection := "conversion.dip"
-	//conversionTransactionField := "transactions"
+	// Support for Adobe
+	if analyticsID == "visits.adobe" {
+		conversionCollection = "conversion"
+	}
 
 	// Get the revenue, no. Orders and visits
 	bqlNonOrganicRevMediums := fmt.Sprintf(`
@@ -2095,121 +2109,32 @@ func barVisitValue() {
 // Order volume bar chart
 func barOrders() {
 
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrdersBar.html"
-
-	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Order volume (click for full screen)",
-		Subtitle: "Order volume placed during an organic visit.",
-		Link:     clickURL,
-	}),
-		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
-		charts.WithDataZoomOpts(opts.DataZoom{
-			Type:  "slider",
-			Start: 1,
-			End:   100,
-		}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Order volume",
-		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourNoOfOrders}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
-	)
-
-	barData := generateBarItems(seoOrders)
-
-	bar.SetXAxis(startMonthNames).
-		AddSeries("Orders", barData,
-			charts.WithLabelOpts(
-				opts.Label{
-					Show:     opts.Bool(true),
-					Position: "inside",
-					FontSize: 20,
-				},
-			),
-		).
-		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Lowest No. orders", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Highest No. orders", Type: "max"},
-			opts.MarkLineNameTypeItem{Name: "Average No. orders", Type: "average"},
-		),
-			charts.WithMarkLineStyleOpts(
-				opts.MarkLineStyle{
-					Label:     &opts.Label{FontSize: 15},
-					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
-				},
-			),
-		)
-
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrdersBar.html")
-
-	_ = bar.Render(f)
+	generateBarChart("go_seo_OrdersBar.html",
+		"Order volume (click for full screen)",
+		"Order volume placed during an organic visit.",
+		"Order volume",
+		kpiColourNoOfOrders,
+		seoOrders,
+		startMonthNames,
+		"Orders",
+		20.00,
+		"{c}")
 }
 
 // Order value bar chart
 func barOrderValue() {
 
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrderValueBar.html"
-
-	bar := charts.NewBar()
-
-	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Order value - AOV (click for full screen)",
-		Subtitle: "The average value of an order placed during a visit from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
-		Link:     clickURL,
-	}),
-		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
-		charts.WithDataZoomOpts(opts.DataZoom{
-			Type:  "slider",
-			Start: 1,
-			End:   100,
-		}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Average order value",
-		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourOrderValue}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	generateBarChart("go_seo_OrderValueBar.html",
+		"Order value - AOV (click for full screen)",
+		"The average value of an order placed during a visit from an organic source. A higher value reflects effective SEO strategies driving quality traffic.",
+		"Average order value",
+		kpiColourOrderValue,
+		seoOrderValue,
+		startMonthNames,
+		"Order value",
+		20.00,
+		currencySymbol+"{c}",
 	)
-
-	barDataOrderValue := generateBarItems(seoOrderValue)
-
-	bar.SetXAxis(startMonthNames).
-		AddSeries("Order value", barDataOrderValue,
-			charts.WithLabelOpts(
-				opts.Label{
-					Show:      opts.Bool(true),
-					Position:  "inside",
-					FontSize:  20,
-					Formatter: currencySymbol + "{c}",
-				},
-			),
-		).
-		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
-			opts.MarkLineNameTypeItem{Name: "Lowest order value", Type: "min"},
-			opts.MarkLineNameTypeItem{Name: "Highest order value", Type: "max"},
-			opts.MarkLineNameTypeItem{Name: "Average order value", Type: "average"},
-		),
-			charts.WithMarkLineStyleOpts(
-				opts.MarkLineStyle{
-					Label:     &opts.Label{FontSize: 15},
-					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
-				},
-			),
-		)
-
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrderValueBar.html")
-
-	_ = bar.Render(f)
 }
 
 // Function to generate BarData items from an array of integers
@@ -3056,145 +2981,47 @@ func textForecastNarrative() {
 // Non-organic comparison
 func barNonOrganic() {
 
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_NonOrganicComparison.html"
-
-	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Non-Organic contribution % (click for full screen)",
-		Subtitle: "What is the contrubution of non-organic revenue, orders and visits compared to organic?",
-		Link:     clickURL,
-	}),
-		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Non-organic contribution",
-		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourNonOrganic}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
-	)
-
-	barData := generateBarItems(nonOrganicPerformanceValues)
-
-	bar.SetXAxis(nonOrganicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barData,
-			charts.WithLabelOpts(
-				opts.Label{
-					Show:      opts.Bool(true),
-					Position:  "inside",
-					FontSize:  30,
-					Formatter: "{c}%",
-				},
-			),
-		).
-		SetSeriesOptions(
-			charts.WithMarkLineStyleOpts(
-				opts.MarkLineStyle{},
-			),
-		)
-
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_NonOrganicComparison.html")
-
-	_ = bar.Render(f)
+	generateBarChart("go_seo_NonOrganicComparison.html",
+		"Non-Organic contribution % (click for full screen)",
+		"What is the contrubution of non-organic revenue, orders and visits compared to non-organic?",
+		"Organic contribution",
+		kpiColourNonOrganic,
+		nonOrganicPerformanceValues,
+		nonOrganicPerformanceCategory,
+		"Non-organic contribution (%)",
+		30.00,
+		"{c}%")
 }
 
 // Non-organic revenue mediums
 func barNonOrganicRevenueMediums() {
-	//bloo
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_NonOrganicRevenueMediums.html"
 
-	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Top non-Organic revenue sources (click for full screen)",
-		Subtitle: "What are the top non-organic sources of revenue?",
-		Link:     clickURL,
-	}),
-		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Top non-organic revenue sources",
-		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourNonOrganicRevenueMediums}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
-	)
-
-	barData := generateBarItems(nonOrganicRevenueAmount)
-
-	bar.SetXAxis(nonOrganicRevenueMedium).
-		AddSeries("Non-organic revenue", barData,
-			charts.WithLabelOpts(
-				opts.Label{
-					Show:      opts.Bool(true),
-					Position:  "inside",
-					FontSize:  20,
-					Formatter: currencySymbol + "{c}",
-				},
-			),
-		).
-		SetSeriesOptions(
-			charts.WithMarkLineStyleOpts(
-				opts.MarkLineStyle{},
-			),
-		)
-
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_NonOrganicRevenueMediums.html")
-
-	_ = bar.Render(f)
+	generateBarChart("go_seo_NonOrganicRevenueMediums.html",
+		"Top non-Organic revenue sources (click for full screen)",
+		"What are the top non-organic sources of revenue?",
+		"Non-organic contribution",
+		kpiColourNonOrganicRevenueMediums,
+		nonOrganicRevenueAmount,
+		nonOrganicRevenueMedium,
+		"Top non-organic revenue sources",
+		20.00,
+		currencySymbol+"{c}")
 }
 
 // Organic comparison
 func barOrganic() {
 
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrganicComparison.html"
-
-	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Organic contribution % (click for full screen)",
-		Subtitle: "What is the contrubution of organic revenue, orders and visits compared to non-organic?",
-		Link:     clickURL,
-	}),
-		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Non-organic contribution",
-		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourOrganic}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	generateBarChart("go_seo_OrganicComparison.html",
+		"Organic contribution % (click for full screen)",
+		"What is the contrubution of organic revenue, orders and visits compared to non-organic?",
+		"Organic contribution",
+		kpiColourOrganic,
+		organicPerformanceValues,
+		organicPerformanceCategory,
+		"Non-organic contribution (%)",
+		30.00,
+		"{c}%",
 	)
-
-	barData := generateBarItems(organicPerformanceValues)
-
-	bar.SetXAxis(organicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barData,
-			charts.WithLabelOpts(
-				opts.Label{
-					Show:      opts.Bool(true),
-					Position:  "inside",
-					FontSize:  30,
-					Formatter: "{c}%",
-				},
-			),
-		).
-		SetSeriesOptions(
-			charts.WithMarkLineStyleOpts(
-				opts.MarkLineStyle{},
-			),
-		)
-
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrganicComparison.html")
-
-	_ = bar.Render(f)
 }
 
 // Total Visits, Orders & Revenue
@@ -3967,11 +3794,6 @@ func calculateDateRanges(analyticsStartDate string) DateRanges {
 	return DateRanges{MonthlyRanges: dateRanges}
 }
 
-func isLastDayOfMonth(date time.Time) bool {
-	nextDay := date.AddDate(0, 0, 1)
-	return nextDay.Day() == 1
-}
-
 // DateRanges struct is used to store the date ranges for use in the BQL when the SEO KPIs are acquired
 type DateRanges struct {
 	MonthlyRanges [][2]time.Time
@@ -4081,6 +3903,56 @@ func generateErrorPage(displayMessage string) {
 	// Save the HTML to a file
 	saveHTML(htmlContent, "/go_seo_BusinessInsights_error.html")
 
+}
+
+// Generic function used to generate a bar chart
+func generateBarChart(
+	barHTMLName string,
+	barTitle string,
+	barSubTitle string,
+	barPageTitle string,
+	barColour string,
+	barValuesSlice []int,
+	barCategorySlice []string,
+	barSeriesName string,
+	barFontSize float32,
+	barFormatter string) {
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/" + barHTMLName
+
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    barTitle,
+		Subtitle: barSubTitle,
+		Link:     clickURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: barPageTitle,
+		}),
+		charts.WithColorsOpts(opts.Colors{barColour}),
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	barData := generateBarItems(barValuesSlice)
+
+	bar.SetXAxis(barCategorySlice).
+		AddSeries(barSeriesName, barData,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  barFontSize,
+					Formatter: barFormatter,
+				},
+			),
+		)
+	f, _ := os.Create(insightsCacheFolder + "/" + barHTMLName)
+
+	_ = bar.Render(f)
 }
 
 func writeLog(sessionID, organization, project, analyticsID, statusDescription string) {
@@ -4427,65 +4299,4 @@ func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition [
 	noOfMonths = len(filteredStartMonthDates)
 
 	return filteredSEOScImpressions, filteredSEOScClicks, filteredSEOScAvgPosition, filteredSEOScCTR, filteredSEORevenue, filteredSEOVisits, filteredSEOOrders, filteredSEOOrderValue, filteredSEOVisitValue, filteredVisitsPerOrder, filteredStartMonthDates, filteredEndMonthDates, filteredStartMonthNames
-}
-
-// Generic function used to generate a bar chart
-func generateBarChart(
-	barHTMLName string,
-	barTitle string,
-	barSubTitle string,
-	barPageTitle string,
-	barColour string,
-	barValuesSlice []int,
-	barCategorySlice []string,
-	barSeriesName string,
-	barFontSize int,
-	barFormatter string,
-	barUseMarkLines bool,
-	barMarkLineNameTypeItem bool,
-	barMarkLineNameTypeItemName []string,
-	barMarkLineNameTypeItemType []string,
-) {
-	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
-	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
-	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_OrganicComparison.html"
-
-	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Organic contribution % (click for full screen)",
-		Subtitle: "What is the contribution of organic revenue, orders and visits compared to non-organic?",
-		Link:     clickURL,
-	}),
-		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
-		charts.WithInitializationOpts(opts.Initialization{
-			Width:     chartDefaultWidth,
-			Height:    chartDefaultHeight,
-			PageTitle: "Non-organic contribution",
-		}),
-		charts.WithColorsOpts(opts.Colors{kpiColourOrganic}),
-		// disable show the legend
-		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
-	)
-
-	barData := generateBarItems(organicPerformanceValues)
-
-	bar.SetXAxis(organicPerformanceCategory).
-		AddSeries("Non-organic contribution (%)", barData,
-			charts.WithLabelOpts(
-				opts.Label{
-					Show:      opts.Bool(true),
-					Position:  "inside",
-					FontSize:  30,
-					Formatter: "{c}%",
-				},
-			),
-		).
-		SetSeriesOptions(
-			charts.WithMarkLineStyleOpts(
-				opts.MarkLineStyle{},
-			),
-		)
-	f, _ := os.Create(insightsCacheFolder + "/go_seo_OrganicComparison.html")
-
-	_ = bar.Render(f)
 }
