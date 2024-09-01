@@ -517,7 +517,7 @@ func businessInsightsBroadsheet(sessionID string) {
 	fmt.Println()
 	fmt.Println(lineSeparator)
 
-	// Wait for the next request
+	// Waiting for the next request
 	return
 }
 
