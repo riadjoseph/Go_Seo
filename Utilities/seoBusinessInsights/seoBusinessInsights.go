@@ -50,13 +50,13 @@ var version = "v0.3"
 // Declare the mutex
 var mutex sync.Mutex
 
-// Variables used to store the Token, log folder & cache folder acquired from environment variables
+// Variables used to store the token, log folder & cache folder. Acquired from environment variables
 var envBotifyAPIToken string
 var envInsightsLogFolder string
 var envInsightsFolder string
 var envInsightsHostingMode string
 
-// Constants used to define consistant colours or KPIs
+// Constants used to define colours
 const purple = "\033[0;35m"
 const green = "\033[0;32m"
 const red = "\033[0;31m"
@@ -80,7 +80,7 @@ const kpiColourNonOrganic = "MediumSlateBlue"
 const kpiColourOrganic = "Indigo"
 const kpiColourNonOrganicRevenueMediums = "Teal"
 
-// Slice used to store the month names. These are used in the chart X axis
+// Slice used to store the month names. Used in the chart X axis
 var startMonthNames []string
 
 // Slice used to store projected revenue values
@@ -98,13 +98,13 @@ var seoOrderValue []int
 var seoVisitValue []float64
 var seoVisitsPerOrder []int
 
-// Slices used to store the non-branded insights
+// Slices used to store the non-branded KPIs
 var seoScImpressions []int
 var seoScClicks []int
 var seoScCTR []float64
 var seoScAvgPosition []float64
 
-// Slices used to store the branded insights
+// Slices used to store the branded KPIs
 var seoScImpressionsBranded []int
 var seoScClicksBranded []int
 var seoScCTRBranded []float64
@@ -122,12 +122,12 @@ var kwCountClicksNonBranded []int
 var kwCTRNonBranded []float64
 var kwAvgPositionNonBranded []float64
 
-// Slices used to store non-organic channel Revenue & visits values
+// Slices used to store non-organic channel revenue & visits values
 var metricsRevenueNonOrganic int
 var metricsOrdersNonOrganic int
 var metricsVisitsNonOrganic int
 
-// Slices used to store the organic percentage contrubution data used in the bar chart
+// Slices used to store the organic percentage contrubution data. Used in the bar chart
 var organicPerformanceCategory []string
 var organicPerformanceValues []int
 
@@ -135,7 +135,7 @@ var organicPerformanceValues []int
 var nonOrganicRevenueMedium []string
 var nonOrganicRevenueAmount []int
 
-// Slices used to store the non-organic percentage contrubution data used in the bar chart
+// Slices used to store the non-organic percentage contribution data used in the bar chart
 var nonOrganicPerformanceCategory []string
 var nonOrganicPerformanceValues []int
 
@@ -150,18 +150,18 @@ var cmgrVisitValue float64
 var cmgrOrderValue float64
 var cmgrOrderValueValue float64
 
-// Variables used to store the total values (revenue and non-branded insights)
+// Variables used to store the total values (revenue and non-branded KPIs)
 var metricsVisitsOrganic int
 var metricsRevenueOrganic int
 var metricsOrdersOrganic int
 var totalAverageOrderValueOrganic int
 
-// Variables used to compare organic and non-organic performance.
+// Variables used to compare organic and non-organic performance
 var metricsRevenueNonOrganicPC float64
 var metricsOrdersNonOrganicPC float64
 var metricsVisitsNonOrganicPC float64
 
-// Variables used to compare organic and non-organic performance.
+// Variables used to compare organic and non-organic performance
 var metricsRevenueOrganicPC float64
 var metricsOrdersOrganicPC float64
 var metricsVisitsOrganicPC float64
@@ -171,7 +171,7 @@ var totalAverageVisitValueNonOrganic float64
 var totalAverageOrderValueNonOrganic float64
 var totalAverageVisitsPerOrderNonOrganic float64
 
-// Varibales used to store non-branded KPIs
+// Variables used to store non-branded KPIs
 var scImpressions int
 var scClicks int
 var scCTR float64
@@ -183,24 +183,24 @@ var scClicksBranded int
 var scCTRBranded float64
 var scAvgPositionBranded float64
 
-// Variables used to store non-branded KPIs - Total Values
+// Variables used to store non-branded KPIs totals
 var scImpressionsTotal int
 var scClicksTotal int
 var scCTRTotal float64
 var scAvgPositionTotal float64
 
-// Variabled used to store branded KPIs - Total Values
+// Variables used to store branded KPIs - Total Values
 var scImpressionsTotalBranded int
 var scClicksTotalBranded int
 var scCTRTotalBranded float64
 var scAvgPositionTotalBranded float64
 
-// Bools used to flag if data is missing
+// Bools used to flag if data is missing, in the case the project has beeb live for less than 12 months
 var revenueDataIssue bool
 var visitsDataIssue bool
 var ordersDataIssue bool
 
-// Variabled used to store the project URL. Used to provide a link to the Botify project
+// Variables used to store the project URL
 var projectURL string
 
 // Variables used to store the project credentials for API access
@@ -214,7 +214,7 @@ var maxVisitsPerOrder int
 // Variable used to store the no. of months processed
 var noOfMonths int
 
-// Variables used to store the start and end date of the period
+// Variables used to store the start and end date of the reporting period
 var firstStartDatePeriod string
 var lastEndDatePeriod string
 
@@ -247,7 +247,7 @@ const badgeDefaultHeight = "90vh"
 const gaugeDefaultWidth = "95vw"
 const gaugeDefaultHeight = "90vh"
 
-// Constants used to define the increment and the maximum value
+// Constants used to define the forecast increment and the maximum value. Used in the revenue forecast chart
 const forecastIncrement = 100000
 const forecastMaxVisits = 10000000
 
@@ -258,20 +258,18 @@ var currencySymbol string
 // Variable used to store the name of the seoBusinessInsights folder used to store the generated HTML
 var insightsCacheFolder string
 
-// Variable used to store the host name and port the web server runs on
+// Variable used to store web server hostname and port
 var protocol string
 var hostname string
 var port string
 var fullHost string
 
-// Variable used to store the dashboard permalink
-var dashboardPermaLink string
+// Variable used to store the broadsheet permalink
+var broadsheetPermaLink string
 var insightsCacheFolderTrimmed string
 
-// Variable used to store the customer company name
+// Variable used to store the company name. Displayed in the UI
 var company string
-
-// STRUCTS
 
 // botifyResponseData struct used to acquire the currency
 type botifyResponseData struct {
@@ -302,7 +300,7 @@ type keywordsData struct {
 	} `json:"results"`
 }
 
-// analyticsID struct used to identify which analytics tool is in use
+// analyticsID struct used to identify the analytics tool used
 type analyticsIDData struct {
 	ID                 string `json:"id"`
 	AnalyticsDateStart string `json:"date_start"`
@@ -325,8 +323,8 @@ type searchConsoleData struct {
 	} `json:"results"`
 }
 
-// Pair represents a pair of medium and amount. Used to identify the top non-organic revenue mediums
-type Pair struct {
+// topNonOrganicRevenueMediums represents the top non organic medium and revenue amount
+type topNonOrganicRevenueMediums struct {
 	Medium string
 	Amount int
 }
@@ -375,7 +373,7 @@ func main() {
 			projectURL = "https://app.botify.com/" + organization + "/" + project
 			writeLog(sessionID, organization, project, "-", "SEO Insights acquired")
 			// Generate the broadsheet components and container
-			businessInsightsDashboard(sessionID)
+			businessInsightsBroadsheet(sessionID)
 			writeLog(sessionID, organization, project, company, "Broadsheet generated")
 			// Respond to the client with a success message or redirect to another page
 			http.Redirect(w, r, insightsCacheFolder+"/go_seo_BusinessInsights.html", http.StatusFound)
@@ -423,7 +421,7 @@ func main() {
 }
 
 // Generate the broadsheet
-func businessInsightsDashboard(sessionID string) {
+func businessInsightsBroadsheet(sessionID string) {
 
 	// Broadsheet header
 	headerNotes()
@@ -504,7 +502,7 @@ func businessInsightsDashboard(sessionID string) {
 	footerNotes()
 
 	// Generate the container to present the previously generated components
-	generateDashboardContainerHTML(company)
+	generateBroadsheetContainerHTML(company)
 
 	fmt.Println()
 	fmt.Println(lineSeparator)
@@ -1329,36 +1327,36 @@ func generateNonOrganicRevenueMediums(analyticsID string) {
 	}
 
 	// Get the top 5 non-organic revneue mediums and amounts from the generated slices
-	pairs := make([]Pair, len(nonOrganicRevenueMedium))
+	topNonOrganicRevenueMediumsData := make([]topNonOrganicRevenueMediums, len(nonOrganicRevenueMedium))
 	for i := 0; i < len(nonOrganicRevenueMedium); i++ {
-		pairs[i] = Pair{
+		topNonOrganicRevenueMediumsData[i] = topNonOrganicRevenueMediums{
 			Medium: nonOrganicRevenueMedium[i],
 			Amount: nonOrganicRevenueAmount[i],
 		}
 	}
 
 	// Sort pairs by Amount in descending order
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].Amount > pairs[j].Amount
+	sort.Slice(topNonOrganicRevenueMediumsData, func(i, j int) bool {
+		return topNonOrganicRevenueMediumsData[i].Amount > topNonOrganicRevenueMediumsData[j].Amount
 	})
 
 	// Extract the top 5 largest values and their corresponding mediums
 	topN := 5
-	if len(pairs) < topN {
-		topN = len(pairs)
+	if len(topNonOrganicRevenueMediumsData) < topN {
+		topN = len(topNonOrganicRevenueMediumsData)
 	}
 
-	topAmounts := make([]int, topN)
+	topRevenueAmounts := make([]int, topN)
 	topMediums := make([]string, topN)
 
 	for i := 0; i < topN; i++ {
-		topAmounts[i] = pairs[i].Amount
-		topMediums[i] = pairs[i].Medium
+		topRevenueAmounts[i] = topNonOrganicRevenueMediumsData[i].Amount
+		topMediums[i] = topNonOrganicRevenueMediumsData[i].Medium
 	}
 
 	// Load top amounts back into nonOrganicRevenueAmount slice
 	nonOrganicRevenueAmount = make([]int, topN)
-	copy(nonOrganicRevenueAmount, topAmounts)
+	copy(nonOrganicRevenueAmount, topRevenueAmounts)
 
 	// Load top mediums back into nonOrganicRevenueMedium
 	nonOrganicRevenueMedium = make([]string, topN)
@@ -1367,7 +1365,7 @@ func generateNonOrganicRevenueMediums(analyticsID string) {
 
 func generateSearchConsoleBQLNonBranded(startDate string, endDate string) (int, int, float64, float64, string) {
 
-	// Get non brand insights
+	// Get non brand KPIs
 	bqlSearchConsole := fmt.Sprintf(`
 {
     "collections": [
@@ -1425,7 +1423,7 @@ func generateSearchConsoleBQLNonBranded(startDate string, endDate string) (int, 
 
 func generateSearchConsoleBQLBranded(startDate string, endDate string) (int, int, float64, float64, string) {
 
-	// Get non brand insights
+	// Get non brand KPIs
 	bqlSearchConsole := fmt.Sprintf(`
 {
     "collections": [
@@ -3136,13 +3134,13 @@ func tableDetailsNonOrganic() {
 // Footer
 func footerNotes() {
 
-	dashboardPermaLink = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_BusinessInsights.html"
+	broadsheetPermaLink = protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_BusinessInsights.html"
 
 	// Text content for the footer
 	var footerNotesStrings = []string{
 		"The current month is not included in the analysis, only full months are reported on.",
 		"Compound Growth (CMGR) refers to the Compound Monthly Growth Rate of the KPI. CMGR is a financial term used to measure the growth rate of a metric over a monthly basis taking into account the compounding effect. CMGR provides a clear and standardised method to measure growth over time.",
-		"The permalink for this broadsheet is <a href=\"" + dashboardPermaLink + "\" target=\"_blank\">" + dashboardPermaLink + "</a>",
+		"The permalink for this broadsheet is <a href=\"" + broadsheetPermaLink + "\" target=\"_blank\">" + broadsheetPermaLink + "</a>",
 	}
 
 	// Generate HTML content
@@ -3211,7 +3209,7 @@ func saveHTML(genHTML string, genFilename string) {
 
 // Define the HTML for the container. Used to consolidate the generated charts into a single page.
 // Container start
-func generateDashboardContainerHTML(company string) {
+func generateBroadsheetContainerHTML(company string) {
 
 	// Using these variables to replace width values in the HTML below because string interpolation confuses the percent signs as variables
 	width90 := "90%"
@@ -4261,7 +4259,7 @@ func startup() {
 	fmt.Println(green + "\n... waiting for requests\n" + reset)
 }
 
-// CleanInsights is used to remove all slices where there are zero values in the revenue and / or visits data
+// cleanInsights is used to remove all slices where there are zero values in the revenue and visits data
 func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition []float64, seoScCTR []float64, seoRevenue []int, seoVisits []int, seoOrders []int, seoOrderValue []int, seoVisitValue []float64, visitsPerOrder []int, startMonthDates, endMonthDates, startMonthNames []string) ([]int, []int, []float64, []float64, []int, []int, []int, []int, []float64, []int, []string, []string, []string) {
 	var filteredSEOScImpressions []int
 	var filteredSEOScClicks []int
