@@ -517,10 +517,8 @@ func segmentFolders(thresholdValue int, slashCount int, folderLevel string) {
 		}
 
 		//Split the line into substrings using a forward-slash as delimiter
-		// slashCount
-		// = 4 for Level 1 folders
-		// slashCount
-		// = 5 for Level 2 folders
+		// slashCount = 4 for Level 1 folders
+		// slashCount = 5 for Level 2 folders
 		parts := strings.Split(line, "/")
 
 		if len(parts) >= slashCount {
