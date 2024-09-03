@@ -31,7 +31,7 @@ var version = "v0.3"
 // changelog v0.3
 // UI updates & refinements (seoBusinessInsights)
 // UI updates & refinements (index.html)
-// Added env. variable "envInsightsHostingMode". Set to "local" or "docker"
+// Added env. variable "envInsightsHostingMode". Set to "local" or "docker". If "local" is specified the Port is included in the broadsheet URL, if not only the Hostnale is used
 // Bug fix. Error when running the broadsheet on the last day of the month
 // New KPIs. Non-Branded Impressions, Clicks, Avg. position & Avg. CTR
 // New chart. Organic and non-organic contribution

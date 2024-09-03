@@ -35,6 +35,8 @@ var version = "v0.2"
 // Fixed error in generated SFCC regex
 // Delete temp file when regex generation is complete
 // Identify PDP pages and generate segment (experimental)
+// Comments to signal the end of Level 1 and Level 2 folders fixed
+// Folders with 1OO URLs are ignored
 
 // Token, log folder and cache folder acquired from environment variables
 var envBotifyAPIToken string
@@ -59,7 +61,8 @@ var regexOutputFile = "segment.txt"
 var maxURLsToProcess = 100000
 
 // Percentage threshold for level 1 & level 2 folders
-var thresholdPercent = 0.05
+var thresholdPercent = 0.00
+var minFolderSize = 100
 
 // Boolean to signal if SFCC has been detected
 var sfccDetected = false
@@ -89,7 +92,6 @@ var cacheFolderRoot string
 
 // No of executions & generated session ID
 var sessionIDCounter int
-var sessionID []byte
 
 // PDP Regex
 var generatePDPRegex bool
@@ -394,15 +396,15 @@ func level1and2Folders() {
 	//Get the threshold. Use the level 1 slashCount
 	_, thresholdValueL1 := levelThreshold(urlExtractFile, slashCountLevel1)
 
-	//generate the regex
-	segmentFolders(thresholdValueL1, slashCountLevel1)
+	//Generate the regex
+	segmentFolders(thresholdValueL1, slashCountLevel1, "Level 1 Folders")
 
 	//Level2 folders
 	//Get the threshold. Use the level 2 slashCount
 	_, thresholdValueL2 := levelThreshold(urlExtractFile, slashCountLevel2)
 
 	//Level2 folders
-	segmentFolders(thresholdValueL2, slashCountLevel2)
+	segmentFolders(thresholdValueL2, slashCountLevel2, "Level 2 Folders")
 }
 
 func generateRegexFile() {
@@ -463,7 +465,7 @@ func generateRegexFile() {
 	}
 }
 
-func segmentFolders(thresholdValue int, slashCount int) {
+func segmentFolders(thresholdValue int, slashCount int, folderLevel string) {
 
 	//Open the input file for reading
 	file, err := os.Open(urlExtractFile)
@@ -502,6 +504,11 @@ func segmentFolders(thresholdValue int, slashCount int) {
 			continue
 		}
 
+		//Check if the line contains a question mark, if yes, skip to the next line
+		//if strings.Contains(line, "?") {
+		//	continue
+		//}
+
 		// Is this a product URL?
 		isProductURL = isValidisProductURL(line)
 		if isProductURL {
@@ -536,9 +543,13 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	//Populate the slice with data from the map
 	for folderName, count := range FolderCounts {
 		if count > thresholdValue {
-			sortedCounts = append(sortedCounts, FolderCount{folderName, count})
+			if count > minFolderSize {
+				sortedCounts = append(sortedCounts, FolderCount{folderName, count})
+			} else {
+				noFoldersExcluded++
+			}
 		} else {
-			// Count the number of folders excluded
+			// Count the number of folders excluded because they didn't meet the thresholdValue
 			noFoldersExcluded++
 		}
 	}
@@ -596,7 +607,9 @@ func segmentFolders(thresholdValue int, slashCount int) {
 	}
 
 	//Write the footer lines
-	_, err = writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
+	//_, err = writer.WriteString("@~Other\npath /*\n# ----End of level2Folders Segment----\n")
+	formattedString := fmt.Sprintf("@~Other\npath /*\n# ----End of %s Segment----\n", folderLevel)
+	_, err = writer.WriteString(formattedString)
 	if err != nil {
 		fmt.Printf(red+"Error. segmentFolders. Cannot write segment to writer: %v\n"+reset, err)
 	}
