@@ -26,6 +26,7 @@ import (
 var version = "v0.2"
 
 // Changelog v0.2
+// TODO: Increase the timeout to 3 minutes
 // UI updates & refinements (segmentifyLite)
 // UI updates & refinements (index.html)
 // Version & session displayed in UI
