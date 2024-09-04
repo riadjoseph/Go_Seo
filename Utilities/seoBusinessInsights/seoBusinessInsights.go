@@ -37,6 +37,7 @@ var version = "v0.3"
 // New chart. Organic and non-organic contribution
 // New chart. Top non-organic revenue mediums
 // Supports Adobe analytics
+//
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
