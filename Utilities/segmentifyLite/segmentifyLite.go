@@ -295,7 +295,6 @@ func processURLs(sessionID string) string {
 	if err != nil {
 		fmt.Println(red+"\nError. processURLs. Cannot create file: "+reset, err)
 		return "errorProcessURLs"
-
 	}
 
 	defer func() {
@@ -512,7 +511,6 @@ func segmentFolders(thresholdValue int, slashCount int, folderLevel string) {
 		// Is this a product URL?
 		isProductURL = isValidisProductURL(line)
 		if isProductURL {
-			println(line)
 			generatePDPRegex = true
 		}
 
