@@ -733,7 +733,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	for i := range startMonthDates {
 
 		getRevenueAndSearchConsoleDataStatus := ""
-		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus = generateRevenueBQLOrganic(analyticsID, startMonthDates[i], endMonthDates[i])
+		metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, avgConversionRate, getRevenueAndSearchConsoleDataStatus = generateRevenueBQLOrganic(analyticsID, startMonthDates[i], endMonthDates[i])
 
 		getSearchDataStatus := ""
 		scImpressions, scClicks, scCTR, scAvgPosition, getSearchDataStatus = generateSearchConsoleBQLNonBranded(startMonthDates[i], endMonthDates[i])
@@ -1055,7 +1055,7 @@ func generateKeywordsCloudBQL(startDate string, endDate string, brandedFlag stri
 }
 
 // Execute the BQL for the specified date range
-func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate string) (int, int, int, int, float64, string) {
+func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate string) (int, int, int, int, float64, float64, string) {
 
 	// GA4
 	conversionCollection := "conversion.dip"
@@ -1128,6 +1128,7 @@ func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate str
 	var metricsVisits = 0
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
+	var avgConversionRate = 0.00
 
 	// Check if any data has been returned from the API. Count the number of elements in the response.Results slice
 	responseCount := len(response.Results)
@@ -1150,9 +1151,16 @@ func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate str
 		if metricsVisits != 0 {
 			avgVisitValue = float64(metricsRevenue) / float64(metricsVisits)
 		}
+
+		// Calculate avgConversionRate only if metricsVisits is not zero
+		if metricsVisits != 0 {
+			avgConversionRate = float64(metricsVisits) / float64(metricsVisits)
+			println("conversion rate")
+			println()
+		}
 	}
 	getRevenueAndSearchConsoleDataStatus := "success"
-	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, getRevenueAndSearchConsoleDataStatus
+	return metricsOrders, metricsRevenue, metricsVisits, avgOrderValue, avgVisitValue, avgConversionRate, getRevenueAndSearchConsoleDataStatus
 }
 
 // Calculate the total non-organic revenue
