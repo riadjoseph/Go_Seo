@@ -29,15 +29,18 @@ import (
 var version = "v0.3"
 
 // changelog v0.3
-// UI updates & refinements (seoBusinessInsights)
-// UI updates & refinements (index.html)
-// Added env. variable "envInsightsHostingMode". Set to "local" or "docker". If "local" is specified the Port is included in the broadsheet URL, if not only the Hostnale is used
-// Bug fix. Error when running the broadsheet on the last day of the month
-// New KPIs. Non-Branded Impressions, Clicks, Avg. position & Avg. CTR
+// New KPI. Non-Branded Impressions
+// New KPI. Non-branded Clicks, Avg. position, Avg. CTR & organic conversion rate
+// New KPI. Avg. position
+// New KPI. Avg. CTR
+// New KPI. Organic conversion rate
 // New chart. Organic and non-organic contribution
 // New chart. Top non-organic revenue mediums
-// Supports Adobe analytics
-//
+// New chart. Organic conversion rate
+// Support for Adobe analytics
+// UI updates & refinements
+// Added env. variable "envInsightsHostingMode". Set to "local" or "docker". If "local" is specified the Port is included in the broadsheet URL, if not only the Hostnale is used
+// Bug fix. Error when running the broadsheet on the last day of the month
 
 // changelog v0.2
 // Added tooltips to login page (org and project name)
@@ -75,6 +78,7 @@ const kpiColourVisits = "Green"
 const kpiColourVisitsPerOrder = "DarkGoldenRod"
 const kpiColourRevenueForecast = "Orange"
 const kpiColourOrganicVisitValue = "CornflowerBlue"
+const kpiColourConversionRate = "Orange"
 const kpiColourNoOfOrders = "IndianRed"
 const kpiColourOrderValue = "MediumSlateBlue"
 const kpiColourNonOrganic = "MediumSlateBlue"
@@ -464,6 +468,9 @@ func businessInsightsBroadsheet(sessionID string) {
 	// Organic visit value
 	barVisitValue()
 
+	// Organic visits conversion rate
+	barConversionRate()
+
 	// Visits per order gauge chart
 	gaugeVisitsPerOrder()
 
@@ -685,6 +692,7 @@ func resetMetrics() {
 	seoScClicksBranded = nil
 	seoScAvgPositionBranded = nil
 	seoScCTRBranded = nil
+	seoConversionRate = nil
 	organicPerformanceCategory = nil
 	organicPerformanceValues = nil
 	nonOrganicPerformanceCategory = nil
@@ -820,6 +828,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		fmt.Println("No. of visits:", formattedVisits)
 		fmt.Println("Average visit value:", avgVisitValue)
 		fmt.Println("Average visits per order:", visitsPerOrderDisplay)
+		fmt.Println("Average conversion rate:", avgConversionRate)
 		fmt.Println("Non-brand impressions:", scImpressions)
 		fmt.Println("Non-brand clicks:", scClicks)
 		fmt.Println("Non-brand CTR:", scCTR)
@@ -1136,7 +1145,7 @@ func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate str
 	if responseCount == 0 {
 		fmt.Println(red+"Error. generateRevenueBQLOrganic. Engagement analytics with visits, revenue & transactions (orders) has not been configured for the specified project ", organization+"/"+project+reset)
 		getRevenueAndSearchConsoleDataStatus := "errorNoEAFound"
-		return 0, 0, 0, 0, 0.0, getRevenueAndSearchConsoleDataStatus
+		return 0, 0, 0, 0, 0.0, 0.0, getRevenueAndSearchConsoleDataStatus
 	} else {
 		metricsOrders = int(response.Results[0].Metrics[0])
 		metricsRevenue = int(response.Results[0].Metrics[1])
@@ -1154,9 +1163,10 @@ func generateRevenueBQLOrganic(analyticsID string, startDate string, endDate str
 
 		// Calculate avgConversionRate only if metricsVisits is not zero
 		if metricsVisits != 0 {
-			avgConversionRate = float64(metricsVisits) / float64(metricsVisits)
-			println("conversion rate")
-			println()
+			avgConversionRate = float64(metricsOrders) / float64(metricsVisits) * 100
+			// Round to 2 decimal places
+			avgConversionValueRounded := math.Round(avgConversionRate*100) / 100
+			avgConversionRate = avgConversionValueRounded
 		}
 	}
 	getRevenueAndSearchConsoleDataStatus := "success"
@@ -1170,7 +1180,7 @@ func generateRevenueBQLNonOrganic(analyticsID string, firstStartDatePeriod strin
 	conversionOrders := "transactions"
 	// Support for Adobe
 	if analyticsID == "visits.adobe" {
-		conversionCollection = "conversion" //bloo
+		conversionCollection = "conversion"
 		conversionOrders = "orders"
 	}
 
@@ -2112,6 +2122,66 @@ func barVisitValue() {
 		)
 
 	f, _ := os.Create(insightsCacheFolder + "/go_seo_VisitsValueBar.html")
+
+	_ = bar.Render(f)
+}
+
+// Visit value bar chart
+func barConversionRate() { //bloo
+
+	// Generate the URL to the chart. Used to display the chart full screen when the header is clicked
+	insightsCacheFolderTrimmed := strings.TrimPrefix(insightsCacheFolder, ".")
+	clickURL := protocol + "://" + fullHost + insightsCacheFolderTrimmed + "/go_seo_ConversionRateBar.html"
+
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title:    "Organic conversion rate (click for full screen)",
+		Subtitle: "Organic visits conversion rate.",
+		Link:     clickURL,
+	}),
+		charts.WithLegendOpts(opts.Legend{Right: "80px"}),
+		charts.WithDataZoomOpts(opts.DataZoom{
+			Type:  "slider",
+			Start: 0,
+			End:   100,
+		}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Width:     chartDefaultWidth,
+			Height:    chartDefaultHeight,
+			PageTitle: "Organic visit conversion rate",
+		}),
+		charts.WithColorsOpts(opts.Colors{kpiColourConversionRate}),
+		// disable show the legend
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	barDataConversionRate := generateBarItemsFloat(seoConversionRate)
+
+	bar.SetXAxis(startMonthNames).
+		AddSeries("Organic conversion rate", barDataConversionRate,
+			charts.WithLabelOpts(
+				opts.Label{
+					Show:      opts.Bool(true),
+					Position:  "inside",
+					FontSize:  20,
+					Formatter: "{c}" + "%",
+				},
+			),
+		).
+		SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(
+			opts.MarkLineNameTypeItem{Name: "Lowest conversion rate", Type: "min"},
+			opts.MarkLineNameTypeItem{Name: "Highest conversion rate", Type: "max"},
+			opts.MarkLineNameTypeItem{Name: "Average conversion rate", Type: "average"},
+		),
+			charts.WithMarkLineStyleOpts(
+				opts.MarkLineStyle{
+					Label:     &opts.Label{FontSize: 15},
+					LineStyle: &opts.LineStyle{Color: "rgb(255, 128, 0)", Width: 3, Opacity: .7, Type: "dotted"},
+				},
+			),
+		)
+
+	f, _ := os.Create(insightsCacheFolder + "/go_seo_ConversionRateBar.html")
 
 	_ = bar.Render(f)
 }
@@ -3394,6 +3464,7 @@ func generateBroadsheetContainerHTML(company string) {
         <li><a href="#non_organic_business_metrics">Non-Organic business metrics</a></li>
         <li><a href="#non_organic_contribution">Non-Organic contribution</a></li>
         <li><a href="#revenue_visits">Revenue & visits</a></li>
+        <li><a href="#conversion_rate">Organic conversion rate</a></li>
         <li><a href="#visits_per_order">Visits per order</a></li>
         <li><a href="#orders">Order volume</a></li>
         <li><a href="#order_value">Order value (AOV)</a></li>
@@ -3477,6 +3548,11 @@ func generateBroadsheetContainerHTML(company string) {
 	<section class="container row">
 		<iframe src="go_seo_VisitsRevenueRiver.html" title="Revenue & visits river - Organic" class="medium-iframe"></iframe>
 	</section>
+
+	<section id="conversion_rate" class="container row">
+		<iframe src="go_seo_ConversionRateBar.html" title="Order value" class="medium-iframe"></iframe>
+	</section>
+
 
 	<section id="visits_per_order" class="container row">
 		<iframe src="go_seo_VisitsPerOrderLine.html" title="Visits per order" class="medium-iframe"></iframe>
@@ -4282,6 +4358,8 @@ func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition [
 	var filteredSEOOrders []int
 	var filteredSEOOrderValue []int
 	var filteredSEOVisitValue []float64
+	//var filteredSEOConversionValue []float64 bloo
+
 	var filteredVisitsPerOrder []int
 	var filteredStartMonthDates []string
 	var filteredEndMonthDates []string
@@ -4295,6 +4373,7 @@ func cleanInsights(seoScImpressions []int, seoScClicks []int, seoScAvgPosition [
 			filteredSEOScCTR = append(filteredSEOScCTR, seoScCTR[i])
 			filteredSEORevenue = append(filteredSEORevenue, value)
 			filteredSEOVisits = append(filteredSEOVisits, seoVisits[i])
+			//filteredSEOConversionRate = append(filteredSEOConversionRate, seoConversionRate[i]) bloo
 			filteredSEOOrders = append(filteredSEOOrders, seoOrders[i])
 			filteredSEOOrderValue = append(filteredSEOOrderValue, seoOrderValue[i])
 			filteredSEOVisitValue = append(filteredSEOVisitValue, seoVisitValue[i])
