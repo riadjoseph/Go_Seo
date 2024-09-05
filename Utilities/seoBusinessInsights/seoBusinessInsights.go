@@ -98,6 +98,7 @@ var seoOrders []int
 var seoOrderValue []int
 var seoVisitValue []float64
 var seoVisitsPerOrder []int
+var seoConversionRate []float64
 
 // Slices used to store the non-branded KPIs
 var seoScImpressions []int
@@ -722,6 +723,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 	var metricsVisits = 0
 	var avgOrderValue = 0
 	var avgVisitValue = 0.00
+	var avgConversionRate = 0.00
 
 	revenueDataIssue = false
 	visitsDataIssue = false
@@ -764,6 +766,7 @@ func getRevenueAndSearchConsoleData(analyticsID string, startMonthDates []string
 		seoRevenue = append(seoRevenue, metricsRevenue)
 		seoOrderValue = append(seoOrderValue, avgOrderValue)
 		seoVisits = append(seoVisits, metricsVisits)
+		seoConversionRate = append(seoConversionRate, avgConversionRate)
 
 		// Non-branded metrics
 		seoScImpressions = append(seoScImpressions, scImpressions)
